@@ -1,8 +1,11 @@
 import { type DynamicModule, Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
+import { ThrottlerModule } from '@nestjs/throttler';
+import { AuthModule } from './auth/auth.module';
 import { validateEnv } from './config/env.schema';
 import { HealthModule } from './health/health.module';
 import { PrismaModule } from './prisma/prisma.module';
+import { UsersModule } from './users/users.module';
 
 @Module({})
 export class AppModule {
@@ -16,8 +19,13 @@ export class AppModule {
       module: AppModule,
       imports: [
         ConfigModule.forRoot({ isGlobal: true, validate: validateEnv }),
+        // In-memory storage: one API instance only (research.md R4). ThrottlerGuard is applied
+        // per route (login, register); it is not a global guard.
+        ThrottlerModule.forRoot([{ name: 'default', ttl: 15 * 60_000, limit: 20 }]),
         PrismaModule,
         HealthModule,
+        AuthModule,
+        UsersModule,
       ],
     };
   }

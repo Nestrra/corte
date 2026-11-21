@@ -1,41 +1,12 @@
-/**
- * E2E tests for GET /api/v1/health against a real PostgreSQL (research.md R8).
- * DATABASE_URL points to corte_test (default set by the `test:e2e` script).
- */
 import type { INestApplication } from '@nestjs/common';
-import { Test } from '@nestjs/testing';
 import { createServer, type AddressInfo, type Server, type Socket } from 'node:net';
 import request from 'supertest';
-import { AppModule } from '../src/app.module';
-import { configureApp } from '../src/app.setup';
+import { createTestApp, TEST_DATABASE_URL, type TestEnv } from './helpers';
 
-const TEST_DATABASE_URL = process.env.DATABASE_URL;
 const HEALTH_PATH = '/api/v1/health';
 const HEALTH_REPORT_KEYS = ['database', 'status', 'version'];
 
-type EnvOverrides = Partial<
-  Record<'DATABASE_URL' | 'APP_ENV' | 'GIT_SHA' | 'SWAGGER_ENABLED', string | undefined>
->;
-
-async function createApp(overrides: EnvOverrides = {}): Promise<INestApplication> {
-  const env: EnvOverrides = {
-    DATABASE_URL: TEST_DATABASE_URL,
-    APP_ENV: 'test',
-    GIT_SHA: '',
-    SWAGGER_ENABLED: 'false',
-    ...overrides,
-  };
-  for (const [key, value] of Object.entries(env)) {
-    if (value === undefined) delete process.env[key];
-    else process.env[key] = value;
-  }
-
-  const moduleRef = await Test.createTestingModule({ imports: [AppModule.register()] }).compile();
-  const app = moduleRef.createNestApplication({ logger: false });
-  configureApp(app);
-  await app.init();
-  return app;
-}
+const createApp = (overrides: TestEnv = {}): Promise<INestApplication> => createTestApp(overrides);
 
 /** Returns a TCP port on 127.0.0.1 with nothing listening on it. */
 async function getClosedPort(): Promise<number> {
@@ -62,6 +33,12 @@ describe('GET /api/v1/health (e2e)', () => {
 
   beforeAll(() => {
     if (!TEST_DATABASE_URL) throw new Error('DATABASE_URL must point to the test database');
+  });
+
+  it('is public: no Authorization header needed even with the global auth guard', async () => {
+    app = await createApp();
+
+    await request(app.getHttpServer()).get(HEALTH_PATH).expect(200);
   });
 
   afterEach(async () => {

@@ -3,7 +3,11 @@ import { validateEnv } from './env.schema';
 const base = {
   DATABASE_URL: 'postgresql://corte:corte@localhost:5434/corte_dev',
   APP_ENV: 'development',
+  JWT_SECRET: 'test-secret-with-at-least-32-characters!!',
 };
+
+/** Value shipped in apps/api/.env.example (development only). */
+const EXAMPLE_JWT_SECRET = 'dev-only-change-me-0123456789abcdef';
 
 describe('validateEnv', () => {
   it('accepts a minimal valid configuration and applies defaults', () => {
@@ -13,12 +17,16 @@ describe('validateEnv', () => {
       PORT: 3000,
       GIT_SHA: 'unknown',
       SWAGGER_ENABLED: false,
+      JWT_SECRET: base.JWT_SECRET,
+      TRUST_PROXY: 0,
     });
   });
 
   describe('DATABASE_URL', () => {
     it('is required', () => {
-      expect(() => validateEnv({ APP_ENV: 'development' })).toThrow(/DATABASE_URL/);
+      expect(() => validateEnv({ APP_ENV: 'development', JWT_SECRET: base.JWT_SECRET })).toThrow(
+        /DATABASE_URL/,
+      );
     });
 
     it('rejects an empty value', () => {
@@ -36,7 +44,9 @@ describe('validateEnv', () => {
 
   describe('APP_ENV', () => {
     it('is required', () => {
-      expect(() => validateEnv({ DATABASE_URL: base.DATABASE_URL })).toThrow(/APP_ENV/);
+      expect(() =>
+        validateEnv({ DATABASE_URL: base.DATABASE_URL, JWT_SECRET: base.JWT_SECRET }),
+      ).toThrow(/APP_ENV/);
     });
 
     it.each(['development', 'test', 'staging', 'production'])('accepts %s', (appEnv) => {
@@ -103,11 +113,63 @@ describe('validateEnv', () => {
     });
   });
 
+  describe('JWT_SECRET', () => {
+    it('is required', () => {
+      const withoutSecret: Partial<typeof base> = { ...base };
+      delete withoutSecret.JWT_SECRET;
+      expect(() => validateEnv(withoutSecret)).toThrow(/JWT_SECRET/);
+    });
+
+    it('must have at least 32 characters', () => {
+      expect(() => validateEnv({ ...base, JWT_SECRET: 'a'.repeat(31) })).toThrow(/JWT_SECRET/);
+      expect(validateEnv({ ...base, JWT_SECRET: 'a'.repeat(32) }).JWT_SECRET).toHaveLength(32);
+    });
+
+    it('accepts the .env.example value outside production', () => {
+      expect(validateEnv({ ...base, JWT_SECRET: EXAMPLE_JWT_SECRET }).JWT_SECRET).toBe(
+        EXAMPLE_JWT_SECRET,
+      );
+    });
+
+    it('rejects the .env.example value in production', () => {
+      expect(() =>
+        validateEnv({ ...base, APP_ENV: 'production', JWT_SECRET: EXAMPLE_JWT_SECRET }),
+      ).toThrow(/JWT_SECRET/);
+    });
+
+    it('never prints the secret in the error message', () => {
+      let message = '';
+      try {
+        validateEnv({ ...base, JWT_SECRET: 'short-secret-value' });
+      } catch (error) {
+        message = (error as Error).message;
+      }
+      expect(message).toMatch(/JWT_SECRET/);
+      expect(message).not.toContain('short-secret-value');
+    });
+  });
+
+  describe('TRUST_PROXY', () => {
+    it('defaults to 0', () => {
+      expect(validateEnv({ ...base }).TRUST_PROXY).toBe(0);
+      expect(validateEnv({ ...base, TRUST_PROXY: '' }).TRUST_PROXY).toBe(0);
+    });
+
+    it('accepts integers ≥ 0', () => {
+      expect(validateEnv({ ...base, TRUST_PROXY: '1' }).TRUST_PROXY).toBe(1);
+      expect(validateEnv({ ...base, TRUST_PROXY: '2' }).TRUST_PROXY).toBe(2);
+    });
+
+    it.each(['-1', '1.5', 'true', 'abc'])('rejects %s', (value) => {
+      expect(() => validateEnv({ ...base, TRUST_PROXY: value })).toThrow(/TRUST_PROXY/);
+    });
+  });
+
   it('lists every invalid variable without printing secret values', () => {
     const secretUrl = 'mysql://admin:super-secret-password@db/prod';
     let message = '';
     try {
-      validateEnv({ DATABASE_URL: secretUrl, APP_ENV: 'nope', PORT: '-1' });
+      validateEnv({ ...base, DATABASE_URL: secretUrl, APP_ENV: 'nope', PORT: '-1' });
     } catch (error) {
       message = (error as Error).message;
     }

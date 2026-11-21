@@ -15,6 +15,10 @@ const optional = <T extends z.ZodType>(schema: T) =>
 
 export const APP_ENVS = ['development', 'test', 'staging', 'production'] as const;
 
+export const JWT_SECRET_MIN_LENGTH = 32;
+/** The development value shipped in apps/api/.env.example; never valid in production. */
+export const EXAMPLE_JWT_SECRET = 'dev-only-change-me-0123456789abcdef';
+
 export const envSchema = z
   .object({
     DATABASE_URL: optional(
@@ -38,6 +42,18 @@ export const envSchema = z
         .default('false')
         .transform((value) => value === 'true'),
     ),
+    JWT_SECRET: optional(
+      z.string({ error: 'is required' }).min(JWT_SECRET_MIN_LENGTH, {
+        error: `must have at least ${JWT_SECRET_MIN_LENGTH} characters`,
+      }),
+    ),
+    TRUST_PROXY: optional(
+      z.coerce
+        .number({ error: 'must be an integer ≥ 0' })
+        .int({ error: 'must be an integer ≥ 0' })
+        .min(0, { error: 'must be an integer ≥ 0' })
+        .default(0),
+    ),
   })
   .superRefine((env, ctx) => {
     if (env.SWAGGER_ENABLED && env.APP_ENV === 'production') {
@@ -45,6 +61,13 @@ export const envSchema = z
         code: 'custom',
         path: ['SWAGGER_ENABLED'],
         message: 'must not be true when APP_ENV=production (constitution, principle V)',
+      });
+    }
+    if (env.APP_ENV === 'production' && env.JWT_SECRET === EXAMPLE_JWT_SECRET) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['JWT_SECRET'],
+        message: 'must not be the .env.example value when APP_ENV=production',
       });
     }
   });

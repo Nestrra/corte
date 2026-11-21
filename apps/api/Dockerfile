@@ -1,6 +1,7 @@
 # syntax=docker/dockerfile:1
 # Production image for the Corte API (spec 000 US5, research.md R6).
 # Build from the repo root:  docker build -f apps/api/Dockerfile --build-arg GIT_SHA=$(git rev-parse HEAD) -t corte-api .
+# Migrations job:            docker build -f apps/api/Dockerfile --target migrate -t corte-api-migrate .
 # All runtime configuration comes from environment variables (constitution, principle VII).
 
 FROM node:24-alpine AS base
@@ -28,6 +29,12 @@ RUN find /out/node_modules/.pnpm -path '*/@prisma/client/runtime/query_compiler_
       \( -name '*cockroachdb*' -o -name '*mysql*' -o -name '*sqlite*' -o -name '*sqlserver*' \) -delete \
  && find /out/node_modules/.pnpm -name '*.map' -delete \
  && rm -rf /out/node_modules/.pnpm/@types+*
+
+# One-off job that applies Prisma migrations with the same code and config as the API
+# (spec 001, research.md R5). Build with --target migrate; needs DATABASE_URL at runtime.
+# Runs from the build stage because the Prisma CLI is a dev dependency.
+FROM build AS migrate
+CMD ["pnpm","--filter","api","db:migrate:deploy"]
 
 FROM node:24-alpine AS runtime
 ENV NODE_ENV=production
