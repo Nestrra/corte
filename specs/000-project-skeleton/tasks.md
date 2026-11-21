@@ -104,7 +104,7 @@ los jobs `domain-test` y `docker-build` se agregan en US3 y US5.
 
 - [X] T027 [US2] Create `.github/workflows/ci.yml`: triggers `pull_request` and `push` to `main`, `concurrency` per ref with `cancel-in-progress`, `permissions: contents: read`, shared setup (`actions/checkout`, `pnpm/action-setup`, `actions/setup-node` with Node 24 and `cache: pnpm`, `pnpm install --frozen-lockfile`), job `lint-typecheck` (`pnpm --filter @corte/domain build`, `pnpm lint`, `pnpm typecheck`, `pnpm format:check`) and job `api-e2e` with service `postgres:17-alpine` (`POSTGRES_DB=corte_test`, healthcheck `pg_isready`, port mapped) running `pnpm --filter api test` and `pnpm --filter api test:e2e` with `APP_ENV=test` and `DATABASE_URL` from `contracts/environment.md` (research.md R10)
 - [X] T028 [US2] Fill the README "CI" section in `README.md`: what each job runs, and step-by-step instructions to enable protection of `main` in GitHub (require PR and checks `lint-typecheck`, `domain-test`, `api-e2e`, `docker-build`)
-- [ ] T029 [US2] Push the branch, confirm both jobs run green on the PR for this spec, then enable protection of `main` in GitHub (manual, by the repo owner) requiring a PR and the existing checks `lint-typecheck` and `api-e2e`; validate quickstart.md V10 with a throwaway PR that breaks an API unit test (CI red, merge blocked), then close it and delete its branch
+- [X] T029 [US2] Push the branch, confirm both jobs run green on the PR for this spec, then enable protection of `main` in GitHub (manual, by the repo owner) requiring a PR and the existing checks `lint-typecheck` and `api-e2e`; validate quickstart.md V10 with a throwaway PR that breaks an API unit test (CI red, merge blocked), then close it and delete its branch
 
 **Checkpoint**: CI runs on every PR
 
@@ -124,7 +124,7 @@ tabla de cobertura; al romper la prueba sale con código ≠ 0.
 ### Implementation for User Story 3
 
 - [X] T031 [US3] Add devDependencies `vitest` and `@vitest/coverage-v8` to `packages/domain/package.json`, scripts `test` (`vitest run`) and `test:cov` (`vitest run --coverage`), and create `packages/domain/vitest.config.ts` (coverage provider `v8`, reporters `text` and `lcov`, include `src/**`, no minimum threshold per spec.md Assumptions)
-- [ ] T032 [US3] Add job `domain-test` to `.github/workflows/ci.yml` running `pnpm --filter @corte/domain test:cov`, and add the `domain-test` check to the protection of `main` (manual, by the repo owner)
+- [X] T032 [US3] Add job `domain-test` to `.github/workflows/ci.yml` running `pnpm --filter @corte/domain test:cov`, and add the `domain-test` check to the protection of `main` (manual, by the repo owner)
 - [X] T033 [US3] Fill the README "Dominio" section in `README.md` (purpose per principio I, test and coverage commands) and validate quickstart.md V5
 
 **Checkpoint**: Domain package test-ready
@@ -164,10 +164,10 @@ entorno, construida en CI sin publicarse.
 **Independent Test**: quickstart.md V8: build, `docker run` con variables → health 200 con el SHA;
 usuario `node`; sin `.env` en la imagen; misma imagen con `APP_ENV=staging` y `production`.
 
-- [ ] T047 [P] [US5] Create root `.dockerignore` excluding `**/node_modules`, `**/dist`, `**/coverage`, `**/.env*` (keep none), `.git`, `apps/mobile`, `specs`, `docs`
-- [ ] T048 [US5] Create `apps/api/Dockerfile` (build context = repo root) with stages `base` (`node:24-alpine` + Corepack), `build` (`pnpm fetch`, `pnpm install --frozen-lockfile --offline`, `pnpm --filter api prisma:generate`, build domain and api, `pnpm --filter api deploy --prod --ignore-scripts /out`) and `runtime` (`node:24-alpine`, copy `/out`, `ENV NODE_ENV=production`, `ARG GIT_SHA` → `ENV GIT_SHA`, `USER node`, `EXPOSE 3000`, `CMD ["node", "dist/main.js"]`); confirm the generated Prisma client is compiled into `dist`, that `@corte/domain` lands in `/out/node_modules`, and that the deploy works without `inject-workspace-packages` on pnpm ≥ 12.2 (research.md R6 ⚠️, data-model.md `EnvironmentConfig.GIT_SHA`)
-- [ ] T049 [US5] Add job `docker-build` to `.github/workflows/ci.yml`: `docker/setup-buildx-action` + `docker/build-push-action` with `file: apps/api/Dockerfile`, `push: false`, `load: true`, `build-args: GIT_SHA=${{ github.sha }}`, GitHub Actions cache, followed by a step failing if `docker image inspect --format '{{.Size}}'` exceeds 300 MB; then add the `docker-build` check to the protection of `main` (manual, by the repo owner)
-- [ ] T050 [US5] Fill the README "Imagen Docker" section in `README.md` (build, run with env vars, `host.docker.internal`) and validate quickstart.md V8
+- [X] T047 [P] [US5] Create root `.dockerignore` excluding `**/node_modules`, `**/dist`, `**/coverage`, `**/.env*` (keep none), `.git`, `apps/mobile`, `specs`, `docs`
+- [X] T048 [US5] Create `apps/api/Dockerfile` (build context = repo root) with stages `base` (`node:24-alpine` + Corepack), `build` (`pnpm fetch`, `pnpm install --frozen-lockfile --offline`, `pnpm --filter api prisma:generate`, build domain and api, `pnpm --filter api deploy --prod --ignore-scripts /out`) and `runtime` (`node:24-alpine`, copy `/out`, `ENV NODE_ENV=production`, `ARG GIT_SHA` → `ENV GIT_SHA`, `USER node`, `EXPOSE 3000`, `CMD ["node", "dist/main.js"]`); confirm the generated Prisma client is compiled into `dist`, that `@corte/domain` lands in `/out/node_modules`, and that the deploy works without `inject-workspace-packages` on pnpm ≥ 12.2 (research.md R6 ⚠️, data-model.md `EnvironmentConfig.GIT_SHA`)
+- [X] T049 [US5] Add job `docker-build` to `.github/workflows/ci.yml`: `docker/setup-buildx-action` + `docker/build-push-action` with `file: apps/api/Dockerfile`, `push: false`, `load: true`, `build-args: GIT_SHA=${{ github.sha }}`, GitHub Actions cache, followed by a step failing if `docker image inspect --format '{{.Size}}'` exceeds 300 MB; then add the `docker-build` check to the protection of `main` (manual, by the repo owner)
+- [X] T050 [US5] Fill the README "Imagen Docker" section in `README.md` (build, run with env vars, `host.docker.internal`) and validate quickstart.md V8
 
 **Checkpoint**: All user stories independently functional
 

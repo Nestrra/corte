@@ -83,7 +83,28 @@ _Pendiente (spec 000, US4)._
 
 ## Imagen Docker
 
-_Pendiente (spec 000, US5)._
+El API se empaqueta en una imagen multi-stage sobre `node:24-alpine` (`apps/api/Dockerfile`).
+La misma imagen corre en cualquier entorno: toda la configuración entra por variables de entorno
+(constitución, principio VII). Corre con el usuario `node` (no root) y no contiene archivos
+`.env` ni secretos.
+
+```bash
+# Construir desde la raíz del repo; GIT_SHA queda como versión reportada por /api/v1/health
+docker build -f apps/api/Dockerfile --build-arg GIT_SHA=$(git rev-parse HEAD) -t corte-api .
+
+# Ejecutar contra la base local (pnpm db:up). host.docker.internal apunta a tu Mac desde el contenedor
+docker run --rm -p 3001:3000 \
+  -e APP_ENV=staging \
+  -e DATABASE_URL=postgresql://corte:corte@host.docker.internal:5434/corte_dev \
+  corte-api
+
+curl -s http://localhost:3001/api/v1/health   # version = SHA del commit
+```
+
+- `GIT_SHA` se puede sobrescribir al ejecutar con `-e GIT_SHA=...`; vacío o ausente → `unknown`.
+- Objetivo de tamaño: menos de 300 MB descomprimida (la CI lo verifica en el job `docker-build`).
+  Para lograrlo, la imagen elimina los compiladores de consultas de Prisma para motores distintos
+  de PostgreSQL, los source maps de las dependencias y los paquetes `@types/*`.
 
 ## CI
 
@@ -95,7 +116,7 @@ es un check con nombre fijo:
 | `lint-typecheck` | `pnpm lint`, `pnpm typecheck` y `pnpm format:check`                    |
 | `domain-test`    | Pruebas del dominio con cobertura                                      |
 | `api-e2e`        | Pruebas unitarias y e2e del API contra un PostgreSQL 17 real (service) |
-| `docker-build`   | Construcción de la imagen del API sin publicarla _(se agrega en US5)_  |
+| `docker-build`   | Construcción de la imagen del API sin publicarla y control de tamaño   |
 
 ### Protección de la rama `main`
 
@@ -106,7 +127,7 @@ protección de `main` en GitHub:
 2. Patrón de rama: `main`.
 3. Activar **Require a pull request before merging**.
 4. Activar **Require status checks to pass before merging** y marcar como requeridos
-   `lint-typecheck`, `domain-test` y `api-e2e` (y `docker-build` cuando exista).
+   `lint-typecheck`, `domain-test`, `api-e2e` y `docker-build`.
 5. Guardar.
 
 > GitHub solo permite proteger ramas en repositorios privados con un plan de pago (Pro, Team o

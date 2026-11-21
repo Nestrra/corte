@@ -1,0 +1,16 @@
+# Build context for apps/api/Dockerfile (context = repo root). research.md R6.
+**/node_modules
+**/dist
+**/coverage
+**/*.log
+**/.env
+**/.env.*
+.git
+.github
+.specify
+.claude
+specs
+docs
+apps/mobile
+apps/api/src/generated
+**/.DS_Store

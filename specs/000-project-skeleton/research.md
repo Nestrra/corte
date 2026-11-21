@@ -223,7 +223,7 @@ aplican y los puntos delicados que hay que resolver al implementar.
   `ok`/`degraded`, versión `unknown`).
 - **Rationale**: son las únicas reglas propias del API en esta spec (principio II).
 
-## R13. Desviaciones encontradas al implementar US1 (2026-11-21)
+## R13. Desviaciones encontradas al implementar (2026-11-21)
 
 Decisiones tomadas durante `/speckit-implement` (T001–T026) al chocar con las versiones reales.
 
@@ -250,3 +250,13 @@ Decisiones tomadas durante `/speckit-implement` (T001–T026) al chocar con las 
    `ERR_PNPM_IGNORED_BUILDS` hasta aprobar cada paquete. En `pnpm-workspace.yaml` → `allowBuilds`
    se aprueban `prisma` y `@prisma/engines` (CLI de Prisma) y se niegan `@scarf/scarf`
    (telemetría) y `@parcel/watcher` (no se necesita).
+6. **Imagen < 300 MB requiere recortar dependencias (US5).** Con el Dockerfile de R6 la imagen
+   descomprimida pesaba 322 MB, sobre todo por `@prisma/client` (71 MB: el compilador de
+   consultas WASM para cinco motores, en CJS y ESM). En la etapa de build, sobre `/out`, se
+   borran los compiladores de motores distintos de PostgreSQL, los `.map` de las dependencias y
+   los paquetes `@types/*`, y queda en 244 MB. Depende de los nombres internos de los archivos de
+   Prisma (`query_compiler_*_bg.<motor>.*`): revisar al actualizar Prisma. La CI mide la suma de
+   capas descomprimidas con `docker history`, porque `docker image inspect .Size` devuelve el
+   tamaño comprimido con el almacén de imágenes de containerd (Docker Desktop) y el descomprimido
+   con el almacén clásico. Además, `apps/api/package.json` declara `"files": ["dist"]`, porque
+   `pnpm deploy` empaqueta el proyecto como un paquete y `dist` está en `.gitignore`.
