@@ -150,7 +150,7 @@ de diseño, y pantalla temporal "Conectado" / "Sin conexión" según `contracts/
 - [X] T043 [US4] Implement `apps/mobile/src/app/index.tsx` following `contracts/health-screen.md` (title, status text "Comprobando conexión…" / "Conectado" / "Sin conexión", detail line with the URL or the missing-config warning, "Reintentar" button calling `refetch`, status color only as reinforcement, `accessibilityLiveRegion="polite"`) using data-model.md `ConnectionStatus`, `MobileConfig.EXPO_PUBLIC_API_URL`
 - [X] T044 [US4] Add an `apps/mobile/**` block to `eslint.config.mjs` using Expo's flat config (`eslint-config-expo`) and confirm the root `pnpm lint` (`eslint .`) and `pnpm typecheck` pass including the mobile package
 - [X] T045 [US4] Fill the README "App móvil" section in `README.md`: copy `.env.example`, `pnpm --filter mobile start`, URLs for iOS simulator (`localhost`), Android emulator (`10.0.2.2`) and physical device (Mac IP), restart Metro after changing env
-- [ ] T046 [US4] Validate quickstart.md V9 on iOS simulator and Android emulator (connected, disconnected, degraded API, missing URL, fonts) and verify WCAG AA contrast (≥ 4.5:1) of every status text color against its background using the token values in `docs/design-system.md`
+- [X] T046 [US4] Validate quickstart.md V9 on iOS simulator and Android emulator (connected, disconnected, degraded API, missing URL, fonts) and verify WCAG AA contrast (≥ 4.5:1) of every status text color against its background using the token values in `docs/design-system.md`
 
 **Checkpoint**: Mobile app shows connection status on both platforms
 
@@ -177,12 +177,12 @@ usuario `node`; sin `.env` en la imagen; misma imagen con `APP_ENV=staging` y `p
 
 **Purpose**: cierre de la spec, verificación de criterios de éxito y protección de rama.
 
-- [ ] T051 Complete and proofread `README.md` (Spanish, principio VIII): prerrequisitos, instalación en orden, tabla de comandos por paquete, solución de problemas comunes (puerto 5434 ocupado, Metro, emulador Android)
-- [ ] T052 Verify no secrets are tracked (SC-007): `git ls-files | grep -E '\.env($|\.)'` only lists `.env.example` files, and the `.env.example` files contain only local example values
-- [ ] T053 Run `pnpm format` and confirm `pnpm lint`, `pnpm typecheck`, `pnpm build`, domain tests and API unit/e2e tests all pass locally
-- [ ] T054 Verify (no changes) that the protection of `main` in GitHub requires a PR and the four checks `lint-typecheck`, `domain-test`, `api-e2e`, `docker-build`
-- [ ] T055 Validate merge blocking (quickstart.md V10, SC-005): open a throwaway PR breaking `packages/domain/src/index.test.ts`, confirm `domain-test` fails and merge is blocked, then close the PR and delete its branch
-- [ ] T056 Time a fresh clone following only `README.md` through quickstart.md V1, V2 and V9 and confirm it takes under 15 minutes (SC-001); fix the README where steps were unclear
+- [X] T051 Complete and proofread `README.md` (Spanish, principio VIII): prerrequisitos, instalación en orden, tabla de comandos por paquete, solución de problemas comunes (puerto 5434 ocupado, Metro, emulador Android)
+- [X] T052 Verify no secrets are tracked (SC-007): `git ls-files | grep -E '\.env($|\.)'` only lists `.env.example` files, and the `.env.example` files contain only local example values
+- [X] T053 Run `pnpm format` and confirm `pnpm lint`, `pnpm typecheck`, `pnpm build`, domain tests and API unit/e2e tests all pass locally
+- [X] T054 Verify (no changes) that the protection of `main` in GitHub requires a PR and the four checks `lint-typecheck`, `domain-test`, `api-e2e`, `docker-build`
+- [X] T055 Validate merge blocking (quickstart.md V10, SC-005): open a throwaway PR breaking `packages/domain/src/index.test.ts`, confirm `domain-test` fails and merge is blocked, then close the PR and delete its branch
+- [X] T056 Time a fresh clone following only `README.md` through quickstart.md V1, V2 and V9 and confirm it takes under 15 minutes (SC-001); fix the README where steps were unclear
 
 ---
 

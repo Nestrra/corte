@@ -15,17 +15,56 @@ La constitución del proyecto está en `.specify/memory/constitution.md` y las s
 
 ## Prerrequisitos
 
-- Node.js 24 LTS (`.nvmrc`) con Corepack habilitado: `corepack enable`
-- pnpm 12 (lo instala Corepack según `packageManager`)
-- Docker Desktop (o un motor compatible con `docker compose`)
-- Para la app: Xcode con simulador iOS (macOS) y/o Android Studio con un emulador
+- **Node.js 24 LTS** (versión en `.nvmrc`; se recomienda ≥ 24.15, que es lo que piden las
+  herramientas de NestJS).
+- **Corepack** (viene con Node) para usar la versión de pnpm fijada en `package.json` (pnpm 12).
+- **Docker Desktop** (o un motor compatible con `docker compose`).
+- **Para la app**: Xcode con simulador iOS (macOS) y/o Android Studio con un emulador; o Expo Go
+  en un teléfono.
 
-## Instalación
+## Inicio rápido
+
+Desde un clon limpio, en este orden:
 
 ```bash
-corepack enable
+# 1. Instalar dependencias
+git clone https://github.com/Nestrra/corte.git && cd corte
+corepack enable                     # ver "Solución de problemas" si falla por permisos
 pnpm install
+
+# 2. Base de datos local (PostgreSQL 17 en localhost:5434, bases corte_dev y corte_test)
+pnpm db:up
+
+# 3. Variables de entorno locales (valores de ejemplo, sin secretos)
+cp apps/api/.env.example apps/api/.env
+cp apps/mobile/.env.example apps/mobile/.env
+
+# 4. API (terminal 1) → http://localhost:3000
+pnpm --filter api dev
+curl -i http://localhost:3000/api/v1/health      # HTTP 200 {"status":"ok",...}
+
+# 5. App (terminal 2) → pulsa "i" (iOS) o "a" (Android; antes cambia la URL, ver "App móvil")
+pnpm --filter mobile start
 ```
+
+La app debe mostrar **"Conectado"**. Para detener la base: `pnpm db:down`.
+
+## Comandos
+
+| Comando                                | Qué hace                                                 |
+| -------------------------------------- | -------------------------------------------------------- |
+| `pnpm install`                         | Instala las dependencias de los tres paquetes            |
+| `pnpm db:up` / `pnpm db:down`          | Levanta / detiene el PostgreSQL local (Docker)           |
+| `pnpm build`                           | Compila el dominio y el API                              |
+| `pnpm lint`                            | ESLint en todo el monorepo (`eslint .`)                  |
+| `pnpm typecheck`                       | Verificación de tipos de los tres paquetes               |
+| `pnpm format` / `pnpm format:check`    | Formatea / verifica el formato con Prettier              |
+| `pnpm --filter api dev`                | API con recarga automática                               |
+| `pnpm --filter api test`               | Pruebas unitarias del API                                |
+| `pnpm --filter api test:e2e`           | Pruebas e2e del API contra PostgreSQL (requiere `db:up`) |
+| `pnpm --filter @corte/domain test:cov` | Pruebas del dominio con cobertura                        |
+| `pnpm --filter mobile start`           | Metro para la app (Expo Go, simulador o emulador)        |
+| `pnpm --filter mobile typecheck`       | Verificación de tipos de la app                          |
 
 ## API
 
@@ -164,3 +203,27 @@ protección de `main` en GitHub:
 > GitHub solo permite proteger ramas en repositorios privados con un plan de pago (Pro, Team o
 > Enterprise). En un repositorio privado con GitHub Free, la protección (y los rulesets) no
 > están disponibles: hay que hacer público el repositorio o mejorar el plan.
+
+## Solución de problemas
+
+- **`corepack enable` falla con `EACCES` / permiso denegado**: Corepack intenta crear enlaces en
+  `/usr/local/bin`. Usa `sudo corepack enable`, o instala los enlaces en una carpeta tuya que
+  esté en el `PATH`: `corepack enable --install-directory ~/.local/bin`. Mientras tanto puedes
+  anteponer `corepack` a cada comando (`corepack pnpm install`), aunque los scripts que llaman a
+  `pnpm` internamente necesitan el enlace.
+- **El puerto 5434 está ocupado**: otro proceso usa ese puerto (`lsof -nP -iTCP:5434`). Detenlo o
+  cambia el puerto en `docker-compose.yml` y en `DATABASE_URL` de `apps/api/.env`.
+- **El puerto 3000 está ocupado** (por ejemplo, otro API corriendo): cambia `PORT` en
+  `apps/api/.env` y usa el mismo puerto en `EXPO_PUBLIC_API_URL` de `apps/mobile/.env`.
+- **`container name "/corte-postgres" is already in use`**: ya existe el contenedor de otro clon
+  del repo. Detenlo con `docker rm -f corte-postgres` (los datos quedan en su volumen).
+- **`pnpm install` falla con `ERR_PNPM_IGNORED_BUILDS`**: una dependencia nueva quiere ejecutar
+  scripts de instalación. Revísala y apruébala (o niégala) con `pnpm approve-builds <paquete>`;
+  queda registrada en `allowBuilds` de `pnpm-workspace.yaml`.
+- **La app muestra "Sin conexión" con el API corriendo**: revisa `EXPO_PUBLIC_API_URL` en
+  `apps/mobile/.env` (en el emulador Android es `http://10.0.2.2:3000`, no `localhost`) y
+  reinicia Metro con `pnpm --filter mobile start --clear`.
+- **Metro no encuentra un módulo o muestra código viejo**: `pnpm --filter mobile start --clear`.
+  Si persiste en el monorepo, borra `node_modules` y repite `pnpm install`.
+- **"Project is incompatible with this version of Expo Go"**: actualiza Expo Go (la app usa el
+  SDK 58). En el simulador, Expo lo actualiza al pulsar `i`.
