@@ -109,5 +109,10 @@ un JWT con `sub` alterado se rechaza).
 docker build -f apps/api/Dockerfile --target migrate -t corte-api-migrate .
 docker run --rm -e DATABASE_URL=postgresql://corte:corte@host.docker.internal:5434/corte_dev corte-api-migrate
 docker build -f apps/api/Dockerfile -t corte-api .        # imagen del API, sigue < 300 MB
-docker exec <contenedor> node dist/cli/reset-password.js ana@ejemplo.com
+docker run -d --name corte-api-check -p 3001:3000 \
+  -e APP_ENV=staging \
+  -e JWT_SECRET=staging-only-secret-of-at-least-32-chars \
+  -e DATABASE_URL=postgresql://corte:corte@host.docker.internal:5434/corte_dev \
+  corte-api
+docker exec corte-api-check node dist/cli/reset-password.js ana@ejemplo.com
 ```

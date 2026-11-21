@@ -260,8 +260,9 @@ temporal, comprobar que solo se ofrece cambiar la contraseña, cambiarla y entra
 **Límite de intentos**
 
 - **FR-013**: El sistema MUST limitar los intentos de inicio de sesión: tras 5 intentos fallidos
-  para un mismo email en 15 minutos, o 20 intentos desde un mismo origen en 15 minutos, MUST
-  rechazar los siguientes durante 15 minutos, incluso si las credenciales son correctas.
+  para un mismo email en 15 minutos, o 20 solicitudes de inicio de sesión desde un mismo origen
+  en 15 minutos, MUST rechazar los siguientes durante 15 minutos, incluso si las credenciales son
+  correctas.
 - **FR-014**: El sistema MUST limitar el registro a 5 intentos por origen cada hora.
 - **FR-015**: Las confirmaciones con contraseña (eliminar cuenta, cambio de contraseña obligatorio
   o voluntario) MUST contar dentro del límite de intentos de inicio de sesión del usuario.

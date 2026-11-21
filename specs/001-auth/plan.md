@@ -132,11 +132,15 @@ apps/api/
 │   └── cli/reset-password.ts            # comando de administrador
 └── test/
     ├── helpers.ts                       # app de prueba, limpieza de tablas, usuarios de prueba
-    ├── auth.e2e-spec.ts
-    ├── me.e2e-spec.ts
-    ├── isolation.e2e-spec.ts
-    ├── rate-limit.e2e-spec.ts
-    └── admin-reset.e2e-spec.ts
+    ├── register.e2e-spec.ts             # US1
+    ├── login-session.e2e-spec.ts        # US2
+    ├── rate-limit.e2e-spec.ts           # US2
+    ├── logout.e2e-spec.ts               # US3
+    ├── me-timezone.e2e-spec.ts          # US4
+    ├── delete-account.e2e-spec.ts       # US5
+    ├── change-password.e2e-spec.ts      # US6
+    ├── admin-reset.e2e-spec.ts          # US7
+    └── isolation.e2e-spec.ts            # principio III
 
 apps/mobile/src/
 ├── app/

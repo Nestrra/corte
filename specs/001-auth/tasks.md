@@ -24,8 +24,7 @@ escriben antes de implementar y deben fallar primero. La app se valida a mano (q
 ## Path Conventions
 
 Monorepo (plan.md → Project Structure): `apps/api/`, `apps/mobile/`, `packages/domain/`. Las e2e
-se reparten en un archivo por historia (refinamiento de la lista de plan.md para poder trabajar las
-historias en paralelo).
+se reparten en un archivo por historia (ver plan.md) para poder trabajar las historias en paralelo.
 
 ---
 
@@ -36,7 +35,7 @@ historias en paralelo).
 - [ ] T001 Add `argon2`, `@nestjs/jwt` and `@nestjs/throttler` to `apps/api/package.json` and approve `argon2` in `allowBuilds` of `pnpm-workspace.yaml` (research.md R1); run `pnpm install`
 - [ ] T002 [P] Add to `apps/mobile` with `pnpm exec expo install`: `zustand`, `expo-secure-store`, `react-hook-form`, `@hookform/resolvers`, `zod`; add `"@corte/domain": "workspace:*"` and a `prestart` script that runs `pnpm --filter @corte/domain build` in `apps/mobile/package.json` (research.md R9, R10)
 - [ ] T003 [P] Add `JWT_SECRET` (dev-only value of ≥ 32 characters) and `TRUST_PROXY=0` to `apps/api/.env.example` per `contracts/environment.md`
-- [ ] T004 Add API scripts in `apps/api/package.json`: `db:migrate` (`prisma migrate dev`), `db:migrate:deploy` (`prisma migrate deploy`), `admin:reset-password` (`node dist/cli/reset-password.js`) with `preadmin:reset-password` running the build, and change `pretest:e2e` to run `prisma:generate` and then `prisma migrate deploy` against the test database (research.md R5, R7)
+- [ ] T004 Add API scripts in `apps/api/package.json`: `domain:build` (`pnpm --filter @corte/domain build`) chained before `prisma:generate` in the `predev`, `prebuild`, `pretypecheck`, `pretest` and `pretest:e2e` hooks; `db:migrate` (`prisma migrate dev`), `db:migrate:deploy` (`prisma migrate deploy`), `admin:reset-password` (`node dist/cli/reset-password.js`) with `preadmin:reset-password` running the build; `pretest:e2e` also runs `prisma migrate deploy` against the test database. In `.github/workflows/ci.yml`, job `api-e2e`, add `pnpm --filter @corte/domain build` before the API steps (research.md R5, R7, R9)
 
 ---
 
@@ -49,7 +48,7 @@ navegación de la app. Todas las historias dependen de esta fase.
 
 ### Tests for Foundational (write first, must FAIL) ⚠️
 
-- [ ] T005 [P] Write Vitest tests in `packages/domain/src/account-rules.test.ts`: `normalizeEmail` (trim + lowercase), email format validation, `normalizeName` (trim) and name length 1–80, password length 8–128 (no trimming), exported constants (data-model.md `User.name`, `User.email`, `User.password_hash` for the original-password length)
+- [ ] T005 [P] Write Vitest tests in `packages/domain/src/account-rules.test.ts`: `normalizeEmail` (trim + lowercase), email format validation and maximum length of 254 characters, `normalizeName` (trim) and name length 1–80, password length 8–128 (no trimming), exported constants (data-model.md `User.name`, `User.email`, `User.password_hash` for the original-password length)
 - [ ] T006 [P] Extend `apps/api/src/config/env.schema.spec.ts`: `JWT_SECRET` required and ≥ 32 characters; the `.env.example` value rejected when `APP_ENV=production`; `TRUST_PROXY` defaults to 0 and accepts integers ≥ 0 only (`contracts/environment.md`)
 - [ ] T007 [P] Write unit tests in `apps/api/src/auth/password.service.spec.ts`: hash uses argon2id (PHC string starts with `$argon2id$`), verify true/false, `verifyAgainstDummy` always returns false (research.md R1)
 - [ ] T008 [P] Write unit tests in `apps/api/src/auth/tokens.service.spec.ts` for the pure parts: access token carries `sub` and `sid` and expires in 15 min; refresh token is 32 random bytes in base64url; its stored hash is the SHA-256 hex of the token (data-model.md `RefreshToken.token_hash`)
@@ -57,14 +56,14 @@ navegación de la app. Todas las historias dependen de esta fase.
 
 ### Implementation for Foundational
 
-- [ ] T010 [P] Implement `packages/domain/src/account-rules.ts` and export it from `packages/domain/src/index.ts` per data-model.md `User.name`, `User.email` and the 8–128 rule of `User.password_hash` (makes T005 pass)
+- [ ] T010 [P] Implement `packages/domain/src/account-rules.ts` (including the 254-character email limit) and export it from `packages/domain/src/index.ts` per data-model.md `User.name`, `User.email` and the 8–128 rule of `User.password_hash` (makes T005 pass)
 - [ ] T011 [P] Add `JWT_SECRET` and `TRUST_PROXY` to `apps/api/src/config/env.schema.ts` (makes T006 pass)
-- [ ] T012 Define `User` and `RefreshToken` in `apps/api/prisma/schema.prisma` per data-model.md (`User.id`, `User.name`, `User.email`, `User.password_hash`, `User.timezone`, `User.must_change_password`, `User.created_at`, `User.updated_at`, `RefreshToken.id`, `RefreshToken.user_id` with `onDelete: Cascade`, `RefreshToken.family_id`, `RefreshToken.token_hash`, `RefreshToken.expires_at`, `RefreshToken.rotated_at`, `RefreshToken.revoked_at`, `RefreshToken.created_at`, with the unique constraints and indexes listed there; snake_case table/column names via `@@map`/`@map`) and create the first migration with `pnpm --filter api db:migrate` in `apps/api/prisma/migrations/`
+- [ ] T012 Define `User` and `RefreshToken` in `apps/api/prisma/schema.prisma` per data-model.md (`User.id`, `User.name`, `User.email`, `User.password_hash`, `User.timezone`, `User.must_change_password`, `User.created_at`, `User.updated_at`, `RefreshToken.id`, `RefreshToken.user_id` with `onDelete: Cascade`, `RefreshToken.family_id`, `RefreshToken.token_hash`, `RefreshToken.expires_at`, `RefreshToken.rotated_at`, `RefreshToken.revoked_at`, `RefreshToken.created_at`, with the unique constraints and indexes listed there; snake_case table/column names via `@@map`/`@map`) and create the first migration in `apps/api/prisma/migrations/` with `prisma migrate dev --create-only`, adding by hand to its SQL the constraint `CHECK (email = lower(email))` on `users` (data-model.md `User.email`; Prisma schema cannot express CHECK constraints), then apply it with `pnpm --filter api db:migrate`
 - [ ] T013 [P] Implement `apps/api/src/common/errors.ts` (`ErrorCode` union and `AppException`), `apps/api/src/common/http-exception.filter.ts` (uniform `{ statusCode, code, message, errors? }`, mapping the throttler exception to 429 `RATE_LIMITED`) and `apps/api/src/common/zod-validation.pipe.ts` (400 `VALIDATION_ERROR` with `errors[{ field, code }]`) per `contracts/errors.md`; register the filter in `apps/api/src/app.setup.ts`
 - [ ] T014 [P] Implement `apps/api/src/auth/password.service.ts` (argon2id hash/verify and a dummy hash computed at startup) (makes T007 pass)
 - [ ] T015 Implement `apps/api/src/auth/tokens.service.ts` per research.md R3: `signAccessToken(sub, sid)`, `createSession(userId)` (new family + first token), `rotate(refreshToken)` (transaction: not found → `SESSION_EXPIRED`; rotated/revoked → revoke family + `SESSION_REVOKED`; expired → `SESSION_EXPIRED`; else mark `rotated_at` and issue the next token), `revokeFamily(sid)`, `revokeAllForUser(userId, exceptSid?)` and `isSessionActive(sub, sid)` returning the user's `must_change_password` (data-model.md `RefreshToken.family_id`, `RefreshToken.token_hash`, `RefreshToken.expires_at` sliding 30 days, `RefreshToken.rotated_at`, `RefreshToken.revoked_at`, `User.must_change_password`) (makes T008 pass)
 - [ ] T016 Implement `apps/api/src/auth/decorators.ts` (`@Public()`, `@AllowPendingPasswordChange()`, `@CurrentUser()`) and `apps/api/src/auth/jwt-auth.guard.ts`; register it as `APP_GUARD`; mark `HealthController` as `@Public()`; add bearer auth to the Swagger document and `app.set('trust proxy', TRUST_PROXY)` in `apps/api/src/app.setup.ts` (makes T009 pass)
-- [ ] T017 Create `apps/api/src/auth/auth.module.ts` (with `JwtModule` using `JWT_SECRET`) and `apps/api/src/users/users.module.ts`, and import them plus `ThrottlerModule.forRoot` (in-memory storage) in `apps/api/src/app.module.ts`
+- [ ] T017 Create `apps/api/src/auth/auth.module.ts` (with `JwtModule` using `JWT_SECRET`) and `apps/api/src/users/users.module.ts`, and import them plus `ThrottlerModule.forRoot` (in-memory storage) in `apps/api/src/app.module.ts`. Do NOT register `ThrottlerGuard` globally: it is applied only to login and register (T028, T037)
 - [ ] T018 Create `apps/api/test/helpers.ts`: `createTestApp(env)` (sets test `JWT_SECRET`, boots `AppModule.register()` with `configureApp`), `resetDatabase()` (truncate `users` cascade), `createUser({ name, email, password, mustChangePassword? })` writing directly with Prisma and argon2, and `login(app, email, password)`; update `apps/api/test/health.e2e-spec.ts` to use it and confirm `/api/v1/health` stays public
 - [ ] T019 [P] Implement `apps/mobile/src/session/secure-storage.ts`: get/set/delete of `corte.refreshToken` and `corte.lastEmail` with `keychainAccessible: WHEN_UNLOCKED_THIS_DEVICE_ONLY` (research.md R10)
 - [ ] T020 Implement `apps/mobile/src/session/session-store.ts` (Zustand): `status` (`restoring` | `signedOut` | `signedIn` | `offline`), in-memory `accessToken`, `user`, `lastEmail`, `notice` (expired/revoked) and actions `signIn(result)`, `signOut(notice?)`, `setUser(user)` that keep secure storage in sync
@@ -86,12 +85,12 @@ navegación de la app. Todas las historias dependen de esta fase.
 
 ### Tests for User Story 1 (write first, must FAIL) ⚠️
 
-- [ ] T026 [P] [US1] Write `apps/api/test/register.e2e-spec.ts`: 201 with `AuthResult` matching `contracts/auth.openapi.yaml`; email stored trimmed and lowercased and timezone `America/Bogota`; password stored as an argon2id hash; one refresh token row created; `EMAIL_TAKEN` for the same email with different casing; `VALIDATION_ERROR` per field for empty name, name > 80, invalid email, password < 8 and > 128; 6th registration from the same IP within an hour → 429 `RATE_LIMITED`
+- [ ] T026 [P] [US1] Write `apps/api/test/register.e2e-spec.ts`: 201 with `AuthResult` matching `contracts/auth.openapi.yaml`; email stored trimmed and lowercased and timezone `America/Bogota`; password stored as an argon2id hash; one refresh token row created; `EMAIL_TAKEN` for the same email with different casing; `VALIDATION_ERROR` per field for empty name, name > 80, invalid email, email longer than 254 characters, password < 8 and > 128; 6th registration from the same IP within an hour → 429 `RATE_LIMITED`
 
 ### Implementation for User Story 1
 
-- [ ] T027 [US1] Implement `AuthService.register` in `apps/api/src/auth/auth.service.ts` (normalize with `@corte/domain`, hash, create the user with data-model.md `User.email` uniqueness mapped to `EMAIL_TAKEN`, `User.timezone` default and `User.must_change_password` false, then `createSession`) and its zod schema in `apps/api/src/auth/auth.schemas.ts`
-- [ ] T028 [US1] Add `POST /auth/register` (`@Public()`, `@Throttle` 5 per hour, 201) in `apps/api/src/auth/auth.controller.ts`; make T026 pass
+- [ ] T027 [US1] Implement `AuthService.register` in `apps/api/src/auth/auth.service.ts` (normalize with `@corte/domain`, hash, create the user with data-model.md `User.email` uniqueness mapped to `EMAIL_TAKEN`, `User.timezone` default and `User.must_change_password` false, then `createSession`) and its zod schema in `apps/api/src/auth/auth.schemas.ts` using the `@corte/domain` validators (email ≤ 254)
+- [ ] T028 [US1] Add `POST /auth/register` (`@Public()`, `@UseGuards(ThrottlerGuard)`, `@Throttle` 5 per hour with `blockDuration` 15 min, 201) in `apps/api/src/auth/auth.controller.ts`; make T026 pass
 - [ ] T029 [P] [US1] Implement `register()` in `apps/mobile/src/api/auth.ts`
 - [ ] T030 [US1] Implement `apps/mobile/src/app/(auth)/register.tsx` per `contracts/screens.md` with react-hook-form + zod using `@corte/domain` limits; on success `signIn(result)`; API field errors mapped to fields; passwords cleared on error
 - [ ] T031 [US1] Implement `apps/mobile/src/app/(app)/index.tsx`: greeting "Hola, {nombre}" and a note that the full home arrives later (`contracts/screens.md`)
@@ -108,15 +107,15 @@ navegación de la app. Todas las historias dependen de esta fase.
 
 ### Tests for User Story 2 (write first, must FAIL) ⚠️
 
-- [ ] T032 [P] [US2] Write `apps/api/test/login-session.e2e-spec.ts`: login with any email casing → 200; unknown email and wrong password → identical 401 `INVALID_CREDENTIALS` bodies; `POST /auth/refresh` rotates (new pair, old one rotated); reusing a rotated token → 401 `SESSION_REVOKED` and the newest token of that family also fails; refresh token with `expires_at` in the past → 401 `SESSION_EXPIRED`; access token of a revoked family on `GET /me` → 401 `SESSION_REVOKED`; `GET /me` returns the `User` schema
-- [ ] T033 [P] [US2] Write `apps/api/test/rate-limit.e2e-spec.ts`: 5 failed logins for one email → 6th attempt with the correct password → 429 `RATE_LIMITED`; the 429 body is the same for an unknown email; 21st login request from the same IP within 15 min → 429
-- [ ] T034 [P] [US2] Write unit tests in `apps/api/src/auth/login-attempts.service.spec.ts` with an injected clock: lock after 5 failures within 15 min, unlock after 15 min, failures older than the window ignored, success resets the counter (research.md R4)
+- [ ] T032 [P] [US2] Write `apps/api/test/login-session.e2e-spec.ts`: login with any email casing → 200; unknown email and wrong password → identical 401 `INVALID_CREDENTIALS` bodies; `POST /auth/refresh` rotates (new pair, old one rotated); reusing a rotated token → 401 `SESSION_REVOKED` and the newest token of that family also fails; each rotation sets the new token's `expires_at` about 30 days ahead (sliding window, FR-009); refresh token with `expires_at` in the past → 401 `SESSION_EXPIRED`; access token of a revoked family on `GET /me` → 401 `SESSION_REVOKED`; `GET /me` returns the `User` schema
+- [ ] T033 [P] [US2] Write `apps/api/test/rate-limit.e2e-spec.ts`: 5 failed logins for one email → 6th attempt with the correct password → 429 `RATE_LIMITED`; the 429 body is the same for an unknown email; 21st login request from the same IP within 15 min → 429; with `TRUST_PROXY=1`, requests with different `X-Forwarded-For` values are counted separately
+- [ ] T034 [P] [US2] Write unit tests in `apps/api/src/auth/login-attempts.service.spec.ts` with an injected clock: lock after 5 failures within 15 min, unlock after 15 min, failures older than the window ignored, success resets the counter (research.md R4); and in `apps/api/src/auth/auth.service.spec.ts`: login with an unknown email calls `PasswordService.verifyAgainstDummy` and returns `INVALID_CREDENTIALS` (FR-007)
 
 ### Implementation for User Story 2
 
 - [ ] T035 [US2] Implement `apps/api/src/auth/login-attempts.service.ts` (in-memory `Map`, injectable clock) (makes T034 pass)
 - [ ] T036 [US2] Implement `AuthService.login` (lockout check, `verifyAgainstDummy` for unknown emails, record failure/success, `createSession`) and `AuthService.refresh` (delegates to `TokensService.rotate`, returns the user) in `apps/api/src/auth/auth.service.ts`
-- [ ] T037 [US2] Add `POST /auth/login` (`@Public()`, `@Throttle` 20 per 15 min) and `POST /auth/refresh` (`@Public()`) in `apps/api/src/auth/auth.controller.ts`
+- [ ] T037 [US2] Add `POST /auth/login` (`@Public()`, `@UseGuards(ThrottlerGuard)`, `@Throttle` 20 requests per 15 min with `blockDuration` 15 min) and `POST /auth/refresh` (`@Public()`) in `apps/api/src/auth/auth.controller.ts`
 - [ ] T038 [US2] Implement `UsersService.getProfile` in `apps/api/src/users/users.service.ts` and `GET /me` (`@AllowPendingPasswordChange()`) in `apps/api/src/users/me.controller.ts`, mapping data-model.md `User.name`, `User.email`, `User.timezone`, `User.must_change_password` to the contract `User`; make T032 and T033 pass
 - [ ] T039 [P] [US2] Implement `login()` and `refresh()` in `apps/mobile/src/api/auth.ts` and `getMe()` in `apps/mobile/src/api/me.ts`
 - [ ] T040 [US2] Implement `apps/mobile/src/session/bootstrap.ts`: with a stored refresh token → refresh → `getMe` → `signedIn`; network error → `offline` (keep the token); 401 → delete the token and `signOut` with notice; no token → `signedOut`; wire it in `apps/mobile/src/app/_layout.tsx` replacing the temporary bootstrap
@@ -164,8 +163,8 @@ navegación de la app. Todas las historias dependen de esta fase.
 
 **Independent Test**: quickstart.md A7 y A9 paso 7.
 
-- [ ] T052 [P] [US5] Write `apps/api/test/delete-account.e2e-spec.ts`: wrong password → 401 `INVALID_PASSWORD` and nothing deleted (and it counts toward the email lockout); correct password → 204, the user row and all its refresh tokens are gone (cascade), another session's access token → 401; login afterwards → 401 `INVALID_CREDENTIALS`; registering the same email again → 201
-- [ ] T053 [US5] Implement `UsersService.deleteAccount` (verify password, record failures in `LoginAttemptsService`, delete the user relying on data-model.md `RefreshToken.user_id` cascade) and `DELETE /me` (204) in `apps/api/src/users/users.service.ts` and `apps/api/src/users/me.controller.ts`; make T052 pass
+- [ ] T052 [P] [US5] Write `apps/api/test/delete-account.e2e-spec.ts`: wrong password → 401 `INVALID_PASSWORD` and nothing deleted (and it counts toward the email lockout); with the email locked, even the correct password → 429 `RATE_LIMITED` and nothing deleted; correct password → 204, the user row and all its refresh tokens are gone (cascade), another session's access token → 401; login afterwards → 401 `INVALID_CREDENTIALS`; registering the same email again → 201
+- [ ] T053 [US5] Implement `UsersService.deleteAccount` (check the email lockout first → 429 `RATE_LIMITED`, then verify password, record failures in `LoginAttemptsService`, delete the user relying on data-model.md `RefreshToken.user_id` cascade) and `DELETE /me` (204) in `apps/api/src/users/users.service.ts` and `apps/api/src/users/me.controller.ts`; make T052 pass
 - [ ] T054 [US5] Implement `deleteAccount()` in `apps/mobile/src/api/me.ts` and `apps/mobile/src/app/(app)/delete-account.tsx` per `contracts/screens.md` (warning, password field, `danger` button, cancel); on success `signOut()`; add the "Eliminar cuenta" entry to `apps/mobile/src/app/(app)/profile.tsx`
 
 **Checkpoint**: account deletion works
@@ -178,8 +177,8 @@ navegación de la app. Todas las historias dependen de esta fase.
 
 **Independent Test**: quickstart.md A5 y A9 paso 4.
 
-- [ ] T055 [P] [US6] Write `apps/api/test/change-password.e2e-spec.ts` (voluntary mode): missing `currentPassword` → 400; wrong `currentPassword` → 401 `INVALID_PASSWORD` (counts toward the lockout); new password equal to the current → 409 `SAME_PASSWORD`; new password < 8 → 400; success → 200, the current session keeps working, another session → 401 `SESSION_REVOKED`, login with the old password → 401 and with the new one → 200
-- [ ] T056 [US6] Implement `AuthService.changePassword` (voluntary path: verify current, reject equal password, hash new, `revokeAllForUser(userId, exceptSid)`) and `POST /auth/change-password` (`@AllowPendingPasswordChange()`) with its zod schema in `apps/api/src/auth/auth.service.ts`, `apps/api/src/auth/auth.controller.ts` and `apps/api/src/auth/auth.schemas.ts`; make T055 pass
+- [ ] T055 [P] [US6] Write `apps/api/test/change-password.e2e-spec.ts` (voluntary mode): missing `currentPassword` → 400; wrong `currentPassword` → 401 `INVALID_PASSWORD` (counts toward the lockout); with the email locked, even the correct `currentPassword` → 429 `RATE_LIMITED` and nothing changes; new password equal to the current → 409 `SAME_PASSWORD`; new password < 8 → 400; success → 200, the current session keeps working, another session → 401 `SESSION_REVOKED`, login with the old password → 401 and with the new one → 200
+- [ ] T056 [US6] Implement `AuthService.changePassword` (voluntary path: check the email lockout first → 429 `RATE_LIMITED`, verify current, reject equal password, hash new, `revokeAllForUser(userId, exceptSid)`) and `POST /auth/change-password` (`@AllowPendingPasswordChange()`) with its zod schema in `apps/api/src/auth/auth.service.ts`, `apps/api/src/auth/auth.controller.ts` and `apps/api/src/auth/auth.schemas.ts`; make T055 pass
 - [ ] T057 [US6] Implement `changePassword()` in `apps/mobile/src/api/auth.ts` and `apps/mobile/src/app/(app)/change-password.tsx` in voluntary mode (current, new, confirmation; validation with `@corte/domain`); add "Cambiar contraseña" to `apps/mobile/src/app/(app)/profile.tsx`
 
 **Checkpoint**: voluntary password change works
@@ -205,8 +204,8 @@ navegación de la app. Todas las historias dependen de esta fase.
 ## Phase 10: Polish & Cross-Cutting Concerns
 
 - [ ] T063 Write `apps/api/test/isolation.e2e-spec.ts` (principle III, SC-004): with users A and B, A's token reads only A's profile; A's `PATCH /me` and `DELETE /me` never affect B; A's logout and password change do not revoke B's sessions; B's refresh token cannot be rotated into A's session; a JWT signed with the right secret but with `sub` changed to B and A's `sid` → 401; a token signed with another secret → 401
-- [ ] T064 Add a `migrate` target to `apps/api/Dockerfile` (from the build stage, `CMD ["pnpm", "--filter", "api", "db:migrate:deploy"]` or the equivalent `prisma migrate deploy`) keeping the API image as the default (last) stage; build both, check the API image is still < 300 MB and that `argon2` loads in Alpine by running migrate + API containers and registering a user (quickstart.md A10)
-- [ ] T065 [P] Update `README.md`: migrations (`db:migrate`), new variables `JWT_SECRET` and `TRUST_PROXY`, the admin command (local and `docker exec`), the `migrate` image target, and the single-instance limitation of the rate limits (research.md R4)
+- [ ] T064 Add a `migrate` target to `apps/api/Dockerfile` (from the build stage, `CMD ["pnpm","--filter","api","db:migrate:deploy"]`) keeping the API image as the default (last) stage; build both, check the API image is still < 300 MB and that `argon2` loads in Alpine by running the migrate container and then the API container with `APP_ENV`, `JWT_SECRET` and `DATABASE_URL`, and registering a user (quickstart.md A10)
+- [ ] T065 [P] Update `README.md`: the API compiles `@corte/domain` automatically before `dev`/`build`/`typecheck`/`test` (`domain:build`), migrations (`db:migrate`), new variables `JWT_SECRET` and `TRUST_PROXY`, the admin command (local and `docker exec`), the `migrate` image target, and the single-instance limitation of the rate limits (research.md R4)
 - [ ] T066 Security pass: confirm no password, temporary password or token is logged (FR-033) by grepping the code and running the e2e suite with logs enabled; confirm `JWT_SECRET` is never committed (only the dev value in `.env.example`)
 - [ ] T067 Run `pnpm format`, `pnpm lint`, `pnpm typecheck`, `pnpm build`, domain tests, API unit and e2e tests; all green
 - [ ] T068 Validate quickstart.md A1–A8 and A10; A9 (app on iOS simulator and Android emulator) is validated manually by the user

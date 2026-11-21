@@ -56,14 +56,19 @@ se registran los puntos delicados. Consultado el 2026-11-21: docs de Expo SDK 58
 ## R4. Límites de intentos
 
 - **Decision**:
-  - **Por origen (IP)**: `@nestjs/throttler` 6.8 (compatible con Nest 12), aplicado solo a
-    `POST /auth/login` (20 por 15 min) y `POST /auth/register` (5 por hora) con `@Throttle`. Al
+  - **Por origen (IP)**: `@nestjs/throttler` 6.8 (compatible con Nest 12). `ThrottlerGuard` se
+    aplica **solo** a `POST /auth/login` y `POST /auth/register` con `@UseGuards(ThrottlerGuard)`
+    (no es un guard global), con `@Throttle`: login 20 solicitudes por 15 min y registro 5 por
+    hora, ambos con `blockDuration` de 15 min (al superar el límite, el origen queda bloqueado 15
+    min desde ese momento). Cuenta todas las solicitudes, no solo las fallidas (FR-013). Al
     superarlo → 429 `RATE_LIMITED`.
   - **Por email**: `LoginAttemptsService` en memoria (`Map` por email normalizado): 5 fallos en una
     ventana de 15 min bloquean ese email 15 min, incluso con la contraseña correcta (FR-013). Un
     inicio de sesión correcto reinicia el contador. Las confirmaciones con contraseña (eliminar
-    cuenta, cambio de contraseña) suman fallos al email del usuario (FR-015). Bloqueado → 429
-    `RATE_LIMITED`, con el mismo mensaje exista o no el email (FR-016).
+    cuenta, cambio de contraseña) suman fallos al email del usuario (FR-015) y **comprueban el
+    bloqueo antes de verificar la contraseña**: si el email está bloqueado responden 429 sin
+    verificar nada. Bloqueado → 429 `RATE_LIMITED`, con el mismo mensaje exista o no el email
+    (FR-016).
 - **Limitación documentada**: ambos contadores viven en memoria de **una sola instancia** del API.
   Se reinician al reiniciar el proceso y no se comparten si algún día hay varias réplicas; en ese
   caso habría que moverlos a un almacén compartido (Redis o PostgreSQL). Queda en la lista de v2.
@@ -121,8 +126,13 @@ se registran los puntos delicados. Consultado el 2026-11-21: docs de Expo SDK 58
 - **Decision**: `packages/domain/src/account-rules.ts` con `NAME_MAX_LENGTH = 80`,
   `PASSWORD_MIN_LENGTH = 8`, `PASSWORD_MAX_LENGTH = 128`, `normalizeEmail` (trim + minúsculas),
   `normalizeName` (trim) y validadores puros, con pruebas Vitest. API y app los importan; así los
-  límites no se duplican. La app pasa a depender de `@corte/domain` (consume su `dist`; el script
-  `prestart` de la app compila el dominio).
+  límites no se duplican. El validador de email también limita la longitud a 254 caracteres
+  (data-model.md `User.email`). La app pasa a depender de `@corte/domain` (consume su `dist`; el
+  script `prestart` de la app compila el dominio).
+- **Compilar el dominio antes del API**: `dist` está en `.gitignore`, así que en un clon limpio o en
+  la CI no existe. El API tiene un script `domain:build` (`pnpm --filter @corte/domain build`)
+  encadenado en sus hooks `predev`, `prebuild`, `pretypecheck`, `pretest` y `pretest:e2e`, junto a
+  `prisma:generate`. En la CI, el job `api-e2e` compila el dominio antes de los pasos del API.
 
 ## R10. Sesión en la app
 

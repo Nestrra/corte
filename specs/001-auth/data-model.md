@@ -9,7 +9,7 @@ Primeras tablas del proyecto (Prisma 7 + PostgreSQL 17). Visión de conjunto en
 | --- | --- | --- |
 | `id` | `uuid`, PK | Generado por la base (`gen_random_uuid()`) |
 | `name` | `varchar(80)` | Obligatorio; se guarda sin espacios externos; 1–80 caracteres (FR-002) |
-| `email` | `varchar(254)`, **único** | Obligatorio; se guarda sin espacios externos y en minúsculas, así que la unicidad no distingue mayúsculas (FR-003); formato de email válido |
+| `email` | `varchar(254)`, **único** | Obligatorio; se guarda sin espacios externos y en minúsculas, así que la unicidad no distingue mayúsculas (FR-003); formato de email válido; máximo 254 caracteres (lo valida el dominio). La migración agrega `CHECK (email = lower(email))` para que la base rechace emails sin normalizar |
 | `password_hash` | `text` | Hash argon2id en formato PHC; nunca texto plano (FR-032). La contraseña original tiene 8–128 caracteres (FR-004) |
 | `timezone` | `varchar(64)` | Obligatorio; por defecto `America/Bogota`; identificador IANA válido o `UTC` (FR-019) |
 | `must_change_password` | `boolean` | Por defecto `false`; `true` tras un restablecimiento del administrador hasta que el usuario cambie la contraseña (FR-026) |
