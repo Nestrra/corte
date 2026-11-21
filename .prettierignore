@@ -1,0 +1,11 @@
+node_modules
+dist
+build
+coverage
+apps/api/src/generated
+.expo
+pnpm-lock.yaml
+.specify
+.claude
+specs
+docs

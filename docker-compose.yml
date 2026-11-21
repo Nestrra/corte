@@ -1,0 +1,23 @@
+# Local PostgreSQL for development (corte_dev) and e2e tests (corte_test). research.md R7.
+# Local-only credentials: never reuse them outside your machine.
+services:
+  postgres:
+    image: postgres:17-alpine
+    container_name: corte-postgres
+    environment:
+      POSTGRES_USER: corte
+      POSTGRES_PASSWORD: corte
+      POSTGRES_DB: corte_dev
+    ports:
+      - '5434:5432'
+    volumes:
+      - corte-postgres-data:/var/lib/postgresql/data
+      - ./docker/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U corte -d corte_dev']
+      interval: 2s
+      timeout: 3s
+      retries: 15
+
+volumes:
+  corte-postgres-data:

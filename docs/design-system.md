@@ -29,6 +29,8 @@ Diseño de referencia: https://claude.ai/artifact/9ipVusGjR4hUvszf7tMRy7
 | `success` / `successSoft` | `#067647` / `#ECFDF3` | Pagado |
 | `warning` / `warningSoft` | `#B54708` / `#FFFAEB` | Pendiente, próximo pago, tope ≥ 70% |
 | `danger` / `dangerSoft` | `#B42318` / `#FEF3F2` | Vencido, tope ≥ 100% |
+| `onPrimary` | `#FFFFFF` | Texto sobre `primary` (botón principal) y sobre tarjetas |
+| `onCardSecondary` | `rgba(255,255,255,0.8)` | Texto secundario sobre tarjetas |
 
 ### Colores de tarjeta
 
@@ -43,7 +45,7 @@ El usuario elige uno al crear la tarjeta. Se guarda la clave, no el hex.
 | `bosque` | `#166534` |
 | `terracota` | `#9A3412` |
 
-Texto sobre tarjeta: blanco; secundario `rgba(255,255,255,0.8)`.
+Texto sobre tarjeta: blanco (`onPrimary`); secundario `rgba(255,255,255,0.8)` (`onCardSecondary`).
 
 ## Tipografía
 
@@ -64,6 +66,12 @@ Plus Jakarta Sans (600, 700) para títulos y montos; Inter (400, 500, 600) para 
 
 - Escala de espaciado: `4, 8, 12, 16, 20, 24, 32, 48`. Margen lateral de pantalla: 20. Separación entre secciones: 28.
 - Radios: `8` chips · `12` botones e inputs · `16` paneles · `24` tarjetas · `full` botones redondos.
+
+## Interacción
+
+| Token | Valor | Uso |
+| --- | --- | --- |
+| `interaction.pressedOpacity` | `0.7` | Opacidad de un control pulsado o deshabilitado (p. ej. `Button`) |
 
 ## Componentes base
 
@@ -96,6 +104,7 @@ export const colors = {
   success: '#067647', successSoft: '#ECFDF3',
   warning: '#B54708', warningSoft: '#FFFAEB',
   danger: '#B42318', dangerSoft: '#FEF3F2',
+  onPrimary: '#FFFFFF', onCardSecondary: 'rgba(255,255,255,0.8)',
 } as const;
 
 export const cardColors = {
@@ -105,4 +114,5 @@ export const cardColors = {
 
 export const spacing = { xs: 4, sm: 8, md: 12, lg: 16, xl: 20, '2xl': 24, '3xl': 32, '4xl': 48 } as const;
 export const radius = { chip: 8, control: 12, panel: 16, card: 24, full: 999 } as const;
+export const interaction = { pressedOpacity: 0.7 } as const;
 ```

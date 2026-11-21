@@ -1,0 +1,51 @@
+openapi: 3.1.0
+info:
+  title: Corte API — Health
+  version: 0.0.0
+  description: Contrato del endpoint de salud (spec 000). Público, sin autenticación.
+servers:
+  - url: http://localhost:3000/api/v1
+paths:
+  /health:
+    get:
+      operationId: getHealth
+      summary: Estado del servicio, versión desplegada y disponibilidad de la base de datos
+      security: []
+      responses:
+        '200':
+          description: Servicio sano; la base de datos respondió en ≤ 2 s.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthReport'
+              example:
+                status: ok
+                version: 653f510c1a2b3c4d5e6f708192a3b4c5d6e7f809
+                database: up
+        '503':
+          description: Servicio degradado; la base no respondió, rechazó la conexión o tardó más de 2 s.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthReport'
+              example:
+                status: degraded
+                version: unknown
+                database: down
+components:
+  schemas:
+    HealthReport:
+      type: object
+      additionalProperties: false
+      required: [status, version, database]
+      properties:
+        status:
+          type: string
+          enum: [ok, degraded]
+        version:
+          type: string
+          minLength: 1
+          description: Valor de GIT_SHA, o "unknown" si no está configurado.
+        database:
+          type: string
+          enum: [up, down]
