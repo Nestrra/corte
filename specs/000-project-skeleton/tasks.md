@@ -32,7 +32,7 @@ y archivos compartidos en la raíz. Código y nombres en inglés; README y texto
 
 **Purpose**: Inicializar el workspace y las herramientas raíz.
 
-- [ ] T001 Create root `package.json` (name `corte`, `private: true`, `packageManager` pnpm 10.x, `engines.node` `>=24`) with devDependencies `typescript`, `eslint`, `@eslint/js`, `typescript-eslint`, `prettier`, and scripts `build` (`pnpm -r build`), `lint` (`eslint .`, the only lint script in the repo), `typecheck` (`pnpm -r typecheck`), `format`, `format:check`, `db:up` (`docker compose up -d --wait`), `db:down` (`docker compose down`) per research.md R1/R7
+- [ ] T001 Create root `package.json` (name `corte`, `private: true`, `packageManager` pnpm 12.x (≥ 12.2), `engines.node` `>=24`, `engines.pnpm` `>=12.2.0`) with devDependencies `typescript`, `eslint`, `@eslint/js`, `typescript-eslint`, `prettier`, and scripts `build` (`pnpm -r build`), `lint` (`eslint .`, the only lint script in the repo), `typecheck` (`pnpm -r typecheck`), `format`, `format:check`, `db:up` (`docker compose up -d --wait`), `db:down` (`docker compose down`) per research.md R1/R7
 - [ ] T002 Create `pnpm-workspace.yaml` with packages `apps/*` and `packages/*`; do NOT enable `inject-workspace-packages` so workspace packages stay linked in development (research.md R2/R6)
 - [ ] T003 [P] Create `.nvmrc` (`24`) and root `.gitignore` (node_modules, dist, coverage, `.env`, `.env.*` except `.env.example`, `apps/api/src/generated/`, `.expo/`, `apps/mobile/ios/`, `apps/mobile/android/`)
 - [ ] T004 [P] Create `tsconfig.base.json` with `strict`, `noUncheckedIndexedAccess`, `forceConsistentCasingInFileNames`, `skipLibCheck` (research.md R1)
@@ -165,7 +165,7 @@ entorno, construida en CI sin publicarse.
 usuario `node`; sin `.env` en la imagen; misma imagen con `APP_ENV=staging` y `production`.
 
 - [ ] T047 [P] [US5] Create root `.dockerignore` excluding `**/node_modules`, `**/dist`, `**/coverage`, `**/.env*` (keep none), `.git`, `apps/mobile`, `specs`, `docs`
-- [ ] T048 [US5] Create `apps/api/Dockerfile` (build context = repo root) with stages `base` (`node:24-alpine` + Corepack), `build` (`pnpm fetch`, `pnpm install --frozen-lockfile --offline`, `pnpm --filter api prisma:generate`, build domain and api, `pnpm --filter api deploy --legacy --prod --ignore-scripts /out`) and `runtime` (`node:24-alpine`, copy `/out`, `ENV NODE_ENV=production`, `ARG GIT_SHA` → `ENV GIT_SHA`, `USER node`, `EXPOSE 3000`, `CMD ["node", "dist/main.js"]`); confirm the generated Prisma client is compiled into `dist`, that `@corte/domain` lands in `/out/node_modules`, and that `--legacy` is the correct flag for the installed pnpm version (research.md R6 ⚠️, data-model.md `EnvironmentConfig.GIT_SHA`)
+- [ ] T048 [US5] Create `apps/api/Dockerfile` (build context = repo root) with stages `base` (`node:24-alpine` + Corepack), `build` (`pnpm fetch`, `pnpm install --frozen-lockfile --offline`, `pnpm --filter api prisma:generate`, build domain and api, `pnpm --filter api deploy --prod --ignore-scripts /out`) and `runtime` (`node:24-alpine`, copy `/out`, `ENV NODE_ENV=production`, `ARG GIT_SHA` → `ENV GIT_SHA`, `USER node`, `EXPOSE 3000`, `CMD ["node", "dist/main.js"]`); confirm the generated Prisma client is compiled into `dist`, that `@corte/domain` lands in `/out/node_modules`, and that the deploy works without `inject-workspace-packages` on pnpm ≥ 12.2 (research.md R6 ⚠️, data-model.md `EnvironmentConfig.GIT_SHA`)
 - [ ] T049 [US5] Add job `docker-build` to `.github/workflows/ci.yml`: `docker/setup-buildx-action` + `docker/build-push-action` with `file: apps/api/Dockerfile`, `push: false`, `load: true`, `build-args: GIT_SHA=${{ github.sha }}`, GitHub Actions cache, followed by a step failing if `docker image inspect --format '{{.Size}}'` exceeds 300 MB; then add the `docker-build` check to the protection of `main` (manual, by the repo owner)
 - [ ] T050 [US5] Fill the README "Imagen Docker" section in `README.md` (build, run with env vars, `host.docker.internal`) and validate quickstart.md V8
 
@@ -280,7 +280,7 @@ Sugerencia de commits (Conventional Commits, en inglés): uno por fase o grupo l
 
 - [P] tasks = different files, no dependencies
 - [Story] label maps task to specific user story for traceability
-- Las tareas marcadas con ⚠️ requieren verificar la documentación oficial vigente (Prisma 7, pnpm 10, Expo) antes de implementarlas
+- Las tareas marcadas con ⚠️ requieren verificar la documentación oficial vigente (Prisma 7, pnpm 12, Expo) antes de implementarlas
 - Zustand no se instala en esta spec (research.md R11)
 - Verify tests fail before implementing
 - Stop at any checkpoint to validate story independently

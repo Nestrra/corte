@@ -5,13 +5,14 @@ decisiones de stack vienen del usuario y de la constitución. Este documento reg
 aplican y los puntos delicados que hay que resolver al implementar.
 
 > Las versiones exactas ("última estable") se fijan en el lockfile al instalar. Los detalles de
-> Prisma 7, pnpm 10 y Expo marcados con ⚠️ se verifican contra la documentación oficial vigente
+> Prisma 7, pnpm 12 y Expo marcados con ⚠️ se verifican contra la documentación oficial vigente
 > durante `/speckit-implement`.
 
 ## R1. Monorepo y herramientas raíz
 
 - **Decision**: pnpm workspaces (`apps/*`, `packages/*`), sin Turborepo. Node 24 LTS fijado en
-  `.nvmrc` y `engines`; pnpm fijado en `packageManager` (Corepack). `tsconfig.base.json` con
+  `.nvmrc` y `engines`; pnpm 12 (≥ 12.2) fijado en `packageManager` (Corepack), con
+  `engines.pnpm` `>=12.2.0`. `tsconfig.base.json` con
   `strict`, `noUncheckedIndexedAccess` y `exactOptionalPropertyTypes` desactivado (choca con tipos de
   Nest y Expo). ESLint flat config único en la raíz con typescript-eslint y bloques por paquete
   (reglas de React/Expo solo en `apps/mobile`). Un único script `lint` en la raíz (`eslint .`);
@@ -29,8 +30,8 @@ aplican y los puntos delicados que hay que resolver al implementar.
   script raíz `build` compila el dominio antes que el API.
   - **Paquetes enlazados**: no se activa `inject-workspace-packages`. En desarrollo pnpm enlaza
     (symlink) `@corte/domain` dentro de `apps/api/node_modules`, así que `tsc --watch` en el
-    dominio se refleja de inmediato en el API sin reinstalar. La imagen Docker resuelve el deploy
-    con el modo legacy (ver R6).
+    dominio se refleja de inmediato en el API sin reinstalar. Con pnpm ≥ 12.2, `pnpm deploy`
+    funciona sin inyección (ver R6).
 - **Rationale**: Nest compila a CommonJS y Jest carga CommonJS sin configuración extra, y Metro
   también podrá consumirlo. Un único artefacto evita que los consumidores vean versiones distintas
   del código.
@@ -108,21 +109,20 @@ aplican y los puntos delicados que hay que resolver al implementar.
   2. `build`: `pnpm fetch` → `pnpm install --frozen-lockfile --offline` →
      `pnpm --filter api prisma:generate` → build del dominio y del API (el cliente generado en
      `src/generated` se compila dentro de `dist`) →
-     `pnpm --filter api deploy --legacy --prod --ignore-scripts /out`.
+     `pnpm --filter api deploy --prod --ignore-scripts /out`.
   3. `runtime`: `node:24-alpine`, copia `/out`, `ENV NODE_ENV=production`, `ARG GIT_SHA` →
      `ENV GIT_SHA=$GIT_SHA`, `USER node`, `EXPOSE 3000`, `CMD ["node", "dist/main.js"]`.
-  - **Deploy en modo legacy**: sin `inject-workspace-packages` (R2), `pnpm deploy` en pnpm 10
-    rechaza las dependencias de workspace no inyectadas salvo en modo legacy. Se usa la bandera de
-    CLI `--legacy`. Según la documentación vigente de `pnpm deploy` (consultada el 2026-11-21,
-    escrita para pnpm 12), `--legacy` "fuerza la implementación legacy" y el ajuste equivalente es
-    `forceLegacyDeploy: true` en `pnpm-workspace.yaml` (no en `.npmrc`). Se prefiere la bandera
-    porque deja la decisión visible en el Dockerfile y no afecta al resto del workspace. Esa misma
-    documentación indica que desde pnpm 12.2.0 `pnpm deploy` ya no exige `injectWorkspacePackages`;
-    si el proyecto sube de pnpm 10 a ≥ 12.2, `--legacy` se puede quitar. ⚠️ La documentación
-    consultada no cubre pnpm 10 en concreto: confirmarlo al construir la imagen.
+  - **pnpm 12 y deploy sin inyección**: según la documentación vigente de `pnpm deploy`
+    (consultada el 2026-11-21), desde pnpm 12.2.0 `pnpm deploy` ya no exige
+    `injectWorkspacePackages`. Por eso el proyecto fija pnpm ≥ 12.2 (R1) y usa el deploy normal,
+    sin `--legacy` ni `forceLegacyDeploy`, manteniendo los paquetes enlazados en desarrollo (R2).
+  - **Alternativa descartada**: quedarse en pnpm 10 y usar `deploy --legacy` (o
+    `forceLegacyDeploy: true` en `pnpm-workspace.yaml`); obliga a usar una implementación antigua
+    del deploy solo para la imagen.
   - `--ignore-scripts` evita ejecutar scripts de ciclo de vida durante el deploy (el cliente de
     Prisma ya va compilado en `dist`).
-  - El modo legacy copia `@corte/domain` (su `dist`) dentro de `/out/node_modules`.
+  - El deploy copia `@corte/domain` (su `dist`) dentro de `/out/node_modules`. ⚠️ Confirmarlo al
+    construir la imagen.
   - `.dockerignore` excluye `node_modules`, `.env*`, `apps/mobile`, `.git` y `coverage`.
 - **Rationale**: la imagen final solo lleva el código compilado y las dependencias de producción.
   Con Alpine y sin motor de Prisma, el objetivo de < 300 MB tiene margen.

@@ -19,8 +19,8 @@ y build de la imagen en cada PR. Detalle de decisiones en [research.md](./resear
 
 ## Technical Context
 
-**Language/Version**: TypeScript (strict) sobre Node.js 24 LTS; pnpm 10 (fijado con `packageManager`
-y Corepack).
+**Language/Version**: TypeScript (strict) sobre Node.js 24 LTS; pnpm 12 (≥ 12.2, fijado con
+`packageManager` y Corepack).
 
 **Primary Dependencies**:
 - Raíz: ESLint (flat config) + typescript-eslint, Prettier.
