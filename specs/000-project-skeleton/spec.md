@@ -215,7 +215,7 @@ y consultar el endpoint de salud del contenedor.
 **Integración continua**
 
 - **FR-020**: La CI MUST ejecutarse en cada PR hacia `main` y correr: lint, verificación de tipos,
-  pruebas del dominio, pruebas e2e del API contra una base de datos real y construcción de la
+  verificación de formato, pruebas del dominio, pruebas e2e del API contra una base de datos real y construcción de la
   imagen del API.
 - **FR-021**: Si cualquier paso de la CI falla, el PR MUST quedar bloqueado para merge.
 

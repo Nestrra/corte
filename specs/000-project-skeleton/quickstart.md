@@ -16,7 +16,7 @@ README final (que debe cubrir lo mismo para el día a día). Los contratos está
 
 ```bash
 git clone <repo> corte && cd corte
-pnpm install                 # instala los tres paquetes y genera el cliente de Prisma
+pnpm install                 # instala los tres paquetes (el cliente de Prisma se genera al correr dev, build, typecheck o test)
 pnpm db:up                   # postgres:17-alpine en localhost:5434 (corte_dev y corte_test)
 cp apps/api/.env.example apps/api/.env
 cp apps/mobile/.env.example apps/mobile/.env
@@ -67,10 +67,11 @@ el comando sale con código ≠ 0.
 
 ```bash
 pnpm --filter api test        # unitarias
-pnpm --filter api test:e2e    # requiere pnpm db:up (usa corte_test)
+pnpm --filter api test:e2e    # requiere pnpm db:up (usa corte_test por defecto)
 ```
 
-**Esperado**: pasan los casos base arriba (200), base caída (503) y base colgada (503 en ≤ 3 s).
+**Esperado**: pasan los casos base arriba (200), base caída (503), base colgada (503 en ≤ 3 s) y
+Swagger (404 deshabilitado, 200 habilitado).
 
 ## V7. Lint y tipos (FR-003)
 
@@ -115,8 +116,8 @@ pnpm --filter mobile start      # luego "i" para iOS o "a" para Android
 
 ## V10. CI y bloqueo de merge (US2, FR-020, FR-021)
 
-1. Activar la protección de `main` en GitHub (Settings → Branches/Rules): exigir PR y los checks
-   `lint-typecheck`, `domain-test`, `api-e2e` y `docker-build`.
+1. Protección de `main` en GitHub (Settings → Branches/Rules): exigir PR y los checks
+   `lint-typecheck` y `api-e2e` (desde US2), más `domain-test` (US3) y `docker-build` (US5).
 2. Abrir un PR con una prueba del dominio rota a propósito.
 
 **Esperado**: `domain-test` falla y GitHub bloquea el merge. Al corregirla, los 4 checks pasan en

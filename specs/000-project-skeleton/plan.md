@@ -95,9 +95,9 @@ specs/000-project-skeleton/
 ```text
 .
 ├── package.json                 # scripts raíz: lint, typecheck, format, test, db:up, db:down
-├── pnpm-workspace.yaml          # apps/*, packages/*; inject-workspace-packages (research R6)
+├── pnpm-workspace.yaml          # apps/*, packages/* (paquetes enlazados; research R2/R6)
 ├── tsconfig.base.json           # strict compartido
-├── eslint.config.mjs            # flat config para los tres paquetes
+├── eslint.config.mjs            # flat config único; `pnpm lint` = `eslint .` en la raíz
 ├── .prettierrc / .prettierignore
 ├── .nvmrc                       # 24
 ├── .gitignore / .dockerignore

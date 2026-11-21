@@ -10,7 +10,7 @@ variables. Ningún valor real se versiona; los `.env.example` solo traen valores
 | `DATABASE_URL` | Sí | — | URL que empieza por `postgresql://` o `postgres://` | `postgresql://corte:corte@localhost:5434/corte_dev` |
 | `APP_ENV` | Sí | — | `development` \| `test` \| `staging` \| `production` | `development` |
 | `PORT` | No | `3000` | entero 1–65535 | `3000` |
-| `GIT_SHA` | No | `unknown` | string no vacío | (vacío en local) |
+| `GIT_SHA` | No | `unknown` | opcional; si está vacío o ausente, la versión es `unknown` | (vacío en local) |
 | `SWAGGER_ENABLED` | No | `false` | `true` \| `false`; prohibido `true` si `APP_ENV=production` | `true` |
 
 - Si la validación falla, el proceso termina con código ≠ 0 y un mensaje que lista cada variable
@@ -25,7 +25,7 @@ variables. Ningún valor real se versiona; los `.env.example` solo traen valores
 
 | Variable | Valor |
 | --- | --- |
-| `DATABASE_URL` | `postgresql://corte:corte@localhost:5434/corte_test` (local) o el puerto del service container (CI) |
+| `DATABASE_URL` | Por defecto `postgresql://corte:corte@localhost:5434/corte_test` si no está definida (lo aplica el script `test:e2e`); en CI la define el job con el puerto del service container |
 | `APP_ENV` | `test` |
 
 ## App móvil (`apps/mobile`)
@@ -34,5 +34,6 @@ variables. Ningún valor real se versiona; los `.env.example` solo traen valores
 | --- | --- | --- |
 | `EXPO_PUBLIC_API_URL` | Sí | Simulador iOS: `http://localhost:3000` · Emulador Android: `http://10.0.2.2:3000` · Dispositivo físico: `http://<IP-del-Mac>:3000` |
 
-- Se lee en tiempo de build/arranque de Metro; tras cambiarla hay que reiniciar Metro.
+- Se normaliza quitando la `/` final. Se lee en tiempo de build/arranque de Metro; tras cambiarla
+  hay que reiniciar Metro.
 - Las variables `EXPO_PUBLIC_*` quedan embebidas en el bundle: nunca deben contener secretos.

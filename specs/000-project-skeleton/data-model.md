@@ -8,7 +8,7 @@ Esta spec **no crea tablas ni migraciones**: el schema de Prisma no tiene modelo
 | Campo | Tipo | Valores | Regla |
 | --- | --- | --- | --- |
 | `status` | string (enum) | `ok` \| `degraded` | `ok` si `database = up`; `degraded` en otro caso |
-| `version` | string | SHA del commit o `unknown` | Valor de `GIT_SHA`; `unknown` si no está o está vacío |
+| `version` | string | SHA del commit o `unknown` | Valor de `GIT_SHA`; `unknown` si está ausente o vacío |
 | `database` | string (enum) | `up` \| `down` | `up` si el ping a la base responde en ≤ 2000 ms |
 
 **Transiciones** (por solicitud, sin estado guardado):
@@ -28,10 +28,10 @@ nombra las variables con problema. Definición completa en
 
 | Campo | Tipo | Obligatoria | Por defecto |
 | --- | --- | --- | --- |
-| `DATABASE_URL` | URL `postgresql://` | Sí | — |
+| `DATABASE_URL` | URL `postgresql://` o `postgres://` | Sí | — |
 | `APP_ENV` | `development` \| `test` \| `staging` \| `production` | Sí | — |
 | `PORT` | entero 1–65535 | No | `3000` |
-| `GIT_SHA` | string | No | `unknown` |
+| `GIT_SHA` | string opcional; vacío o ausente → `unknown` | No | `unknown` |
 | `SWAGGER_ENABLED` | booleano (`true`/`false`) | No | `false` |
 
 Regla cruzada: `SWAGGER_ENABLED=true` con `APP_ENV=production` → inválido.
@@ -40,7 +40,7 @@ Regla cruzada: `SWAGGER_ENABLED=true` con `APP_ENV=production` → inválido.
 
 | Campo | Tipo | Obligatoria | Comportamiento si falta |
 | --- | --- | --- | --- |
-| `EXPO_PUBLIC_API_URL` | URL `http(s)://` sin `/` final | Sí | "Sin conexión" + aviso de configuración |
+| `EXPO_PUBLIC_API_URL` | URL `http(s)://`; se normaliza quitando la `/` final | Sí | "Sin conexión" + aviso de configuración |
 
 ## ConnectionStatus (estado de la pantalla temporal, derivado)
 

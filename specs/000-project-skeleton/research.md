@@ -14,7 +14,8 @@ aplican y los puntos delicados que hay que resolver al implementar.
   `.nvmrc` y `engines`; pnpm fijado en `packageManager` (Corepack). `tsconfig.base.json` con
   `strict`, `noUncheckedIndexedAccess` y `exactOptionalPropertyTypes` desactivado (choca con tipos de
   Nest y Expo). ESLint flat config único en la raíz con typescript-eslint y bloques por paquete
-  (reglas de React/Expo solo en `apps/mobile`). Prettier en la raíz.
+  (reglas de React/Expo solo en `apps/mobile`). Un único script `lint` en la raíz (`eslint .`);
+  los paquetes no tienen script `lint` propio. Prettier en la raíz, con `format` y `format:check`.
 - **Rationale**: tres paquetes no justifican un orquestador; `pnpm -r` ya ejecuta en orden
   topológico. Un solo ESLint evita configuraciones divergentes.
 - **Alternatives considered**: Turborepo/Nx (caché y orquestación innecesarias hoy, van a v2 si la
@@ -23,11 +24,16 @@ aplican y los puntos delicados que hay que resolver al implementar.
 ## R2. Consumo de `packages/domain`
 
 - **Decision**: el dominio compila con `tsc` a `dist/` en CommonJS con declaraciones `.d.ts`;
-  `package.json` expone `exports` → `dist`. API y app lo declaran como `"@corte/domain":
-  "workspace:*"`. El script raíz `build` compila el dominio antes que el API; en desarrollo hay
-  `tsc --watch`.
-- **Rationale**: Nest compila a CommonJS y Jest carga CommonJS sin configuración extra; Metro
-  también lo consume. Un único artefacto evita que API y app vean versiones distintas del código.
+  `package.json` expone `exports` → `dist`. En esta spec solo el API lo declara como
+  `"@corte/domain": "workspace:*"`; la app lo agregará cuando lo necesite (principio VI). El
+  script raíz `build` compila el dominio antes que el API.
+  - **Paquetes enlazados**: no se activa `inject-workspace-packages`. En desarrollo pnpm enlaza
+    (symlink) `@corte/domain` dentro de `apps/api/node_modules`, así que `tsc --watch` en el
+    dominio se refleja de inmediato en el API sin reinstalar. La imagen Docker resuelve el deploy
+    con el modo legacy (ver R6).
+- **Rationale**: Nest compila a CommonJS y Jest carga CommonJS sin configuración extra, y Metro
+  también podrá consumirlo. Un único artefacto evita que los consumidores vean versiones distintas
+  del código.
 - **Alternatives considered**: consumir el código fuente TS directamente (requiere configurar
   path mapping en Nest, Jest y Metro por separado); emitir ESM (Jest de Nest necesita configuración
   experimental para ESM).
@@ -55,11 +61,24 @@ aplican y los puntos delicados que hay que resolver al implementar.
   - `prisma.config.ts` define la ruta del schema y la URL desde `DATABASE_URL`. Prisma 7 no carga
     `.env` automáticamente, así que el archivo importa `dotenv/config` (dependencia de desarrollo;
     en contenedor y CI las variables ya existen).
+  - **Valor de reserva para `generate`**: `prisma.config.ts` lee `process.env.DATABASE_URL` (no el
+    helper estricto `env()`) con el valor de reserva no secreto
+    `postgresql://placeholder@localhost:5432/placeholder`. `prisma generate` no se conecta a la
+    base, así que funciona en el job `lint-typecheck` y en la etapa de build de Docker, donde no
+    hay `DATABASE_URL`. El API en tiempo de ejecución no usa ese valor: su `DATABASE_URL` sale de
+    la configuración validada con zod (R3), que es obligatoria.
   - `PrismaService extends PrismaClient`, construido con `adapter: new PrismaPg({
     connectionString, connectionTimeoutMillis: 2000 })`. Se conecta de forma perezosa: si la base
     está caída, el API arranca igual y la salud reporta `degraded`.
-  - El cliente generado no se versiona (`.gitignore`); se genera con `prisma generate` en el
-    `postinstall` del API, en el build y en el Dockerfile.
+  - El cliente generado no se versiona (`.gitignore`). No hay `postinstall`: el API tiene un
+    script explícito `prisma:generate` y los hooks `prebuild`, `pretypecheck`, `pretest`,
+    `pretest:e2e` y `predev` lo ejecutan antes de cada uno de esos scripts. En el Dockerfile se
+    genera en la etapa de build (R6). ⚠️ Los hooks `pre*` requieren que pnpm ejecute scripts
+    pre/post (`enable-pre-post-scripts`); si la versión instalada no lo hace por defecto, se
+    encadena `pnpm prisma:generate &&` dentro de cada script.
+  - **Por qué no `postinstall`**: `pnpm deploy --prod` reinstala solo dependencias de producción;
+    un `postinstall` que llama al CLI `prisma` (dependencia de desarrollo) rompería el build de la
+    imagen.
 - **Rationale**: sin motor binario se reduce la imagen y se evitan problemas de Alpine/musl.
   `moduleFormat = "cjs"` encaja con Nest + Jest. Conectar de forma perezosa cumple el escenario
   "API corriendo con base caída" (US1-3).
@@ -86,12 +105,24 @@ aplican y los puntos delicados que hay que resolver al implementar.
 - **Decision**: Dockerfile multi-stage en `apps/api/Dockerfile`, con el contexto de build en la
   raíz del repo:
   1. `base`: `node:24-alpine` + Corepack (pnpm).
-  2. `build`: `pnpm fetch` → `pnpm install --frozen-lockfile --offline` → `prisma generate` →
-     build del dominio y del API → `pnpm --filter api deploy --prod /out`.
+  2. `build`: `pnpm fetch` → `pnpm install --frozen-lockfile --offline` →
+     `pnpm --filter api prisma:generate` → build del dominio y del API (el cliente generado en
+     `src/generated` se compila dentro de `dist`) →
+     `pnpm --filter api deploy --legacy --prod --ignore-scripts /out`.
   3. `runtime`: `node:24-alpine`, copia `/out`, `ENV NODE_ENV=production`, `ARG GIT_SHA` →
      `ENV GIT_SHA=$GIT_SHA`, `USER node`, `EXPOSE 3000`, `CMD ["node", "dist/main.js"]`.
-  - pnpm 10 exige `inject-workspace-packages: true` en `pnpm-workspace.yaml` para que `pnpm deploy`
-    funcione sin `--legacy`; esto copia `@corte/domain` compilado dentro de la imagen.
+  - **Deploy en modo legacy**: sin `inject-workspace-packages` (R2), `pnpm deploy` en pnpm 10
+    rechaza las dependencias de workspace no inyectadas salvo en modo legacy. Se usa la bandera de
+    CLI `--legacy`. Según la documentación vigente de `pnpm deploy` (consultada el 2026-11-21,
+    escrita para pnpm 12), `--legacy` "fuerza la implementación legacy" y el ajuste equivalente es
+    `forceLegacyDeploy: true` en `pnpm-workspace.yaml` (no en `.npmrc`). Se prefiere la bandera
+    porque deja la decisión visible en el Dockerfile y no afecta al resto del workspace. Esa misma
+    documentación indica que desde pnpm 12.2.0 `pnpm deploy` ya no exige `injectWorkspacePackages`;
+    si el proyecto sube de pnpm 10 a ≥ 12.2, `--legacy` se puede quitar. ⚠️ La documentación
+    consultada no cubre pnpm 10 en concreto: confirmarlo al construir la imagen.
+  - `--ignore-scripts` evita ejecutar scripts de ciclo de vida durante el deploy (el cliente de
+    Prisma ya va compilado en `dist`).
+  - El modo legacy copia `@corte/domain` (su `dist`) dentro de `/out/node_modules`.
   - `.dockerignore` excluye `node_modules`, `.env*`, `apps/mobile`, `.git` y `coverage`.
 - **Rationale**: la imagen final solo lleva el código compilado y las dependencias de producción.
   Con Alpine y sin motor de Prisma, el objetivo de < 300 MB tiene margen.
@@ -118,8 +149,12 @@ aplican y los puntos delicados que hay que resolver al implementar.
      `down`.
   3. **Base colgada**: un servidor TCP local que acepta conexiones y nunca responde → 503 en ≤ 3 s
      (SC-003).
-  También se prueba que `GIT_SHA` ausente produce `"unknown"`. El bootstrap compartido vive en
+  También se prueba que `GIT_SHA` ausente o vacío produce `"unknown"`, que `/api/docs` responde
+  404 con `SWAGGER_ENABLED=false` y 200 con `SWAGGER_ENABLED=true`. El bootstrap compartido vive en
   una función `configureApp(app)` que usan `main.ts` y las e2e.
+- **Base de pruebas por defecto**: el script `test:e2e` usa
+  `DATABASE_URL=${DATABASE_URL:-postgresql://corte:corte@localhost:5434/corte_test}`; en local
+  basta con `pnpm db:up`, y en CI la variable del job tiene prioridad.
 - **Rationale**: los casos de base caída o colgada no se pueden simular deteniendo el servicio de
   la CI; apuntar a un puerto cerrado o a un socket mudo es determinista y no usa mocks de la base.
 - **Alternatives considered**: detener el contenedor durante la prueba (frágil y lento).
@@ -156,18 +191,21 @@ aplican y los puntos delicados que hay que resolver al implementar.
 - **Decision**: `.github/workflows/ci.yml` con disparadores `pull_request` y `push` a `main`, y
   `concurrency` que cancela ejecuciones viejas del mismo PR. Jobs con nombres estables (son los
   que se marcan como requeridos en la protección de rama):
-  1. `lint-typecheck`: `pnpm lint` + `pnpm typecheck` (los tres paquetes).
+  1. `lint-typecheck`: `pnpm lint` (un solo `eslint .`), `pnpm typecheck` (los tres paquetes) y
+     `pnpm format:check` (Prettier).
   2. `domain-test`: `pnpm --filter @corte/domain test:cov`.
-  3. `api-e2e`: service `postgres:17-alpine` con healthcheck; crea `corte_test`, ejecuta
-     `prisma generate` y las pruebas unitarias y e2e del API.
+  3. `api-e2e`: service `postgres:17-alpine` con healthcheck y `POSTGRES_DB=corte_test`; ejecuta
+     las pruebas unitarias y e2e del API (los hooks `pretest` generan el cliente de Prisma).
   4. `docker-build`: `docker/build-push-action` con `push: false`, `build-args:
      GIT_SHA=${{ github.sha }}`, caché de GitHub Actions y verificación de tamaño < 300 MB.
   - Setup común: `pnpm/action-setup` + `actions/setup-node` (Node 24, `cache: pnpm`).
 - **Rationale**: los jobs paralelos dan feedback rápido, y los nombres estables permiten
   configurar los checks requeridos una sola vez.
 - **Alternatives considered**: un solo job secuencial (más lento y con fallos menos claros).
-- **Bloqueo de merge**: requiere activar a mano la protección de `main` con los 4 checks
-  requeridos (paso documentado en el README).
+- **Bloqueo de merge**: requiere activar a mano la protección de `main` (paso documentado en el
+  README). Se activa de forma incremental: en US2 con los checks que ya existen (`lint-typecheck`,
+  `api-e2e`), y `domain-test` y `docker-build` se agregan como requeridos cuando se crean sus
+  jobs (US3 y US5).
 
 ## R11. Zustand
 
