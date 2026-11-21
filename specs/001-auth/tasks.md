@@ -33,7 +33,7 @@ se reparten en un archivo por historia (ver plan.md) para poder trabajar las his
 **Purpose**: Dependencias, variables y scripts nuevos.
 
 - [X] T001 Add `argon2`, `@nestjs/jwt` and `@nestjs/throttler` to `apps/api/package.json` and approve `argon2` in `allowBuilds` of `pnpm-workspace.yaml` (research.md R1); run `pnpm install`
-- [ ] T002 [P] Add to `apps/mobile` with `pnpm exec expo install`: `zustand`, `expo-secure-store`, `react-hook-form`, `@hookform/resolvers`, `zod`; add `"@corte/domain": "workspace:*"` and a `prestart` script that runs `pnpm --filter @corte/domain build` in `apps/mobile/package.json` (research.md R9, R10)
+- [X] T002 [P] Add to `apps/mobile` with `pnpm exec expo install`: `zustand`, `expo-secure-store`, `react-hook-form`, `@hookform/resolvers`, `zod`; add `"@corte/domain": "workspace:*"` and a `prestart` script that runs `pnpm --filter @corte/domain build` in `apps/mobile/package.json` (research.md R9, R10)
 - [X] T003 [P] Add `JWT_SECRET` (dev-only value of ≥ 32 characters) and `TRUST_PROXY=0` to `apps/api/.env.example` per `contracts/environment.md`
 - [X] T004 Add API scripts in `apps/api/package.json`: `domain:build` (`pnpm --filter @corte/domain build`) chained before `prisma:generate` in the `predev`, `prebuild`, `pretypecheck`, `pretest` and `pretest:e2e` hooks; `db:migrate` (`prisma migrate dev`), `db:migrate:deploy` (`prisma migrate deploy`), `admin:reset-password` (`node dist/cli/reset-password.js`) with `preadmin:reset-password` running the build; `pretest:e2e` also runs `prisma migrate deploy` against the test database. In `.github/workflows/ci.yml`, job `api-e2e`, add `pnpm --filter @corte/domain build` before the API steps (research.md R5, R7, R9)
 
@@ -65,12 +65,12 @@ navegación de la app. Todas las historias dependen de esta fase.
 - [X] T016 Implement `apps/api/src/auth/decorators.ts` (`@Public()`, `@AllowPendingPasswordChange()`, `@CurrentUser()`) and `apps/api/src/auth/jwt-auth.guard.ts`; register it as `APP_GUARD`; mark `HealthController` as `@Public()`; add bearer auth to the Swagger document and `app.set('trust proxy', TRUST_PROXY)` in `apps/api/src/app.setup.ts` (makes T009 pass)
 - [X] T017 Create `apps/api/src/auth/auth.module.ts` (with `JwtModule` using `JWT_SECRET`) and `apps/api/src/users/users.module.ts`, and import them plus `ThrottlerModule.forRoot` (in-memory storage) in `apps/api/src/app.module.ts`. Do NOT register `ThrottlerGuard` globally: it is applied only to login and register (T028, T037)
 - [X] T018 Create `apps/api/test/helpers.ts`: `createTestApp(env)` (sets test `JWT_SECRET`, boots `AppModule.register()` with `configureApp`), `resetDatabase()` (truncate `users` cascade), `createUser({ name, email, password, mustChangePassword? })` writing directly with Prisma and argon2, and `login(app, email, password)`; update `apps/api/test/health.e2e-spec.ts` to use it and confirm `/api/v1/health` stays public
-- [ ] T019 [P] Implement `apps/mobile/src/session/secure-storage.ts`: get/set/delete of `corte.refreshToken` and `corte.lastEmail` with `keychainAccessible: WHEN_UNLOCKED_THIS_DEVICE_ONLY` (research.md R10)
-- [ ] T020 Implement `apps/mobile/src/session/session-store.ts` (Zustand): `status` (`restoring` | `signedOut` | `signedIn` | `offline`), in-memory `accessToken`, `user`, `lastEmail`, `notice` (expired/revoked) and actions `signIn(result)`, `signOut(notice?)`, `setUser(user)` that keep secure storage in sync
-- [ ] T021 [P] Implement `apps/mobile/src/api/errors.ts`: `ApiError` (status, code, field errors), network error type, and Spanish texts per `contracts/errors.md`
-- [ ] T022 Implement `apps/mobile/src/api/client.ts`: `apiFetch` adding `Authorization: Bearer`, parsing errors into `ApiError`; on 401 `TOKEN_EXPIRED` it refreshes once with a shared in-flight promise (`POST /auth/refresh` with the stored refresh token), stores the new pair and retries; if refreshing fails it calls `signOut` with the matching notice (research.md R10)
-- [ ] T023 [P] Implement `apps/mobile/src/components/TextField.tsx` (label, input with min height 44, radius `control`, `border` color, error text in `danger`, secure and email variants) and add a `danger` variant to `apps/mobile/src/components/Button.tsx`, theme tokens only (`contracts/screens.md`)
-- [ ] T024 Replace the spec 000 connection screen: delete `apps/mobile/src/app/index.tsx` and `apps/mobile/src/api/health.ts`; in `apps/mobile/src/app/_layout.tsx` keep fonts + `QueryClientProvider`, keep the splash while `status === 'restoring'`, and declare `Stack.Protected guard={status === 'signedOut'}` for `(auth)` and `Stack.Protected guard={status === 'signedIn'}` for `(app)`; create `apps/mobile/src/app/(auth)/_layout.tsx` and `apps/mobile/src/app/(app)/_layout.tsx` (plain stacks) and a temporary bootstrap that sets `signedOut` (research.md R10)
+- [X] T019 [P] Implement `apps/mobile/src/session/secure-storage.ts`: get/set/delete of `corte.refreshToken` and `corte.lastEmail` with `keychainAccessible: WHEN_UNLOCKED_THIS_DEVICE_ONLY` (research.md R10)
+- [X] T020 Implement `apps/mobile/src/session/session-store.ts` (Zustand): `status` (`restoring` | `signedOut` | `signedIn` | `offline`), in-memory `accessToken`, `user`, `lastEmail`, `notice` (expired/revoked) and actions `signIn(result)`, `signOut(notice?)`, `setUser(user)` that keep secure storage in sync
+- [X] T021 [P] Implement `apps/mobile/src/api/errors.ts`: `ApiError` (status, code, field errors), network error type, and Spanish texts per `contracts/errors.md`
+- [X] T022 Implement `apps/mobile/src/api/client.ts`: `apiFetch` adding `Authorization: Bearer`, parsing errors into `ApiError`; on 401 `TOKEN_EXPIRED` it refreshes once with a shared in-flight promise (`POST /auth/refresh` with the stored refresh token), stores the new pair and retries; if refreshing fails it calls `signOut` with the matching notice (research.md R10)
+- [X] T023 [P] Implement `apps/mobile/src/components/TextField.tsx` (label, input with min height 44, radius `control`, `border` color, error text in `danger`, secure and email variants) and add a `danger` variant to `apps/mobile/src/components/Button.tsx`, theme tokens only (`contracts/screens.md`)
+- [X] T024 Replace the spec 000 connection screen: delete `apps/mobile/src/app/index.tsx` and `apps/mobile/src/api/health.ts`; in `apps/mobile/src/app/_layout.tsx` keep fonts + `QueryClientProvider`, keep the splash while `status === 'restoring'`, and declare `Stack.Protected guard={status === 'signedOut'}` for `(auth)` and `Stack.Protected guard={status === 'signedIn'}` for `(app)`; create `apps/mobile/src/app/(auth)/_layout.tsx` and `apps/mobile/src/app/(app)/_layout.tsx` (plain stacks) and a temporary bootstrap that sets `signedOut` (research.md R10)
 - [X] T025 Verify the foundation: `pnpm lint`, `pnpm typecheck`, domain tests, API unit tests and `pnpm --filter api test:e2e` (health) all pass
 
 **Checkpoint**: Foundation ready - user story implementation can now begin
@@ -91,9 +91,9 @@ navegación de la app. Todas las historias dependen de esta fase.
 
 - [X] T027 [US1] Implement `AuthService.register` in `apps/api/src/auth/auth.service.ts` (normalize with `@corte/domain`, hash, create the user with data-model.md `User.email` uniqueness mapped to `EMAIL_TAKEN`, `User.timezone` default and `User.must_change_password` false, then `createSession`) and its zod schema in `apps/api/src/auth/auth.schemas.ts` using the `@corte/domain` validators (email ≤ 254)
 - [X] T028 [US1] Add `POST /auth/register` (`@Public()`, `@UseGuards(ThrottlerGuard)`, `@Throttle` 5 per hour with `blockDuration` 15 min, 201) in `apps/api/src/auth/auth.controller.ts`; make T026 pass
-- [ ] T029 [P] [US1] Implement `register()` in `apps/mobile/src/api/auth.ts`
-- [ ] T030 [US1] Implement `apps/mobile/src/app/(auth)/register.tsx` per `contracts/screens.md` with react-hook-form + zod using `@corte/domain` limits; on success `signIn(result)`; API field errors mapped to fields; passwords cleared on error
-- [ ] T031 [US1] Implement `apps/mobile/src/app/(app)/index.tsx`: greeting "Hola, {nombre}" and a note that the full home arrives later (`contracts/screens.md`)
+- [X] T029 [P] [US1] Implement `register()` in `apps/mobile/src/api/auth.ts`
+- [X] T030 [US1] Implement `apps/mobile/src/app/(auth)/register.tsx` per `contracts/screens.md` with react-hook-form + zod using `@corte/domain` limits; on success `signIn(result)`; API field errors mapped to fields; passwords cleared on error
+- [X] T031 [US1] Implement `apps/mobile/src/app/(app)/index.tsx`: greeting "Hola, {nombre}" and a note that the full home arrives later (`contracts/screens.md`)
 
 **Checkpoint**: registration works end to end
 
@@ -117,10 +117,10 @@ navegación de la app. Todas las historias dependen de esta fase.
 - [X] T036 [US2] Implement `AuthService.login` (lockout check, `verifyAgainstDummy` for unknown emails, record failure/success, `createSession`) and `AuthService.refresh` (delegates to `TokensService.rotate`, returns the user) in `apps/api/src/auth/auth.service.ts`
 - [X] T037 [US2] Add `POST /auth/login` (`@Public()`, `@UseGuards(ThrottlerGuard)`, `@Throttle` 20 requests per 15 min with `blockDuration` 15 min) and `POST /auth/refresh` (`@Public()`) in `apps/api/src/auth/auth.controller.ts`
 - [X] T038 [US2] Implement `UsersService.getProfile` in `apps/api/src/users/users.service.ts` and `GET /me` (`@AllowPendingPasswordChange()`) in `apps/api/src/users/me.controller.ts`, mapping data-model.md `User.name`, `User.email`, `User.timezone`, `User.must_change_password` to the contract `User`; make T032 and T033 pass
-- [ ] T039 [P] [US2] Implement `login()` and `refresh()` in `apps/mobile/src/api/auth.ts` and `getMe()` in `apps/mobile/src/api/me.ts`
-- [ ] T040 [US2] Implement `apps/mobile/src/session/bootstrap.ts`: with a stored refresh token → refresh → `getMe` → `signedIn`; network error → `offline` (keep the token); 401 → delete the token and `signOut` with notice; no token → `signedOut`; wire it in `apps/mobile/src/app/_layout.tsx` replacing the temporary bootstrap
-- [ ] T041 [US2] Implement `apps/mobile/src/app/(auth)/login.tsx` per `contracts/screens.md`: email prefilled from `lastEmail`, expired/revoked notice, generic error, rate-limit message, "Crear cuenta" link
-- [ ] T042 [US2] Add the offline state screen ("No hay conexión con el servidor" + "Reintentar" that reruns bootstrap) in `apps/mobile/src/app/_layout.tsx`
+- [X] T039 [P] [US2] Implement `login()` and `refresh()` in `apps/mobile/src/api/auth.ts` and `getMe()` in `apps/mobile/src/api/me.ts`
+- [X] T040 [US2] Implement `apps/mobile/src/session/bootstrap.ts`: with a stored refresh token → refresh → `getMe` → `signedIn`; network error → `offline` (keep the token); 401 → delete the token and `signOut` with notice; no token → `signedOut`; wire it in `apps/mobile/src/app/_layout.tsx` replacing the temporary bootstrap
+- [X] T041 [US2] Implement `apps/mobile/src/app/(auth)/login.tsx` per `contracts/screens.md`: email prefilled from `lastEmail`, expired/revoked notice, generic error, rate-limit message, "Crear cuenta" link
+- [X] T042 [US2] Add the offline state screen ("No hay conexión con el servidor" + "Reintentar" that reruns bootstrap) in `apps/mobile/src/app/_layout.tsx`
 
 **Checkpoint**: users stay signed in across restarts; brute force is limited
 
@@ -134,7 +134,7 @@ navegación de la app. Todas las historias dependen de esta fase.
 
 - [X] T043 [P] [US3] Write `apps/api/test/logout.e2e-spec.ts`: `POST /auth/logout` → 204; the same access token → 401 `SESSION_REVOKED`; its refresh token → 401; a second session of the same user keeps working
 - [X] T044 [US3] Implement `AuthService.logout` (`revokeFamily(sid)`) and `POST /auth/logout` (`@AllowPendingPasswordChange()`, 204) in `apps/api/src/auth/auth.service.ts` and `apps/api/src/auth/auth.controller.ts`; make T043 pass
-- [ ] T045 [US3] Implement `logout()` in `apps/mobile/src/api/auth.ts` (always clears local session, even if the request fails) and `apps/mobile/src/app/(app)/profile.tsx` with name, email, timezone and "Cerrar sesión"; add the "Perfil" button to `apps/mobile/src/app/(app)/index.tsx`
+- [X] T045 [US3] Implement `logout()` in `apps/mobile/src/api/auth.ts` (always clears local session, even if the request fails) and `apps/mobile/src/app/(app)/profile.tsx` with name, email, timezone and "Cerrar sesión"; add the "Perfil" button to `apps/mobile/src/app/(app)/index.tsx`
 
 **Checkpoint**: logout works; profile screen exists
 
@@ -150,8 +150,8 @@ navegación de la app. Todas las historias dependen de esta fase.
 - [X] T047 [P] [US4] Write `apps/api/test/me-timezone.e2e-spec.ts`: `GET /me` shows `America/Bogota`; `PATCH /me` with a valid zone → 200 and persisted; invalid zone → 400 `VALIDATION_ERROR` (`timezone` / `INVALID_TIMEZONE`) and value unchanged; extra properties rejected
 - [X] T048 [US4] Implement `apps/api/src/users/timezone.ts` (Node `Intl.supportedValuesOf('timeZone')` plus `UTC`) per data-model.md `User.timezone` (makes T046 pass)
 - [X] T049 [US4] Implement `UsersService.updateTimezone` and `PATCH /me` in `apps/api/src/users/users.service.ts` and `apps/api/src/users/me.controller.ts`; make T047 pass
-- [ ] T050 [P] [US4] Create the curated list in `apps/mobile/src/features/timezones.ts` (America zones plus `Europe/Madrid` and `Atlantic/Canary`, with Spanish labels; research.md R6)
-- [ ] T051 [US4] Implement `updateTimezone()` in `apps/mobile/src/api/me.ts` and `apps/mobile/src/app/(app)/timezone.tsx` (search, current zone marked "Actual" even if not in the list, tap saves and returns); add the "Zona horaria" row to `apps/mobile/src/app/(app)/profile.tsx`
+- [X] T050 [P] [US4] Create the curated list in `apps/mobile/src/features/timezones.ts` (America zones plus `Europe/Madrid` and `Atlantic/Canary`, with Spanish labels; research.md R6)
+- [X] T051 [US4] Implement `updateTimezone()` in `apps/mobile/src/api/me.ts` and `apps/mobile/src/app/(app)/timezone.tsx` (search, current zone marked "Actual" even if not in the list, tap saves and returns); add the "Zona horaria" row to `apps/mobile/src/app/(app)/profile.tsx`
 
 **Checkpoint**: timezone viewable and editable
 
@@ -165,7 +165,7 @@ navegación de la app. Todas las historias dependen de esta fase.
 
 - [X] T052 [P] [US5] Write `apps/api/test/delete-account.e2e-spec.ts`: wrong password → 401 `INVALID_PASSWORD` and nothing deleted (and it counts toward the email lockout); with the email locked, even the correct password → 429 `RATE_LIMITED` and nothing deleted; correct password → 204, the user row and all its refresh tokens are gone (cascade), another session's access token → 401; login afterwards → 401 `INVALID_CREDENTIALS`; registering the same email again → 201
 - [X] T053 [US5] Implement `UsersService.deleteAccount` (check the email lockout first → 429 `RATE_LIMITED`, then verify password, record failures in `LoginAttemptsService`, delete the user relying on data-model.md `RefreshToken.user_id` cascade) and `DELETE /me` (204) in `apps/api/src/users/users.service.ts` and `apps/api/src/users/me.controller.ts`; make T052 pass
-- [ ] T054 [US5] Implement `deleteAccount()` in `apps/mobile/src/api/me.ts` and `apps/mobile/src/app/(app)/delete-account.tsx` per `contracts/screens.md` (warning, password field, `danger` button, cancel); on success `signOut()`; add the "Eliminar cuenta" entry to `apps/mobile/src/app/(app)/profile.tsx`
+- [X] T054 [US5] Implement `deleteAccount()` in `apps/mobile/src/api/me.ts` and `apps/mobile/src/app/(app)/delete-account.tsx` per `contracts/screens.md` (warning, password field, `danger` button, cancel); on success `signOut()`; add the "Eliminar cuenta" entry to `apps/mobile/src/app/(app)/profile.tsx`
 
 **Checkpoint**: account deletion works
 
@@ -179,7 +179,7 @@ navegación de la app. Todas las historias dependen de esta fase.
 
 - [X] T055 [P] [US6] Write `apps/api/test/change-password.e2e-spec.ts` (voluntary mode): missing `currentPassword` → 400; wrong `currentPassword` → 401 `INVALID_PASSWORD` (counts toward the lockout); with the email locked, even the correct `currentPassword` → 429 `RATE_LIMITED` and nothing changes; new password equal to the current → 409 `SAME_PASSWORD`; new password < 8 → 400; success → 200, the current session keeps working, another session → 401 `SESSION_REVOKED`, login with the old password → 401 and with the new one → 200
 - [X] T056 [US6] Implement `AuthService.changePassword` (voluntary path: check the email lockout first → 429 `RATE_LIMITED`, verify current, reject equal password, hash new, `revokeAllForUser(userId, exceptSid)`) and `POST /auth/change-password` (`@AllowPendingPasswordChange()`) with its zod schema in `apps/api/src/auth/auth.service.ts`, `apps/api/src/auth/auth.controller.ts` and `apps/api/src/auth/auth.schemas.ts`; make T055 pass
-- [ ] T057 [US6] Implement `changePassword()` in `apps/mobile/src/api/auth.ts` and `apps/mobile/src/app/(app)/change-password.tsx` in voluntary mode (current, new, confirmation; validation with `@corte/domain`); add "Cambiar contraseña" to `apps/mobile/src/app/(app)/profile.tsx`
+- [X] T057 [US6] Implement `changePassword()` in `apps/mobile/src/api/auth.ts` and `apps/mobile/src/app/(app)/change-password.tsx` in voluntary mode (current, new, confirmation; validation with `@corte/domain`); add "Cambiar contraseña" to `apps/mobile/src/app/(app)/profile.tsx`
 
 **Checkpoint**: voluntary password change works
 
@@ -195,7 +195,7 @@ navegación de la app. Todas las historias dependen de esta fase.
 - [X] T059 [US7] Implement `UsersService.resetPassword(email)` with a temporary-password generator (`crypto.randomInt`, alphabet from `contracts/admin-cli.md`) in `apps/api/src/users/users.service.ts`, setting data-model.md `User.password_hash` and `User.must_change_password` and calling `revokeAllForUser`
 - [X] T060 [US7] Implement `apps/api/src/cli/reset-password.ts`: exported `run(argv, io)` that boots `NestFactory.createApplicationContext(AppModule.register())`, calls `resetPassword` and writes the output of `contracts/admin-cli.md`; a `main` that calls it with `process.argv`/stdout/stderr and sets the exit code; ensure it compiles to `dist/cli/reset-password.js`
 - [X] T061 [US7] Complete the forced path of `AuthService.changePassword` (no `currentPassword` when `must_change_password` is true, reject equal to the temporary password, clear the flag) in `apps/api/src/auth/auth.service.ts`; make T058 pass
-- [ ] T062 [US7] In `apps/mobile/src/app/(app)/_layout.tsx` add `Stack.Protected guard={!user.mustChangePassword}` around every screen except `change-password`; add the forced mode to `apps/mobile/src/app/(app)/change-password.tsx` (notice "Debes cambiar tu contraseña temporal", no current-password field, "Cerrar sesión" button); after saving, `setUser` with the returned user
+- [X] T062 [US7] In `apps/mobile/src/app/(app)/_layout.tsx` add `Stack.Protected guard={!user.mustChangePassword}` around every screen except `change-password`; add the forced mode to `apps/mobile/src/app/(app)/change-password.tsx` (notice "Debes cambiar tu contraseña temporal", no current-password field, "Cerrar sesión" button); after saving, `setUser` with the returned user
 
 **Checkpoint**: all user stories functional
 

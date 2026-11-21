@@ -48,7 +48,8 @@ curl -i http://localhost:3000/api/v1/health      # HTTP 200 {"status":"ok",...}
 pnpm --filter mobile start
 ```
 
-La app debe mostrar **"Conectado"**. Para detener la base: `pnpm db:down`.
+La app debe abrir en **"Inicia sesión para continuar"**; "Crear cuenta" registra un usuario y entra
+al inicio. Para detener la base: `pnpm db:down`.
 
 ## Comandos
 
@@ -165,9 +166,12 @@ pnpm --filter @corte/domain dev         # recompila en modo watch; el API lo ve 
 
 ## App móvil
 
-App Expo (SDK 58) en `apps/mobile`, con expo-router y TanStack Query. Corre en **Expo Go**. Por
-ahora muestra una pantalla temporal que consulta `/api/v1/health` e indica "Conectado" o
-"Sin conexión".
+App Expo (SDK 58) en `apps/mobile`, con expo-router y TanStack Query. Corre en **Expo Go**. Tiene
+registro, inicio de sesión, perfil (zona horaria, cambio de contraseña, eliminar cuenta) y un
+inicio temporal. Las rutas viven en `src/app/(auth)` (sin sesión) y `src/app/(app)` (con sesión),
+protegidas con `Stack.Protected`. La sesión (`src/session`) guarda el refresh token en
+`expo-secure-store` y el access token solo en memoria; `src/api/client.ts` lo renueva solo ante un 401. `pnpm --filter mobile start` compila antes `@corte/domain`, de donde salen las reglas de los
+formularios.
 
 ### Configurar la URL del API
 
@@ -195,7 +199,7 @@ pnpm --filter mobile start --clear   # si cambiaste .env o algo se ve desactuali
 ```
 
 La app usa los tokens de `docs/design-system.md` (`apps/mobile/src/theme`) y los componentes base
-`Text` y `Button` (`apps/mobile/src/components`). No escribas colores, tamaños ni espaciados
+`Text`, `Button`, `TextField` y `Screen` (`apps/mobile/src/components`). No escribas colores, tamaños ni espaciados
 sueltos en los componentes (constitución, principio IX).
 
 ## Imagen Docker
