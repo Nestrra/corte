@@ -222,3 +222,31 @@ aplican y los puntos delicados que hay que resolver al implementar.
   producción rechazado) y `health.service.spec.ts` (mapeo de los resultados de terminus a
   `ok`/`degraded`, versión `unknown`).
 - **Rationale**: son las únicas reglas propias del API en esta spec (principio II).
+
+## R13. Desviaciones encontradas al implementar US1 (2026-11-21)
+
+Decisiones tomadas durante `/speckit-implement` (T001–T026) al chocar con las versiones reales.
+
+1. **NestJS 12 es solo ESM.** Todos los paquetes `@nestjs/*` 12 se publican con
+   `"type": "module"`. Se sigue la plantilla oficial `ts` de Nest 12: la app sigue siendo
+   CommonJS (`module`/`moduleResolution: nodenext` sin `"type": "module"`), Node 24 carga los
+   paquetes ESM con `require(esm)`, y Jest corre con
+   `node --experimental-vm-modules ./node_modules/jest/bin/jest.js`. Efecto: Jest imprime un
+   `ExperimentalWarning` en cada ejecución. Alternativa descartada por ahora: la plantilla
+   `ts-esm` de Nest 12 (app ESM + Vitest), que cambia el runner de pruebas fijado en el plan.
+2. **TypeScript 6.0.x, no 7.** TypeScript 7.0.2 es la última, pero `typescript-eslint` soporta
+   `<6.1` y `ts-jest` `<7`. TypeScript 6 depreca `moduleResolution: node10` y `baseUrl`, así que
+   dominio y API usan `nodenext` (emite CommonJS), el API fija `rootDir: "."` y mantiene
+   `isolatedModules: true` (ts-jest lo exige con `nodenext`). Revisar al subir de versión cuando
+   las herramientas soporten TypeScript 7.
+3. **Prisma fijado exactamente en 7.10.1.** En npm, `prisma@latest` apunta a `8.0.0-rc.34` (una
+   RC). La constitución fija Prisma 7, así que `prisma`, `@prisma/client` y `@prisma/adapter-pg`
+   se fijan en `7.10.1` sin rango.
+4. **`AppModule.register()`.** El módulo raíz es dinámico: `ConfigModule.forRoot` con la
+   validación zod se evalúa al llamar `register()` y no al importar el archivo. Así el proceso
+   sigue fallando al arrancar con configuración inválida (FR-008) y las e2e pueden arrancar la
+   app con distintos entornos (base caída, colgada, Swagger on/off).
+5. **pnpm 12 bloquea los scripts de instalación por defecto.** `pnpm install` falla con
+   `ERR_PNPM_IGNORED_BUILDS` hasta aprobar cada paquete. En `pnpm-workspace.yaml` → `allowBuilds`
+   se aprueban `prisma` y `@prisma/engines` (CLI de Prisma) y se niegan `@scarf/scarf`
+   (telemetría) y `@parcel/watcher` (no se necesita).

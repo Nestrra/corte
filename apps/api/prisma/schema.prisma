@@ -1,0 +1,12 @@
+// Prisma 7 schema (research.md R4). No models in spec 000; the database is only used by the
+// health check. The connection URL lives in prisma.config.ts, not here.
+
+generator client {
+  provider     = "prisma-client"
+  output       = "../src/generated/prisma"
+  moduleFormat = "cjs"
+}
+
+datasource db {
+  provider = "postgresql"
+}
