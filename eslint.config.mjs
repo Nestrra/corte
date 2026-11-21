@@ -1,5 +1,6 @@
 // Single flat config for the whole monorepo (research.md R1). `pnpm lint` runs `eslint .` here.
 import js from '@eslint/js';
+import expoConfig from 'eslint-config-expo/flat.js';
 import prettier from 'eslint-config-prettier';
 import globals from 'globals';
 import tseslint from 'typescript-eslint';
@@ -57,6 +58,14 @@ export default tseslint.config(
         },
       ],
     },
+  },
+  // Expo / React Native rules only for the mobile app (ESLint `basePath` scopes each entry).
+  ...expoConfig.map((config) => ({ ...config, basePath: 'apps/mobile' })),
+  {
+    basePath: 'apps/mobile',
+    // eslint-plugin-react's version auto-detection calls an API removed in ESLint 10, so the
+    // React version is declared explicitly (keep in sync with apps/mobile/package.json).
+    settings: { react: { version: '19.3' } },
   },
   prettier,
 );

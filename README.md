@@ -79,7 +79,38 @@ pnpm --filter @corte/domain dev         # recompila en modo watch; el API lo ve 
 
 ## App móvil
 
-_Pendiente (spec 000, US4)._
+App Expo (SDK 58) en `apps/mobile`, con expo-router y TanStack Query. Corre en **Expo Go**. Por
+ahora muestra una pantalla temporal que consulta `/api/v1/health` e indica "Conectado" o
+"Sin conexión".
+
+### Configurar la URL del API
+
+```bash
+cp apps/mobile/.env.example apps/mobile/.env
+```
+
+Edita `EXPO_PUBLIC_API_URL` en `apps/mobile/.env` según dónde corre la app:
+
+| Dónde                        | `EXPO_PUBLIC_API_URL`                               |
+| ---------------------------- | --------------------------------------------------- |
+| Simulador iOS                | `http://localhost:3000`                             |
+| Emulador Android             | `http://10.0.2.2:3000` (el `localhost` de tu Mac)   |
+| Dispositivo físico (Expo Go) | `http://<IP-de-tu-Mac>:3000`, en la misma red Wi-Fi |
+
+La IP de tu Mac: `ipconfig getifaddr en0`. Las variables `EXPO_PUBLIC_*` quedan dentro del bundle:
+nunca pongas secretos ahí. Después de cambiar `.env`, reinicia Metro con `--clear`.
+
+### Ejecutar
+
+```bash
+pnpm --filter api dev            # en otra terminal: el API debe estar corriendo
+pnpm --filter mobile start       # Metro; luego "i" (iOS), "a" (Android) o escanea el QR con Expo Go
+pnpm --filter mobile start --clear   # si cambiaste .env o algo se ve desactualizado
+```
+
+La app usa los tokens de `docs/design-system.md` (`apps/mobile/src/theme`) y los componentes base
+`Text` y `Button` (`apps/mobile/src/components`). No escribas colores, tamaños ni espaciados
+sueltos en los componentes (constitución, principio IX).
 
 ## Imagen Docker
 
