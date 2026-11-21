@@ -1,0 +1,189 @@
+openapi: 3.1.0
+info:
+  title: Corte API — Auth y perfil
+  version: 0.1.0
+  description: >
+    Spec 001. Todo bajo /api/v1. Salvo las rutas marcadas con `security: []`, requieren
+    `Authorization: Bearer <accessToken>`. El usuario sale siempre del token; ningún endpoint
+    recibe ids de usuario (principio III). Errores: ver contracts/errors.md.
+servers:
+  - url: http://localhost:3000/api/v1
+components:
+  securitySchemes:
+    bearer:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    User:
+      type: object
+      additionalProperties: false
+      required: [id, name, email, timezone, mustChangePassword]
+      properties:
+        id: { type: string, format: uuid }
+        name: { type: string, minLength: 1, maxLength: 80 }
+        email: { type: string, format: email, description: En minúsculas }
+        timezone: { type: string, example: America/Bogota }
+        mustChangePassword: { type: boolean }
+    AuthResult:
+      type: object
+      additionalProperties: false
+      required: [accessToken, refreshToken, user]
+      properties:
+        accessToken: { type: string, description: JWT de 15 minutos }
+        refreshToken: { type: string, description: Opaco; se rota en cada uso }
+        user: { $ref: '#/components/schemas/User' }
+    Error:
+      type: object
+      required: [statusCode, code, message]
+      properties:
+        statusCode: { type: integer }
+        code: { type: string }
+        message: { type: string }
+        errors:
+          type: array
+          items:
+            type: object
+            properties:
+              field: { type: string }
+              code: { type: string }
+  responses:
+    ValidationError:
+      description: 400 VALIDATION_ERROR
+      content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } }
+    Unauthorized:
+      description: 401 TOKEN_EXPIRED | SESSION_REVOKED
+      content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } }
+    PasswordChangeRequired:
+      description: 403 PASSWORD_CHANGE_REQUIRED
+      content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } }
+    RateLimited:
+      description: 429 RATE_LIMITED
+      content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } }
+security:
+  - bearer: []
+paths:
+  /auth/register:
+    post:
+      summary: Crea la cuenta e inicia sesión (FR-001–FR-005)
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, email, password]
+              properties:
+                name: { type: string }
+                email: { type: string }
+                password: { type: string, minLength: 8, maxLength: 128 }
+      responses:
+        '201': { description: Cuenta creada, content: { application/json: { schema: { $ref: '#/components/schemas/AuthResult' } } } }
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '409': { description: EMAIL_TAKEN, content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '429': { $ref: '#/components/responses/RateLimited' }
+  /auth/login:
+    post:
+      summary: Inicia sesión y crea una sesión nueva (FR-006, FR-007, FR-013)
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password]
+              properties:
+                email: { type: string }
+                password: { type: string }
+      responses:
+        '200': { description: Sesión iniciada; `user.mustChangePassword` indica si debe cambiarla, content: { application/json: { schema: { $ref: '#/components/schemas/AuthResult' } } } }
+        '401': { description: INVALID_CREDENTIALS (mismo cuerpo exista o no el email), content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '429': { $ref: '#/components/responses/RateLimited' }
+  /auth/refresh:
+    post:
+      summary: Rota el refresh token y emite un par nuevo (FR-008–FR-010)
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [refreshToken]
+              properties:
+                refreshToken: { type: string }
+      responses:
+        '200': { description: Par nuevo, content: { application/json: { schema: { $ref: '#/components/schemas/AuthResult' } } } }
+        '401': { description: SESSION_EXPIRED | SESSION_REVOKED (reutilización revoca la familia), content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+  /auth/logout:
+    post:
+      summary: Cierra la sesión actual (familia `sid`) (FR-017)
+      description: Permitido también con contraseña pendiente de cambio.
+      responses:
+        '204': { description: Sesión cerrada }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+  /auth/change-password:
+    post:
+      summary: Cambio de contraseña obligatorio o voluntario (FR-026–FR-030)
+      description: >
+        Si `mustChangePassword` es true, `currentPassword` no se pide. Si es false (cambio
+        voluntario), `currentPassword` es obligatorio. Mantiene la sesión actual y revoca las demás.
+        Un `currentPassword` incorrecto suma al bloqueo por email (FR-015).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [newPassword]
+              properties:
+                currentPassword: { type: string }
+                newPassword: { type: string, minLength: 8, maxLength: 128 }
+      responses:
+        '200': { description: Contraseña cambiada; devuelve el usuario actualizado, content: { application/json: { schema: { $ref: '#/components/schemas/User' } } } }
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '401': { description: INVALID_PASSWORD | TOKEN_EXPIRED | SESSION_REVOKED, content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '409': { description: SAME_PASSWORD, content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '429': { $ref: '#/components/responses/RateLimited' }
+  /me:
+    get:
+      summary: Perfil del usuario del token (FR-018)
+      description: Permitido también con contraseña pendiente de cambio.
+      responses:
+        '200': { description: Perfil, content: { application/json: { schema: { $ref: '#/components/schemas/User' } } } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+    patch:
+      summary: Cambia la zona horaria (FR-019)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [timezone]
+              properties:
+                timezone: { type: string, example: America/Mexico_City }
+      responses:
+        '200': { description: Perfil actualizado, content: { application/json: { schema: { $ref: '#/components/schemas/User' } } } }
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/PasswordChangeRequired' }
+    delete:
+      summary: Elimina la cuenta y todos sus datos (FR-020–FR-022)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [password]
+              properties:
+                password: { type: string }
+      responses:
+        '204': { description: Cuenta eliminada; todas las sesiones dejan de servir }
+        '401': { description: INVALID_PASSWORD | TOKEN_EXPIRED | SESSION_REVOKED, content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '403': { $ref: '#/components/responses/PasswordChangeRequired' }
+        '429': { $ref: '#/components/responses/RateLimited' }
