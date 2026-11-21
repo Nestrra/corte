@@ -37,6 +37,15 @@ describe('Profile timezone (e2e)', () => {
     expect(me.body.timezone).toBe('America/Mexico_City');
   });
 
+  it('accepts an IANA link such as America/Argentina/Buenos_Aires and stores it as sent', async () => {
+    const response = await http()
+      .patch('/api/v1/me')
+      .set(bearer(token))
+      .send({ timezone: 'America/Argentina/Buenos_Aires' })
+      .expect(200);
+    expect(response.body.timezone).toBe('America/Argentina/Buenos_Aires');
+  });
+
   it('rejects an invalid timezone and keeps the previous one', async () => {
     const response = await http()
       .patch('/api/v1/me')
