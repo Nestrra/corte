@@ -1,0 +1,76 @@
+# CI for every pull request and every push to main (spec 000, FR-020/FR-021; research.md R10).
+# Job names are stable on purpose: they are the required status checks for merging into main.
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  lint-typecheck:
+    name: lint-typecheck
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6 # pnpm version comes from "packageManager" in package.json
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter @corte/domain build
+      - run: pnpm lint
+      - run: pnpm typecheck
+      - run: pnpm format:check
+
+  domain-test:
+    name: domain-test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter @corte/domain test:cov
+
+  api-e2e:
+    name: api-e2e
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: corte
+          POSTGRES_PASSWORD: corte # CI-only throwaway database, not a secret
+          POSTGRES_DB: corte_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U corte -d corte_test"
+          --health-interval 2s
+          --health-timeout 3s
+          --health-retries 15
+    env:
+      APP_ENV: test
+      DATABASE_URL: postgresql://corte:corte@localhost:5432/corte_test
+    steps:
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter api test
+      - run: pnpm --filter api test:e2e

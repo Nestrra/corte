@@ -102,8 +102,8 @@ estable que se marcan como obligatorios para hacer merge.
 bloqueado; al corregirla queda en verde. Depende de US1 (necesita pruebas reales que ejecutar);
 los jobs `domain-test` y `docker-build` se agregan en US3 y US5.
 
-- [ ] T027 [US2] Create `.github/workflows/ci.yml`: triggers `pull_request` and `push` to `main`, `concurrency` per ref with `cancel-in-progress`, `permissions: contents: read`, shared setup (`actions/checkout`, `pnpm/action-setup`, `actions/setup-node` with Node 24 and `cache: pnpm`, `pnpm install --frozen-lockfile`), job `lint-typecheck` (`pnpm --filter @corte/domain build`, `pnpm lint`, `pnpm typecheck`, `pnpm format:check`) and job `api-e2e` with service `postgres:17-alpine` (`POSTGRES_DB=corte_test`, healthcheck `pg_isready`, port mapped) running `pnpm --filter api test` and `pnpm --filter api test:e2e` with `APP_ENV=test` and `DATABASE_URL` from `contracts/environment.md` (research.md R10)
-- [ ] T028 [US2] Fill the README "CI" section in `README.md`: what each job runs, and step-by-step instructions to enable protection of `main` in GitHub (require PR and checks `lint-typecheck`, `domain-test`, `api-e2e`, `docker-build`)
+- [X] T027 [US2] Create `.github/workflows/ci.yml`: triggers `pull_request` and `push` to `main`, `concurrency` per ref with `cancel-in-progress`, `permissions: contents: read`, shared setup (`actions/checkout`, `pnpm/action-setup`, `actions/setup-node` with Node 24 and `cache: pnpm`, `pnpm install --frozen-lockfile`), job `lint-typecheck` (`pnpm --filter @corte/domain build`, `pnpm lint`, `pnpm typecheck`, `pnpm format:check`) and job `api-e2e` with service `postgres:17-alpine` (`POSTGRES_DB=corte_test`, healthcheck `pg_isready`, port mapped) running `pnpm --filter api test` and `pnpm --filter api test:e2e` with `APP_ENV=test` and `DATABASE_URL` from `contracts/environment.md` (research.md R10)
+- [X] T028 [US2] Fill the README "CI" section in `README.md`: what each job runs, and step-by-step instructions to enable protection of `main` in GitHub (require PR and checks `lint-typecheck`, `domain-test`, `api-e2e`, `docker-build`)
 - [ ] T029 [US2] Push the branch, confirm both jobs run green on the PR for this spec, then enable protection of `main` in GitHub (manual, by the repo owner) requiring a PR and the existing checks `lint-typecheck` and `api-e2e`; validate quickstart.md V10 with a throwaway PR that breaks an API unit test (CI red, merge blocked), then close it and delete its branch
 
 **Checkpoint**: CI runs on every PR
@@ -119,13 +119,13 @@ tabla de cobertura; al romper la prueba sale con código ≠ 0.
 
 ### Tests for User Story 3 (write first) ⚠️
 
-- [ ] T030 [P] [US3] Write smoke test `packages/domain/src/index.test.ts` asserting the exported `DOMAIN_PACKAGE_NAME`
+- [X] T030 [P] [US3] Write smoke test `packages/domain/src/index.test.ts` asserting the exported `DOMAIN_PACKAGE_NAME`
 
 ### Implementation for User Story 3
 
-- [ ] T031 [US3] Add devDependencies `vitest` and `@vitest/coverage-v8` to `packages/domain/package.json`, scripts `test` (`vitest run`) and `test:cov` (`vitest run --coverage`), and create `packages/domain/vitest.config.ts` (coverage provider `v8`, reporters `text` and `lcov`, include `src/**`, no minimum threshold per spec.md Assumptions)
+- [X] T031 [US3] Add devDependencies `vitest` and `@vitest/coverage-v8` to `packages/domain/package.json`, scripts `test` (`vitest run`) and `test:cov` (`vitest run --coverage`), and create `packages/domain/vitest.config.ts` (coverage provider `v8`, reporters `text` and `lcov`, include `src/**`, no minimum threshold per spec.md Assumptions)
 - [ ] T032 [US3] Add job `domain-test` to `.github/workflows/ci.yml` running `pnpm --filter @corte/domain test:cov`, and add the `domain-test` check to the protection of `main` (manual, by the repo owner)
-- [ ] T033 [US3] Fill the README "Dominio" section in `README.md` (purpose per principio I, test and coverage commands) and validate quickstart.md V5
+- [X] T033 [US3] Fill the README "Dominio" section in `README.md` (purpose per principio I, test and coverage commands) and validate quickstart.md V5
 
 **Checkpoint**: Domain package test-ready
 
