@@ -85,6 +85,8 @@ Plus Jakarta Sans (600, 700) para títulos y montos; Inter (400, 500, 600) para 
 - **SectionHeader**: título de sección y botón secundario con ícono + ("Agregar", "Nuevo").
 - **Button**: primario (`primary`, texto blanco) y secundario (`primarySoft`, texto `primaryStrong`), alto 44.
 - **TabBar**: Inicio, Tarjetas, botón central "Registrar compra" (56 px, `primary`), Pagos, Perfil.
+  Se construye por partes: la spec 002 trae Inicio, Tarjetas y Perfil; el botón central y Pagos
+  llegan en specs posteriores, sin cambiar los tokens.
 
 ## Pantalla de inicio
 

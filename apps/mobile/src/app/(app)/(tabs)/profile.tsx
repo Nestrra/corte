@@ -2,14 +2,14 @@ import { useQuery } from '@tanstack/react-query';
 import { router, type Href } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
-import { logout } from '../../api/auth';
-import { getMe } from '../../api/me';
-import { Button } from '../../components/Button';
-import { Screen } from '../../components/Screen';
-import { Text } from '../../components/Text';
-import { timeZoneLabel } from '../../features/timezones';
-import { useSessionStore } from '../../session/session-store';
-import { colors, interaction, layout, radius, spacing, type ColorToken } from '../../theme';
+import { logout } from '../../../api/auth';
+import { getMe } from '../../../api/me';
+import { Button } from '../../../components/Button';
+import { Screen } from '../../../components/Screen';
+import { Text } from '../../../components/Text';
+import { timeZoneLabel } from '../../../features/timezones';
+import { useSessionStore } from '../../../session/session-store';
+import { colors, interaction, layout, radius, spacing, type ColorToken } from '../../../theme';
 
 interface RowProps {
   label: string;
@@ -59,11 +59,12 @@ export default function ProfileScreen() {
   };
 
   return (
-    <Screen edges={['bottom']}>
+    <Screen edges={['top']}>
+      <Text variant="title" accessibilityRole="header">
+        Perfil
+      </Text>
       <View style={styles.identity}>
-        <Text variant="section" accessibilityRole="header">
-          {user.name}
-        </Text>
+        <Text variant="section">{user.name}</Text>
         <Text color="textSecondary">{user.email}</Text>
       </View>
 

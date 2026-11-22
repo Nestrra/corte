@@ -2,7 +2,7 @@ import { Stack } from 'expo-router';
 import { useSessionStore } from '../../session/session-store';
 import { colors, typography } from '../../theme';
 
-export const unstable_settings = { anchor: 'home' };
+export const unstable_settings = { anchor: '(tabs)' };
 
 export default function AppLayout() {
   const mustChangePassword = useSessionStore((state) => state.user?.mustChangePassword ?? false);
@@ -20,8 +20,11 @@ export default function AppLayout() {
     >
       {/* While a temporary password is pending only change-password is reachable (FR-026). */}
       <Stack.Protected guard={!mustChangePassword}>
-        <Stack.Screen name="home" options={{ headerShown: false }} />
-        <Stack.Screen name="profile" options={{ title: 'Perfil' }} />
+        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+        <Stack.Screen name="card/new" options={{ title: 'Nueva tarjeta' }} />
+        <Stack.Screen name="card/[id]/index" options={{ title: 'Tarjeta' }} />
+        <Stack.Screen name="card/[id]/edit" options={{ title: 'Editar tarjeta' }} />
+        <Stack.Screen name="card/archived" options={{ title: 'Archivadas' }} />
         <Stack.Screen name="timezone" options={{ title: 'Zona horaria' }} />
         <Stack.Screen name="delete-account" options={{ title: 'Eliminar cuenta' }} />
       </Stack.Protected>

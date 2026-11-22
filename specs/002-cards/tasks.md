@@ -34,7 +34,7 @@ tarjetas viven en `apps/api/test/cards.e2e-spec.ts` (un `describe` por historia)
 
 **Purpose**: Dependencia nueva y umbral de cobertura.
 
-- [ ] T001 Add `@expo/vector-icons` to `apps/mobile` with `pnpm exec expo install @expo/vector-icons` (research.md R8); run `pnpm install`
+- [X] T001 Add `@expo/vector-icons` to `apps/mobile` with `pnpm exec expo install @expo/vector-icons` (research.md R8); run `pnpm install`
 - [X] T002 [P] Add `coverage.thresholds` of 95 for `lines`, `branches`, `functions` and `statements` in `packages/domain/vitest.config.mts` and replace the "no threshold yet" comment (research.md R11, FR-009); confirm `pnpm --filter @corte/domain test:cov` still passes with the current rules
 
 ---
@@ -61,10 +61,10 @@ API, y la navegación con pestañas de la app. Todas las historias dependen de e
 - [X] T010 Create `apps/api/src/cards/cards.module.ts`, an empty `apps/api/src/cards/cards.controller.ts` (`@Controller('cards')`) and `apps/api/src/cards/cards.service.ts` with the private helper `findOwned(userId, id)` that validates the id as UUID and queries `where: { id, userId }`, throwing `AppErrors.notFound('Card not found')` for invalid ids, missing cards and cards of other users (research.md R7, FR-018); register `CardsModule` in `apps/api/src/app.module.ts`
 - [X] T011 Implement the `Clock` provider in `apps/api/src/common/clock.ts` (injection token `CLOCK`, interface `{ now(): Date }`, default `new Date()`), register it globally in `apps/api/src/app.module.ts`, and inject it in `CardsService`; in e2e `createTestApp({ now })` overrides it with a fixed instant (research.md R3, U1 of the analysis)
 - [X] T012 Add `createCard(token, overrides?)` with valid defaults (`Visa principal`, `petroleo`, `4821`, corte 8, pago 25, 5000000, 2000000) to `apps/api/test/helpers.ts`. `resetDatabase` already removes cards through the cascade from `users`; add an assertion in one e2e that the `cards` table is empty after `resetDatabase`, without changing it. Also let `createTestApp` accept a fixed instant that overrides the `Clock` provider (T011)
-- [ ] T013 [P] Add `apps/mobile/src/api/cards.ts` with the `Card`, `CardDetail`, `Cycle`, `CardInput` types of contracts/cards.openapi.yaml and the functions `listCards(archived?)`, `getCard(id)`, `createCard(input)`, `updateCard(id, input)`, `archiveCard(id)`, `restoreCard(id)` over `apiFetch`; add the card field and `CARD_ARCHIVED` / `NOT_FOUND` texts of contracts/errors.md to `apps/mobile/src/api/errors.ts`
-- [ ] T014 [P] Implement `apps/mobile/src/features/money.ts`: `formatCop(amount)` = `'$' + Intl.NumberFormat('es-CO', { maximumFractionDigits: 0 })` (research.md R4) and `parseAmountInput(text)` (digits only → integer or null)
-- [ ] T015 [P] Implement `apps/mobile/src/components/TabBar.tsx` per contracts/screens.md "TabBar" (Ionicons, `tab` / `tabActive`, `accessibilityRole="tab"`, ≥ 44, theme tokens only)
-- [ ] T016 Restructure the app into tabs (research.md R8, contracts/screens.md "Navegación"): move `apps/mobile/src/app/(app)/home.tsx` and `profile.tsx` into `apps/mobile/src/app/(app)/(tabs)/`, remove the "Perfil" button from home, create `apps/mobile/src/app/(app)/(tabs)/_layout.tsx` (`Tabs` with `tabBar={TabBar}` and screens `home`, `cards`, `profile`) and a placeholder `apps/mobile/src/app/(app)/(tabs)/cards.tsx`; in `apps/mobile/src/app/(app)/_layout.tsx` set `anchor: '(tabs)'` and put `(tabs)` and the `card/*` screens inside the `Stack.Protected guard={!mustChangePassword}` (change-password stays outside); keep the `/` → `/home` redirect working and fix any navigation to `/profile`
+- [X] T013 [P] Add `apps/mobile/src/api/cards.ts` with the `Card`, `CardDetail`, `Cycle`, `CardInput` types of contracts/cards.openapi.yaml and the functions `listCards(archived?)`, `getCard(id)`, `createCard(input)`, `updateCard(id, input)`, `archiveCard(id)`, `restoreCard(id)` over `apiFetch`; add the card field and `CARD_ARCHIVED` / `NOT_FOUND` texts of contracts/errors.md to `apps/mobile/src/api/errors.ts`
+- [X] T014 [P] Implement `apps/mobile/src/features/money.ts`: `formatCop(amount)` = `'$' + Intl.NumberFormat('es-CO', { maximumFractionDigits: 0 })` (research.md R4) and `parseAmountInput(text)` (digits only → integer or null)
+- [X] T015 [P] Implement `apps/mobile/src/components/TabBar.tsx` per contracts/screens.md "TabBar" (Ionicons, `tab` / `tabActive`, `accessibilityRole="tab"`, ≥ 44, theme tokens only)
+- [X] T016 Restructure the app into tabs (research.md R8, contracts/screens.md "Navegación"): move `apps/mobile/src/app/(app)/home.tsx` and `profile.tsx` into `apps/mobile/src/app/(app)/(tabs)/`, remove the "Perfil" button from home, create `apps/mobile/src/app/(app)/(tabs)/_layout.tsx` (`Tabs` with `tabBar={TabBar}` and screens `home`, `cards`, `profile`) and a placeholder `apps/mobile/src/app/(app)/(tabs)/cards.tsx`; in `apps/mobile/src/app/(app)/_layout.tsx` set `anchor: '(tabs)'` and put `(tabs)` and the `card/*` screens inside the `Stack.Protected guard={!mustChangePassword}` (change-password stays outside); keep the `/` → `/home` redirect working and fix any navigation to `/profile`
 
 **Checkpoint**: domain card rules green, `cards` table migrated, app with three tabs and profile working as in spec 001.
 
@@ -105,10 +105,10 @@ API, y la navegación con pestañas de la app. Todas las historias dependen de e
 
 - [X] T023 [P] [US2] Implement `createCardSchema` in `apps/api/src/cards/cards.schemas.ts` with zod and the `@corte/domain` validators (issue messages = field codes of contracts/errors.md, strict object, defaults for reminders, `cycleBudget` vs `creditLimit` check on the `cycleBudget` field)
 - [X] T024 [US2] Implement `create(userId, input)` in `apps/api/src/cards/cards.service.ts` and `POST /cards` (201) in `apps/api/src/cards/cards.controller.ts` with `ZodValidationPipe` and `@CurrentUser()` (makes T022 pass)
-- [ ] T025 [P] [US2] Implement `apps/mobile/src/features/card-schema.ts`: zod schema of the form with the `@corte/domain` validators and Spanish messages of contracts/errors.md; amounts parsed with `parseAmountInput`
-- [ ] T026 [P] [US2] Implement `apps/mobile/src/components/ColorPicker.tsx` per contracts/screens.md "ColorPicker" (radiogroup, 6 options ≥ 44, check icon on the selected one, accessible Spanish names)
-- [ ] T027 [P] [US2] Implement `apps/mobile/src/components/CreditCardView.tsx` per contracts/screens.md "CreditCardView" (300 × 184, radius `card`, `cardColors[color]`, `formatCop`, `tabular-nums`, full `accessibilityLabel`; with `last4` null the "****" line is not shown, spec US2 scenario 2)
-- [ ] T028 [US2] Implement `apps/mobile/src/components/CardForm.tsx` (react-hook-form + `card-schema`, fields of contracts/screens.md, numeric keyboards, amounts formatted on blur, API field errors mapped with `applyApiFieldErrors`, values kept on error) and `apps/mobile/src/app/(app)/card/new.tsx` (title "Nueva tarjeta", "Guardar tarjeta" creates the card, invalidates `['cards']` and returns to the Tarjetas tab; "Cancelar" returns)
+- [X] T025 [P] [US2] Implement `apps/mobile/src/features/card-schema.ts`: zod schema of the form with the `@corte/domain` validators and Spanish messages of contracts/errors.md; amounts parsed with `parseAmountInput`
+- [X] T026 [P] [US2] Implement `apps/mobile/src/components/ColorPicker.tsx` per contracts/screens.md "ColorPicker" (radiogroup, 6 options ≥ 44, check icon on the selected one, accessible Spanish names)
+- [X] T027 [P] [US2] Implement `apps/mobile/src/components/CreditCardView.tsx` per contracts/screens.md "CreditCardView" (300 × 184, radius `card`, `cardColors[color]`, `formatCop`, `tabular-nums`, full `accessibilityLabel`; with `last4` null the "****" line is not shown, spec US2 scenario 2)
+- [X] T028 [US2] Implement `apps/mobile/src/components/CardForm.tsx` (react-hook-form + `card-schema`, fields of contracts/screens.md, numeric keyboards, amounts formatted on blur, API field errors mapped with `applyApiFieldErrors`, values kept on error) and `apps/mobile/src/app/(app)/card/new.tsx` (title "Nueva tarjeta", "Guardar tarjeta" creates the card, invalidates `['cards']` and returns to the Tarjetas tab; "Cancelar" returns)
 
 **Checkpoint**: crear una tarjeta funciona en el API y en la app.
 
@@ -127,8 +127,8 @@ API, y la navegación con pestañas de la app. Todas las historias dependen de e
 ### Implementation for User Story 3
 
 - [X] T030 [US3] Implement `listCardsQuerySchema` in `apps/api/src/cards/cards.schemas.ts`, `list(userId, archived)` in `apps/api/src/cards/cards.service.ts` (ordered by `createdAt`) and `GET /cards` in `apps/api/src/cards/cards.controller.ts` (makes T029 pass; the `archived=true` branch is exercised in US6)
-- [ ] T031 [P] [US3] Implement `apps/mobile/src/components/CardCarousel.tsx` per contracts/screens.md "CardCarousel" (FlatList horizontal, snap 312, peek, dots with `accessibilityLabel` "Tarjeta X de N", `onPressCard`)
-- [ ] T032 [US3] Implement `apps/mobile/src/app/(app)/(tabs)/cards.tsx` per contracts/screens.md (title "Tarjetas", TanStack Query `['cards', 'active']`, carousel, empty state, "Agregar tarjeta" → `/card/new`, loading and error with "Reintentar"; tapping a card → `/card/[id]`)
+- [X] T031 [P] [US3] Implement `apps/mobile/src/components/CardCarousel.tsx` per contracts/screens.md "CardCarousel" (FlatList horizontal, snap 312, peek, dots with `accessibilityLabel` "Tarjeta X de N", `onPressCard`)
+- [X] T032 [US3] Implement `apps/mobile/src/app/(app)/(tabs)/cards.tsx` per contracts/screens.md (title "Tarjetas", TanStack Query `['cards', 'active']`, carousel, empty state, "Agregar tarjeta" → `/card/new`, loading and error with "Reintentar"; tapping a card → `/card/[id]`)
 
 **Checkpoint**: crear y ver tarjetas en el carrusel funciona de punta a punta.
 
@@ -149,8 +149,8 @@ API, y la navegación con pestañas de la app. Todas las historias dependen de e
 
 - [X] T035 [P] [US4] Implement `apps/api/src/common/today.ts` with `Intl.DateTimeFormat('en-US', { timeZone, year, month, day }).formatToParts` (makes T033 pass)
 - [X] T036 [US4] Implement `getDetail(userId, id)` in `apps/api/src/cards/cards.service.ts` (takes `now` from the injected `Clock` of T011, reads the user's timezone, computes the cycle with `nextCutoff` and `nextDueDate` of `@corte/domain`) and `GET /cards/:id` in `apps/api/src/cards/cards.controller.ts` (makes T034 pass)
-- [ ] T037 [P] [US4] Implement `apps/mobile/src/features/dates.ts`: `formatLongDate('2026-12-08')` → "8 de diciembre de 2026" with Spanish month names (no Intl) and `daysLeftLabel(today, date)` → "Hoy" / "Mañana" / "faltan N días" using `daysBetween` of `@corte/domain`
-- [ ] T038 [US4] Implement `apps/mobile/src/app/(app)/card/[id]/index.tsx` per contracts/screens.md (CreditCardView, next cutoff and its due date with days left, configured data with amounts in `formatCop` and `tabular-nums` (FR-024); refetch on focus; 404 → "No encontramos esa tarjeta" with a back button; "Editar" and "Archivar" are wired in US5 and US6)
+- [X] T037 [P] [US4] Implement `apps/mobile/src/features/dates.ts`: `formatLongDate('2026-12-08')` → "8 de diciembre de 2026" with Spanish month names (no Intl) and `daysLeftLabel(today, date)` → "Hoy" / "Mañana" / "faltan N días" using `daysBetween` of `@corte/domain`
+- [X] T038 [US4] Implement `apps/mobile/src/app/(app)/card/[id]/index.tsx` per contracts/screens.md (CreditCardView, next cutoff and its due date with days left, configured data with amounts in `formatCop` and `tabular-nums` (FR-024); refetch on focus; 404 → "No encontramos esa tarjeta" with a back button; "Editar" and "Archivar" are wired in US5 and US6)
 
 **Checkpoint**: el detalle muestra fechas coherentes con el calendario en la zona del usuario.
 
@@ -169,7 +169,7 @@ API, y la navegación con pestañas de la app. Todas las historias dependen de e
 ### Implementation for User Story 5
 
 - [X] T040 [US5] Implement `updateCardSchema` (partial, strict, at least one field) in `apps/api/src/cards/cards.schemas.ts` and `update(userId, id, input)` in `apps/api/src/cards/cards.service.ts` (validates the budget against the resulting limit, rejects archived cards) plus `PATCH /cards/:id` in `apps/api/src/cards/cards.controller.ts` (makes T039 pass)
-- [ ] T041 [US5] Implement `apps/mobile/src/app/(app)/card/[id]/edit.tsx` reusing `CardForm` with the current values (sends the full form; invalidates `['cards']` and `['card', id]`; returns to the detail) and wire "Editar" in `apps/mobile/src/app/(app)/card/[id]/index.tsx`
+- [X] T041 [US5] Implement `apps/mobile/src/app/(app)/card/[id]/edit.tsx` reusing `CardForm` with the current values (sends the full form; invalidates `['cards']` and `['card', id]`; returns to the detail) and wire "Editar" in `apps/mobile/src/app/(app)/card/[id]/index.tsx`
 
 **Checkpoint**: editar una tarjeta recalcula las fechas mostradas.
 
@@ -188,8 +188,8 @@ API, y la navegación con pestañas de la app. Todas las historias dependen de e
 ### Implementation for User Story 6
 
 - [X] T043 [US6] Implement `archive(userId, id)` and `restore(userId, id)` in `apps/api/src/cards/cards.service.ts` and `POST /cards/:id/archive` and `POST /cards/:id/restore` (200) in `apps/api/src/cards/cards.controller.ts` (makes T042 pass)
-- [ ] T044 [P] [US6] Implement `apps/mobile/src/app/(app)/card/archived.tsx` per contracts/screens.md (list with color, name and last 4; tap → detail)
-- [ ] T045 [US6] In `apps/mobile/src/app/(app)/card/[id]/index.tsx` wire "Archivar" (text `danger`, confirmation dialog, then back to the Tarjetas tab) and, for archived cards, the "Tarjeta archivada" notice, read-only data and "Restaurar"; in `apps/mobile/src/app/(app)/(tabs)/cards.tsx` add "Archivadas (N)" when N > 0 (query `['cards', 'archived']`); invalidate both lists after archive and restore
+- [X] T044 [P] [US6] Implement `apps/mobile/src/app/(app)/card/archived.tsx` per contracts/screens.md (list with color, name and last 4; tap → detail)
+- [X] T045 [US6] In `apps/mobile/src/app/(app)/card/[id]/index.tsx` wire "Archivar" (text `danger`, confirmation dialog, then back to the Tarjetas tab) and, for archived cards, the "Tarjeta archivada" notice, read-only data and "Restaurar"; in `apps/mobile/src/app/(app)/(tabs)/cards.tsx` add "Archivadas (N)" when N > 0 (query `['cards', 'archived']`); invalidate both lists after archive and restore
 
 **Checkpoint**: archivar y restaurar conservan todos los datos (SC-006).
 
@@ -214,8 +214,8 @@ API, y la navegación con pestañas de la app. Todas las historias dependen de e
 
 **Purpose**: Documentación, verificación completa y validación del quickstart.
 
-- [ ] T048 [P] Update `README.md`: API section with the `/cards` endpoints, app section with the tabs and the new components (`TabBar`, `CreditCardView`, `CardCarousel`, `ColorPicker`, `CardForm`), domain section with the cycle rules and the 95% coverage gate
-- [ ] T049 [P] Update `docs/mvp-spec.md` → "Orden de specs" to write "(cerrada)" after 002, as for spec 000, and note in `docs/design-system.md` → TabBar that the center button and Pagos arrive in later specs (no token changes)
+- [X] T048 [P] Update `README.md`: API section with the `/cards` endpoints, app section with the tabs and the new components (`TabBar`, `CreditCardView`, `CardCarousel`, `ColorPicker`, `CardForm`), domain section with the cycle rules and the 95% coverage gate
+- [X] T049 [P] Update `docs/mvp-spec.md` → "Orden de specs" to write "(cerrada)" after 002, as for spec 000, and note in `docs/design-system.md` → TabBar that the center button and Pagos arrive in later specs (no token changes)
 - [X] T050 Run `pnpm lint`, `pnpm typecheck`, `pnpm format:check`, `pnpm --filter @corte/domain test:cov`, `pnpm --filter api test` and `pnpm --filter api test:e2e`; fix any failure
 - [X] T051 Build the API image (`docker build -f apps/api/Dockerfile -t corte-api .`) and the `migrate` target; check the image stays < 300 MB and the `cards` migration applies with the `migrate` target on a fresh database
 - [ ] T052 Validate quickstart.md B1–B7 and B9 with curl and the test commands; B8 (app on iOS simulator and Android emulator, including `$5.000.000` on Android, plus a check of AA contrast and ≥ 44 touch areas on the new screens: `caption` text on the card, carousel dots and inactive tabs; SC-007) is validated manually by the user
