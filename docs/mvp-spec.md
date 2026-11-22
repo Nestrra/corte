@@ -33,6 +33,7 @@ El MVP cubre tarjetas, compras a cuotas, extractos, alertas y pagos recurrentes 
 - Compras en dólares, avances, pago mínimo e intereses por mora.
 - Login con Google o Apple, estadísticas y categorías avanzadas.
 - Importar extractos o leer notificaciones del banco.
+- Ajustar las fechas de corte y de pago por fines de semana y festivos de Colombia.
 
 ## Historias de usuario
 
