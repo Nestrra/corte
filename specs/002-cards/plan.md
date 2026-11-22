@@ -96,7 +96,7 @@ specs/002-cards/
 
 ```text
 packages/domain/
-├── vitest.config.ts             # + thresholds 95%
+├── vitest.config.mts            # + thresholds 95%
 └── src/
     ├── calendar.ts              # IsoDate, parse/format, bisiestos, días del mes, clamp, addMonths, daysBetween
     ├── calendar.test.ts

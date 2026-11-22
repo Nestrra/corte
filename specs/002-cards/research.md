@@ -141,6 +141,6 @@ Con `clamp(año, mes, día)` = ese día del mes o el último día si el mes no l
 
 ## R11. Cobertura del dominio ≥ 95% (FR-009)
 
-- **Decision**: `coverage.thresholds` en `packages/domain/vitest.config.ts` con `lines`,
+- **Decision**: `coverage.thresholds` en `packages/domain/vitest.config.mts` con `lines`,
   `branches`, `functions` y `statements` en 95. `test:cov` falla si no se alcanza y el job
   `domain-test` de la CI ya ejecuta `test:cov`, así que no cambia el workflow.

@@ -1,4 +1,4 @@
-// Prisma 7 schema (spec 001: data-model.md). The connection URL lives in prisma.config.ts.
+// Prisma 7 schema (specs 001 and 002: data-model.md). The connection URL lives in prisma.config.ts.
 
 generator client {
   provider     = "prisma-client"
@@ -23,6 +23,7 @@ model User {
   createdAt          DateTime       @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt          DateTime       @updatedAt @map("updated_at") @db.Timestamptz(6)
   refreshTokens      RefreshToken[]
+  cards              Card[]
 
   @@map("users")
 }
@@ -43,4 +44,42 @@ model RefreshToken {
   @@index([userId])
   @@index([familyId])
   @@map("refresh_tokens")
+}
+
+/// Keys of cardColors in docs/design-system.md (spec 002, data-model.md → Card.color).
+enum CardColor {
+  indigo
+  petroleo
+  ciruela
+  grafito
+  bosque
+  terracota
+
+  @@map("card_color")
+}
+
+/// A credit card of one user (spec 002, data-model.md → Card). Ranges are also enforced by CHECK
+/// constraints added by hand in the migration.
+model Card {
+  id               String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId           String    @map("user_id") @db.Uuid
+  name             String    @db.VarChar(40)
+  color            CardColor
+  last4            String?   @db.Char(4)
+  cutoffDay        Int       @map("cutoff_day") @db.SmallInt
+  dueDay           Int       @map("due_day") @db.SmallInt
+  /// Integer pesos (COP).
+  creditLimit      BigInt    @map("credit_limit")
+  /// Integer pesos (COP), not greater than credit_limit.
+  cycleBudget      BigInt    @map("cycle_budget")
+  remindCutoffDays Int       @default(2) @map("remind_cutoff_days") @db.SmallInt
+  remindDueDays    Int       @default(3) @map("remind_due_days") @db.SmallInt
+  /// Null while the card is active.
+  archivedAt       DateTime? @map("archived_at") @db.Timestamptz(6)
+  createdAt        DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt        DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+  user             User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, archivedAt, createdAt])
+  @@map("cards")
 }

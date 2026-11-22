@@ -2,6 +2,8 @@ import { type DynamicModule, Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { ThrottlerModule } from '@nestjs/throttler';
 import { AuthModule } from './auth/auth.module';
+import { CardsModule } from './cards/cards.module';
+import { ClockModule } from './common/clock';
 import { validateEnv } from './config/env.schema';
 import { HealthModule } from './health/health.module';
 import { PrismaModule } from './prisma/prisma.module';
@@ -22,10 +24,12 @@ export class AppModule {
         // In-memory storage: one API instance only (research.md R4). ThrottlerGuard is applied
         // per route (login, register); it is not a global guard.
         ThrottlerModule.forRoot([{ name: 'default', ttl: 15 * 60_000, limit: 20 }]),
+        ClockModule,
         PrismaModule,
         HealthModule,
         AuthModule,
         UsersModule,
+        CardsModule,
       ],
     };
   }
