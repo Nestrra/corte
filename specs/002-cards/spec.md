@@ -266,11 +266,12 @@ Como usuario quiero que nadie más pueda ver, editar, archivar ni restaurar mis 
   igual o posterior a hoy) y su fecha límite.
 - **FR-005**: El sistema MUST calcular, a partir de "hoy", la próxima fecha límite: la primera
   fecha límite igual o posterior a hoy, considerando el corte anterior a hoy y el próximo.
-- **FR-006**: El sistema MUST convertir un instante y una zona horaria IANA en la fecha calendario
-  "hoy" de esa zona, y calcular los días calendario entre dos fechas.
-- **FR-007**: Las reglas FR-001 a FR-006 MUST ser funciones puras que reciben "hoy" (o el instante)
-  y la zona horaria como parámetros, sin reloj del sistema ni otro acceso externo, y MUST ser la
-  única implementación de estas reglas que usan el servidor y la app.
+- **FR-006**: El sistema MUST calcular los días calendario entre dos fechas. La fecha "hoy" en la
+  zona horaria del usuario la obtiene el servidor a partir de su reloj y la zona IANA del usuario,
+  y se entrega a las reglas como parámetro.
+- **FR-007**: Las reglas FR-001 a FR-006 MUST ser funciones puras que reciben "hoy" como parámetro,
+  sin reloj del sistema ni otro acceso externo, y MUST ser la única implementación de estas reglas
+  que usan el servidor y la app.
 - **FR-008**: Las reglas MUST tener pruebas automáticas que cubran como mínimo: febrero de 28 y 29
   días, meses de 30 días, días de corte y de pago 29, 30 y 31, corte y pago en el mismo mes y en el
   siguiente, día límite igual al de corte, cambio de año (diciembre → enero), hoy igual al día de
@@ -326,7 +327,8 @@ Como usuario quiero que nadie más pueda ver, editar, archivar ni restaurar mis 
 - **FR-023**: El detalle de una tarjeta MUST mostrar la vista de la tarjeta, el próximo corte y su
   fecha límite con los días que faltan para cada uno ("Hoy", "Mañana" o "faltan N días"), y los
   datos configurados (cupo, tope por ciclo, días de recordatorio), calculados con la zona horaria
-  del usuario y la fecha actual del dispositivo.
+  del usuario y la fecha actual en esa zona (la que da el servidor, para
+  que la app y el servidor no muestren días distintos si el reloj del teléfono está mal).
 - **FR-024**: Los montos MUST mostrarse en pesos colombianos sin decimales, con separador de miles
   y números tabulares (por ejemplo "$5.000.000"); las fechas en español (por ejemplo "8 de
   diciembre de 2026").
@@ -378,8 +380,8 @@ Como usuario quiero que nadie más pueda ver, editar, archivar ni restaurar mis 
   la historia. Entre un corte y su fecha límite, el pago pendiente del corte anterior todavía no
   tiene monto (no hay compras), así que no se muestra; el dominio ya calcula esa "próxima fecha
   límite" (FR-005) para el inicio, los extractos y los recordatorios de las specs 003–005.
-- **"Hoy"** se obtiene del reloj del dispositivo (app) o del servidor (API) y se convierte a la
-  fecha de la zona horaria del usuario con la regla del dominio; las reglas en sí no leen el reloj.
+- **"Hoy"** lo calcula el servidor con su reloj y la zona horaria del usuario, y lo envía a la app
+  junto con las fechas del ciclo; las reglas en sí no leen el reloj.
 - **Límites de los campos**: nombre de 1 a 40 caracteres (cabe en la vista de tarjeta); cupo y tope
   hasta $9.999.999.999; recordatorios de 0 a 15 días (0 = el mismo día). Los recordatorios solo se
   guardan; los avisos llegan en la spec 005.
