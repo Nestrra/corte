@@ -36,7 +36,7 @@ el comando falla.
 
 ```bash
 curl -s -X POST $API/cards -H "$AUTH" -H 'Content-Type: application/json' \
-  -d '{"name":" Visa principal ","color":"petroleo","last4":"4821","cutoffDay":8,"dueDay":25,"creditLimit":5000000,"cycleBudget":2000000}'
+  -d '{"name":" Visa principal ","color":"verde","last4":"4821","cutoffDay":8,"dueDay":25,"creditLimit":5000000,"cycleBudget":2000000}'
 curl -s $API/cards -H "$AUTH"
 ```
 
@@ -93,7 +93,7 @@ pnpm --filter api test:e2e          # incluye cards*.e2e-spec.ts y el aislamient
    negrita además del color. Perfil funciona como en la spec 001 (zona horaria, cambio de
    contraseña, eliminar cuenta, cerrar sesión).
 2. Tarjetas sin tarjetas → estado vacío y "Agregar tarjeta".
-3. Agregar "Visa principal", petróleo, 4821, corte 8, pago 25, cupo 5000000, tope 2000000 →
+3. Agregar "Visa principal", verde, 4821, corte 8, pago 25, cupo 5000000, tope 2000000 →
    aparece en el carrusel con "**** 4821", "$5.000.000" y "Corte día 8 · Pago día 25".
    **Comprobar en Android** que el monto se ve como `$5.000.000` (R4).
 4. Agregar una segunda tarjeta → el carrusel avanza de a una, deja ver el borde de la siguiente y
@@ -108,6 +108,11 @@ pnpm --filter api test:e2e          # incluye cards*.e2e-spec.ts y el aislamient
 8. Selector de color con VoiceOver / TalkBack: anuncia el nombre del color y si está seleccionado.
 9. Con la contraseña temporal pendiente (spec 001) no se ven las pestañas, solo el cambio de
    contraseña.
+10. Ajustes de diseño (FR-021, FR-025, FR-027): con una sola tarjeta, ocupa el ancho menos 20 a
+    cada lado y queda centrada; con varias, asoman ~16 px de la siguiente y al soltar cada tarjeta
+    queda alineada al margen izquierdo de 20 (la última, al derecho), también en Android. Las
+    tarjetas tienen degradado diagonal; la amarilla usa texto oscuro. Las tarjetas creadas antes
+    de la migración aparecen con el color nuevo (petróleo → verde, etc.).
 
 ## B9. CI
 

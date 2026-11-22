@@ -2,12 +2,13 @@ import { useQuery } from '@tanstack/react-query';
 import { router } from 'expo-router';
 import { ActivityIndicator, Pressable, StyleSheet, View } from 'react-native';
 import { cardKeys, listCards, type Card } from '../../../api/cards';
+import { CardGradient } from '../../../components/CardGradient';
 import { CARD_COLOR_NAMES } from '../../../components/ColorPicker';
 import { QueryError } from '../../../components/QueryError';
 import { Screen } from '../../../components/Screen';
 import { Text } from '../../../components/Text';
 import { useRefetchOnFocus } from '../../../features/use-refetch-on-focus';
-import { cardColors, colors, interaction, layout, radius, spacing } from '../../../theme';
+import { colors, interaction, layout, radius, spacing } from '../../../theme';
 
 const SWATCH_SIZE = spacing.lg;
 
@@ -28,7 +29,7 @@ function ArchivedRow({ card }: { card: Card }) {
       onPress={() => router.push({ pathname: '/card/[id]', params: { id: card.id } })}
       style={({ pressed }) => [styles.row, pressed && styles.pressed]}
     >
-      <View style={[styles.swatch, { backgroundColor: cardColors[card.color] }]} />
+      <CardGradient color={card.color} style={styles.swatch} />
       <View style={styles.rowText}>
         <Text numberOfLines={1}>{card.name}</Text>
         {last4 ? (
@@ -89,7 +90,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: spacing.md,
   },
-  swatch: { width: SWATCH_SIZE, height: SWATCH_SIZE, borderRadius: radius.full },
+  swatch: {
+    width: SWATCH_SIZE,
+    height: SWATCH_SIZE,
+    borderRadius: radius.full,
+    overflow: 'hidden',
+  },
   rowText: { flex: 1, gap: spacing.xs },
   pressed: { opacity: interaction.pressedOpacity },
   divider: { height: 1, backgroundColor: colors.divider, marginLeft: spacing.lg },

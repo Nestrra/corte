@@ -222,6 +222,25 @@ API, y la navegación con pestañas de la app. Todas las historias dependen de e
 
 ---
 
+## Phase 11: Ajustes de diseño (tarjetas más grandes y colores con degradado)
+
+**Purpose**: FR-021, FR-025, FR-027 y SC-007 tras los ajustes de diseño (spec.md → Ajustes de
+diseño; research.md R12). Pruebas primero en dominio y API.
+
+- [X] T053 [P] Change `CARD_COLORS` to `['negro', 'morado', 'amarillo', 'naranja', 'verde', 'marron']` in `packages/domain/src/card-rules.ts`, updating `packages/domain/src/card-rules.test.ts` first (it must fail), per data-model.md `Card.color`
+- [X] T054 Change `enum CardColor` in `apps/api/prisma/schema.prisma` and write by hand `apps/api/prisma/migrations/<timestamp>_card_color_gradients/migration.sql` (new enum, `USING CASE` with the mapping of data-model.md → Migración de colores, drop the old type, rename); verify it on a scratch database with one card of each old color and check `prisma migrate diff` reports no drift (FR-027)
+- [X] T055 Update the API tests to the new keys (`apps/api/test/helpers.ts`, `apps/api/test/cards.e2e-spec.ts`, `apps/api/src/cards/card.mapper.spec.ts`): `POST /cards` accepts each of the 6 keys and rejects old keys (`petroleo`, `indigo`) with `INVALID` on `color`
+- [X] T056 [P] Add `expo-linear-gradient` to `apps/mobile` with `pnpm exec expo install expo-linear-gradient` (research.md R12)
+- [X] T057 Replace `cardColors` in `apps/mobile/src/theme/colors.ts` with `{ gradient, text, textSecondary }` per key, add `cardGradient` and `layout.cardAspectRatio` (1.586) / `layout.cardPeek` (16) in `apps/mobile/src/theme/spacing.ts`, and remove `onCardSecondary`; compute the contrast of `text` and `textSecondary` on both gradient ends (raise the opacity where 80% is below 4.5) and record it in `docs/design-system.md` (SC-007)
+- [X] T058 Add `apps/mobile/src/components/CardGradient.tsx` and update `apps/mobile/src/components/CreditCardView.tsx`: `width` prop, height by `layout.cardAspectRatio`, gradient background and the text colors of its color (dark on amarillo); the detail in `apps/mobile/src/app/(app)/card/[id]/index.tsx` uses width screen − 40
+- [X] T059 Update `apps/mobile/src/components/CardCarousel.tsx`: one card → screen − 40, centered, no dots; several → screen − 56, gap 20 (16 px of the next card), `snapToOffsets` aligned to the left margin of 20 with the last offset clamped to the end of the content (FR-021; avoids the Android shift of `snapToInterval` with padding)
+- [X] T060 [P] Update `apps/mobile/src/components/ColorPicker.tsx` (gradient circles, check in the color's `text`, accessible names Negro, Morado, Amarillo, Naranja, Verde, Marrón; FR-025) and the swatch of `apps/mobile/src/app/(app)/card/archived.tsx`
+- [X] T061 [P] Update spec.md (FR-021, FR-025, FR-027, SC-007, "Ajustes de diseño"), plan.md, data-model.md, research.md R12, contracts/cards.openapi.yaml, contracts/screens.md, quickstart.md and `docs/design-system.md`
+- [X] T062 Run `pnpm lint`, `pnpm typecheck`, `pnpm format:check`, `pnpm --filter @corte/domain test:cov`, `pnpm --filter api test`, `pnpm --filter api test:e2e` and `pnpm --filter mobile exec expo export --platform ios --platform android`; fix any failure
+- [ ] T063 Validate quickstart.md B8.10 (sizes, snap and gradients on iOS and Android, dark text on amarillo, migrated colors) manually; done by the user together with T052
+
+---
+
 ## Dependencies & Execution Order
 
 ### Phase Dependencies
@@ -236,6 +255,7 @@ API, y la navegación con pestañas de la app. Todas las historias dependen de e
 - **US6 (Phase 8)**: depends on US4 (detail screen) and US3 (list/tab).
 - **US7 (Phase 9)**: depends on all endpoints (US2–US6).
 - **Polish (Phase 10)**: depends on all stories.
+- **Design adjustments (Phase 11)**: after Phase 10; T053 → T054 → T055 (API), T056 → T057 → T058 → T059/T060 (app), then T061 and T062.
 
 ### Within Each User Story
 

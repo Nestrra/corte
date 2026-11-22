@@ -28,11 +28,15 @@ Hermes).
 **Primary Dependencies** (nuevas en esta spec):
 - `apps/mobile`: `@expo/vector-icons` (íconos de la TabBar; Expo 58 ya no la incluye; JS + fuentes,
   funciona en Expo Go; research.md R8).
+- `apps/mobile`: `expo-linear-gradient` (degradado diagonal de los colores de tarjeta; incluido en
+  Expo Go; research.md R12). Agregada en los ajustes de diseño.
 - Sin cambios: NestJS 12, Prisma 7, zod, TanStack Query, react-hook-form, expo-router.
 - `packages/domain` sigue sin dependencias de ejecución.
 
 **Storage**: PostgreSQL 17, tabla nueva `cards` con enum `card_color`, montos `BIGINT` y `CHECK` de
-rangos (migración de Prisma más SQL a mano).
+rangos (migración de Prisma más SQL a mano). Una segunda migración escrita a mano
+(`card_color_gradients`) cambia las claves del enum y convierte las tarjetas existentes
+(data-model.md → Migración de colores).
 
 **Testing**: Vitest en `packages/domain` (casos fijos de calendario y comparación exhaustiva con una
 referencia, umbral de cobertura 95%); Jest unitarias y e2e contra PostgreSQL real en el API, con
@@ -67,7 +71,7 @@ archivadas, más la TabBar), ~15 funciones puras en el dominio.
 | VI. Simplicidad | Sin librerías de fechas; ciclo derivado sin tabla; cupo disponible = cupo hasta la spec 003; sin reordenar tarjetas ni borrarlas. | ✅ |
 | VII. Configuración por entorno | Sin variables nuevas. | ✅ |
 | VIII. Convenciones | Código, rutas y códigos de error en inglés; textos de la app en español. | ✅ |
-| IX. Sistema de diseño | CreditCardView, CardCarousel y TabBar según `docs/design-system.md`; texto sobre los 6 colores de tarjeta con contraste AA (blanco ≥ 7,13; secundario ≥ 5,20, calculado); áreas táctiles ≥ 44; montos con números tabulares; estados con texto (pestaña activa, color elegido, tarjeta archivada). | ✅ |
+| IX. Sistema de diseño | CreditCardView, CardCarousel y TabBar según `docs/design-system.md`; texto sobre los dos extremos del degradado de los 6 colores con contraste AA (principal ≥ 5,02; secundario ≥ 4,70, calculado; research.md R12); áreas táctiles ≥ 44; montos con números tabulares; estados con texto (pestaña activa, color elegido, tarjeta archivada). | ✅ |
 
 **Resultado (pre-Phase 0)**: PASA sin violaciones.
 **Re-evaluación (post-Phase 1)**: PASA. El contrato ([contracts/cards.openapi.yaml](./contracts/cards.openapi.yaml))

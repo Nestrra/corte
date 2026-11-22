@@ -19,14 +19,7 @@ import {
 
 describe('card rules (data-model.md → Card)', () => {
   it('exposes the limits and defaults of the spec', () => {
-    expect(CARD_COLORS).toEqual([
-      'indigo',
-      'petroleo',
-      'ciruela',
-      'grafito',
-      'bosque',
-      'terracota',
-    ]);
+    expect(CARD_COLORS).toEqual(['negro', 'morado', 'amarillo', 'naranja', 'verde', 'marron']);
     expect(CARD_NAME_MAX_LENGTH).toBe(40);
     expect(MAX_AMOUNT_COP).toBe(9_999_999_999);
     expect(DAY_OF_MONTH_MIN).toBe(1);

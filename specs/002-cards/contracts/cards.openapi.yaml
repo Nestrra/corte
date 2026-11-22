@@ -21,7 +21,7 @@ components:
   schemas:
     CardColor:
       type: string
-      enum: [indigo, petroleo, ciruela, grafito, bosque, terracota]
+      enum: [negro, morado, amarillo, naranja, verde, marron]
     Amount:
       type: integer
       minimum: 1

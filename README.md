@@ -239,7 +239,8 @@ pnpm --filter mobile start --clear   # si cambiaste .env o algo se ve desactuali
 
 La app usa los tokens de `docs/design-system.md` (`apps/mobile/src/theme`) y los componentes de
 `apps/mobile/src/components`: los base `Text`, `Button`, `TextField` y `Screen`, y los de
-tarjetas `TabBar` (barra inferior con íconos de `@expo/vector-icons`), `CreditCardView`,
+tarjetas `TabBar` (barra inferior con íconos de `@expo/vector-icons`), `CreditCardView`
+(proporción 1,586:1 con el degradado de su color, `expo-linear-gradient`),
 `CardCarousel`, `ColorPicker` (radio group accesible) y `CardForm` (react-hook-form + zod con las
 reglas de `@corte/domain`). Los montos se muestran con `formatCop` (`$5.000.000`,
 `src/features/money.ts`). No escribas colores, tamaños ni espaciados sueltos en los componentes

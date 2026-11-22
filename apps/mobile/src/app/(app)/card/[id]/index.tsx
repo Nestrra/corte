@@ -1,6 +1,13 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { router, useLocalSearchParams } from 'expo-router';
-import { ActivityIndicator, Alert, Pressable, StyleSheet, View } from 'react-native';
+import {
+  ActivityIndicator,
+  Alert,
+  Pressable,
+  StyleSheet,
+  useWindowDimensions,
+  View,
+} from 'react-native';
 import {
   archiveCard,
   cardKeys,
@@ -75,6 +82,7 @@ function CyclePanel({ card }: { card: CardDetail }) {
 /** Card detail (spec US4–US6): cycle in the user's time zone, data, edit, archive and restore. */
 export default function CardDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
+  const { width: screenWidth } = useWindowDimensions();
   const queryClient = useQueryClient();
   const detail = useQuery({ queryKey: cardKeys.detail(id), queryFn: () => getCard(id) });
   // The time zone or the day may have changed while away (contracts/screens.md → Comportamiento).
@@ -148,7 +156,7 @@ export default function CardDetailScreen() {
       ) : null}
 
       <View style={styles.cardWrap}>
-        <CreditCardView card={card} />
+        <CreditCardView card={card} width={screenWidth - 2 * layout.screenMargin} />
       </View>
 
       <CyclePanel card={card} />

@@ -29,23 +29,35 @@ Diseño de referencia: https://claude.ai/artifact/9ipVusGjR4hUvszf7tMRy7
 | `success` / `successSoft` | `#067647` / `#ECFDF3` | Pagado |
 | `warning` / `warningSoft` | `#B54708` / `#FFFAEB` | Pendiente, próximo pago, tope ≥ 70% |
 | `danger` / `dangerSoft` | `#B42318` / `#FEF3F2` | Vencido, tope ≥ 100% |
-| `onPrimary` | `#FFFFFF` | Texto sobre `primary` (botón principal) y sobre tarjetas |
-| `onCardSecondary` | `rgba(255,255,255,0.8)` | Texto secundario sobre tarjetas |
+| `onPrimary` | `#FFFFFF` | Texto sobre `primary` (botón principal) |
 
 ### Colores de tarjeta
 
-El usuario elige uno al crear la tarjeta. Se guarda la clave, no el hex.
+El usuario elige uno al crear la tarjeta. Se guarda la clave, no los valores. Cada tarjeta es un
+degradado diagonal (`expo-linear-gradient`) del primer color, arriba a la izquierda, al segundo,
+abajo a la derecha. Cada color define su texto principal (`text`) y secundario (`textSecondary`).
 
-| Clave | Valor |
-| --- | --- |
-| `indigo` | `#3730A3` |
-| `petroleo` | `#0F4C5C` |
-| `ciruela` | `#5B2A6E` |
-| `grafito` | `#1F2937` |
-| `bosque` | `#166534` |
-| `terracota` | `#9A3412` |
+| Clave | Nombre | Degradado | `text` | `textSecondary` |
+| --- | --- | --- | --- | --- |
+| `negro` | Negro | `#111827` → `#4B5563` | `#FFFFFF` | `rgba(255,255,255,0.8)` |
+| `morado` | Morado | `#4C1D95` → `#7E22CE` | `#FFFFFF` | `rgba(255,255,255,0.8)` |
+| `amarillo` | Amarillo | `#F59E0B` → `#FDE047` | `#1F1300` | `rgba(31,19,0,0.8)` |
+| `naranja` | Naranja | `#9A3412` → `#C2410C` | `#FFFFFF` | `rgba(255,255,255,0.95)` |
+| `verde` | Verde | `#14532D` → `#15803D` | `#FFFFFF` | `rgba(255,255,255,0.95)` |
+| `marron` | Marrón | `#451A03` → `#78350F` | `#FFFFFF` | `rgba(255,255,255,0.8)` |
 
-Texto sobre tarjeta: blanco (`onPrimary`); secundario `rgba(255,255,255,0.8)` (`onCardSecondary`).
+Contraste calculado (WCAG) en el peor extremo de cada degradado: principal ≥ 5,02 y secundario
+≥ 4,70 (AA). Con 80% de opacidad el secundario no alcanza 4,5 sobre el extremo claro de `naranja`
+(3,85) ni de `verde` (3,82); por eso esos dos usan 95%.
+
+| Clave | Principal (mín.) | Secundario (mín.) |
+| --- | --- | --- |
+| `negro` | 7,56 | 5,55 |
+| `morado` | 6,98 | 4,98 |
+| `amarillo` | 8,49 | 5,76 |
+| `naranja` | 5,18 | 4,84 |
+| `verde` | 5,02 | 4,70 |
+| `marron` | 9,07 | 6,45 |
 
 ## Tipografía
 
@@ -75,8 +87,8 @@ Plus Jakarta Sans (600, 700) para títulos y montos; Inter (400, 500, 600) para 
 
 ## Componentes base
 
-- **CreditCardView**: 300 × 184, radio 24, color de tarjeta. Muestra nombre, últimos 4 dígitos, cupo disponible y "Corte día X · Pago día Y". Toque → detalle de la tarjeta.
-- **CardCarousel**: scroll horizontal con snap, peek de la siguiente tarjeta e indicador de puntos.
+- **CreditCardView**: proporción 1,586:1 (formato de tarjeta bancaria), radio 24, degradado del color de tarjeta con su `text` y `textSecondary`. Muestra nombre, últimos 4 dígitos, cupo disponible y "Corte día X · Pago día Y". Toque → detalle de la tarjeta.
+- **CardCarousel**: con una sola tarjeta, ancho = pantalla − 40, centrada. Con varias, ancho = pantalla − 56 y separación de 20, de modo que asoman 16 px de la siguiente; snap alineado al margen izquierdo de 20 (la última descansa en el margen derecho). Indicador de puntos (el activo más ancho).
 - **CycleSummary**: panel del ciclo de la tarjeta al frente: próximo pago (monto, fecha, días restantes), próximo corte y barra del % del tope.
 - **ProgressBar**: alto 8, fondo `primarySoft`, relleno `primary`; `warning` desde 70% y `danger` desde 100%.
 - **StatTile**: etiqueta, monto y línea secundaria (Total del mes, Pagado).
@@ -106,15 +118,21 @@ export const colors = {
   success: '#067647', successSoft: '#ECFDF3',
   warning: '#B54708', warningSoft: '#FFFAEB',
   danger: '#B42318', dangerSoft: '#FEF3F2',
-  onPrimary: '#FFFFFF', onCardSecondary: 'rgba(255,255,255,0.8)',
+  onPrimary: '#FFFFFF',
 } as const;
 
 export const cardColors = {
-  indigo: '#3730A3', petroleo: '#0F4C5C', ciruela: '#5B2A6E',
-  grafito: '#1F2937', bosque: '#166534', terracota: '#9A3412',
+  negro: { gradient: ['#111827', '#4B5563'], text: '#FFFFFF', textSecondary: 'rgba(255,255,255,0.8)' },
+  morado: { gradient: ['#4C1D95', '#7E22CE'], text: '#FFFFFF', textSecondary: 'rgba(255,255,255,0.8)' },
+  amarillo: { gradient: ['#F59E0B', '#FDE047'], text: '#1F1300', textSecondary: 'rgba(31,19,0,0.8)' },
+  naranja: { gradient: ['#9A3412', '#C2410C'], text: '#FFFFFF', textSecondary: 'rgba(255,255,255,0.95)' },
+  verde: { gradient: ['#14532D', '#15803D'], text: '#FFFFFF', textSecondary: 'rgba(255,255,255,0.95)' },
+  marron: { gradient: ['#451A03', '#78350F'], text: '#FFFFFF', textSecondary: 'rgba(255,255,255,0.8)' },
 } as const;
+export const cardGradient = { start: { x: 0, y: 0 }, end: { x: 1, y: 1 } } as const;
 
 export const spacing = { xs: 4, sm: 8, md: 12, lg: 16, xl: 20, '2xl': 24, '3xl': 32, '4xl': 48 } as const;
 export const radius = { chip: 8, control: 12, panel: 16, card: 24, full: 999 } as const;
+// en layout: cardAspectRatio: 1.586, cardPeek: 16
 export const interaction = { pressedOpacity: 0.7 } as const;
 ```

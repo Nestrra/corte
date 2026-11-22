@@ -48,12 +48,12 @@ model RefreshToken {
 
 /// Keys of cardColors in docs/design-system.md (spec 002, data-model.md → Card.color).
 enum CardColor {
-  indigo
-  petroleo
-  ciruela
-  grafito
-  bosque
-  terracota
+  negro
+  morado
+  amarillo
+  naranja
+  verde
+  marron
 
   @@map("card_color")
 }

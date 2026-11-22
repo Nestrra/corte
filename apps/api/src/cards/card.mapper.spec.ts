@@ -6,7 +6,7 @@ function makeCard(overrides: Partial<Card> = {}): Card {
     id: '7a1c3f0e-2b4d-4e5f-8a9b-0c1d2e3f4a5b',
     userId: '11111111-2222-4333-8444-555555555555',
     name: 'Visa principal',
-    color: 'petroleo',
+    color: 'verde',
     last4: '4821',
     cutoffDay: 8,
     dueDay: 25,

@@ -51,7 +51,7 @@ describe('Cards (e2e)', () => {
       const response = await post({ ...VALID_CARD, name: '  Visa principal  ' }).expect(201);
       expect(response.body).toMatchObject({
         name: 'Visa principal',
-        color: 'petroleo',
+        color: 'verde',
         last4: '4821',
         cutoffDay: 8,
         dueDay: 25,
@@ -89,10 +89,21 @@ describe('Cards (e2e)', () => {
       expect(response.body.last4).toBeNull();
     });
 
+    it.each(['negro', 'morado', 'amarillo', 'naranja', 'verde', 'marron'])(
+      'accepts the card color %s',
+      async (color) => {
+        const response = await post({ ...VALID_CARD, color }).expect(201);
+        expect(response.body.color).toBe(color);
+      },
+    );
+
     it.each([
       ['name', { name: '   ' }, 'REQUIRED'],
       ['name', { name: 'a'.repeat(41) }, 'TOO_LONG'],
       ['color', { color: 'rojo' }, 'INVALID'],
+      // Keys removed by the gradient colors migration are no longer accepted.
+      ['color', { color: 'petroleo' }, 'INVALID'],
+      ['color', { color: 'indigo' }, 'INVALID'],
       ['last4', { last4: '48a1' }, 'INVALID_FORMAT'],
       ['last4', { last4: '482' }, 'INVALID_FORMAT'],
       ['cutoffDay', { cutoffDay: 0 }, 'OUT_OF_RANGE'],
@@ -263,7 +274,7 @@ describe('Cards (e2e)', () => {
       const card = await createCard(app, token);
       const response = await patch(card.id, {
         name: ' Mastercard ',
-        color: 'bosque',
+        color: 'amarillo',
         last4: '9012',
         cutoffDay: 30,
         dueDay: 15,
@@ -274,7 +285,7 @@ describe('Cards (e2e)', () => {
       }).expect(200);
       expect(response.body).toMatchObject({
         name: 'Mastercard',
-        color: 'bosque',
+        color: 'amarillo',
         last4: '9012',
         cutoffDay: 30,
         dueDay: 15,

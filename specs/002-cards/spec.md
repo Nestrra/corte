@@ -91,7 +91,7 @@ los datos ingresados.
 **Acceptance Scenarios**:
 
 1. **Given** la pestaña Tarjetas, **When** el usuario toca "Agregar tarjeta" y guarda nombre "Visa
-   principal", color petróleo, últimos 4 "4821", corte 8, pago 25, cupo $5.000.000 y tope
+   principal", color verde, últimos 4 "4821", corte 8, pago 25, cupo $5.000.000 y tope
    $2.000.000 sin tocar los recordatorios, **Then** la tarjeta se guarda con recordatorios de 2
    días antes del corte y 3 antes del pago, y aparece en el carrusel.
 2. **Given** el formulario, **When** el usuario deja vacíos los últimos 4 dígitos, **Then** la
@@ -116,7 +116,7 @@ aspecto de una tarjeta de crédito, para reconocerlas de un vistazo.
 **Acceptance Scenarios**:
 
 1. **Given** una tarjeta con nombre "Visa principal", últimos 4 "4821", cupo $5.000.000, corte 8 y
-   pago 25, **When** el usuario abre la pestaña Tarjetas, **Then** ve la tarjeta en su color con
+   pago 25, **When** el usuario abre la pestaña Tarjetas, **Then** ve la tarjeta con el degradado de su color, con
    "Visa principal", "**** 4821", el cupo disponible "$5.000.000" (igual al cupo total mientras no
    existan compras) y "Corte día 8 · Pago día 25".
 2. **Given** varias tarjetas, **When** el usuario desliza el carrusel, **Then** avanza una tarjeta
@@ -320,8 +320,12 @@ Como usuario quiero que nadie más pueda ver, editar, archivar ni restaurar mis 
   muestran en esta spec.
 - **FR-021**: La pestaña Tarjetas MUST mostrar las tarjetas activas en un carrusel horizontal que
   avanza de a una tarjeta, deja ver el borde de la siguiente y muestra un indicador de posición.
-  Cada tarjeta muestra su color, nombre, "**** últimos 4" (si existen), cupo disponible en pesos y
-  "Corte día X · Pago día Y", según la vista de tarjeta del sistema de diseño.
+  Cada tarjeta tiene la proporción de una tarjeta bancaria (1,586:1) y muestra el degradado de su
+  color, nombre, "**** últimos 4" (si existen), cupo disponible en pesos y "Corte día X · Pago día
+  Y", según la vista de tarjeta del sistema de diseño. Con una sola tarjeta, esta ocupa el ancho de
+  la pantalla menos los márgenes (pantalla − 40) y queda centrada; con varias, cada una mide
+  pantalla − 56, asoman unos 16 px de la siguiente y al deslizar cada tarjeta se alinea con el
+  margen izquierdo de 20, igual en iOS y Android.
 - **FR-022**: La pestaña Tarjetas MUST ofrecer "Agregar tarjeta", un estado vacío con invitación a
   agregar la primera tarjeta, y el acceso a "Archivadas" cuando existan.
 - **FR-023**: El detalle de una tarjeta MUST mostrar la vista de la tarjeta, el próximo corte y su
@@ -332,9 +336,12 @@ Como usuario quiero que nadie más pueda ver, editar, archivar ni restaurar mis 
 - **FR-024**: Los montos MUST mostrarse en pesos colombianos sin decimales, con separador de miles
   y números tabulares (por ejemplo "$5.000.000"); las fechas en español (por ejemplo "8 de
   diciembre de 2026").
-- **FR-025**: El formulario de tarjeta MUST ofrecer los 6 colores como opciones tocables con su
-  nombre accesible (Índigo, Petróleo, Ciruela, Grafito, Bosque, Terracota) y la opción elegida
-  marcada también con un indicador visual distinto del color.
+- **FR-025**: El formulario de tarjeta MUST ofrecer los 6 colores como opciones tocables, cada una
+  con su degradado y su nombre accesible (Negro, Morado, Amarillo, Naranja, Verde, Marrón), y la
+  opción elegida marcada también con un indicador visual distinto del color.
+- **FR-027**: Las tarjetas creadas con los colores anteriores MUST conservarse con el color nuevo
+  más parecido: grafito → negro, ciruela → morado, índigo → morado, bosque → verde, petróleo →
+  verde y terracota → marrón. Las claves anteriores dejan de aceptarse.
 - **FR-026**: El perfil (spec 001) pasa a ser la pestaña Perfil; sus pantallas (zona horaria,
   cambio de contraseña, eliminar cuenta) siguen funcionando igual. Con la contraseña temporal
   pendiente, solo es accesible el cambio de contraseña, como en la spec 001.
@@ -368,7 +375,15 @@ Como usuario quiero que nadie más pueda ver, editar, archivar ni restaurar mis 
   archivar o restaurar tarjetas del otro fallan sin revelar si la tarjeta existe.
 - **SC-006**: Una tarjeta archivada y restaurada conserva el 100% de sus datos.
 - **SC-007**: Las pantallas nuevas cumplen el sistema de diseño: contraste AA en todo el texto
-  (incluido el texto sobre los 6 colores de tarjeta) y áreas táctiles de al menos 44.
+  (incluido el texto principal y secundario sobre los dos extremos del degradado de los 6 colores
+  de tarjeta) y áreas táctiles de al menos 44.
+
+## Ajustes de diseño (2026-11-22)
+
+Antes de cerrar la spec se ajustaron la vista de tarjeta y sus colores (FR-021, FR-025, FR-027,
+SC-007): tarjetas más grandes con proporción 1,586:1 y anchos según cuántas haya, y seis colores
+nuevos con degradado diagonal (negro, morado, amarillo, naranja, verde, marrón), con texto oscuro
+sobre el amarillo. Las tarjetas existentes se migran al color nuevo más parecido.
 
 ## Assumptions
 

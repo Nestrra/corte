@@ -39,15 +39,18 @@ Días restantes: 0 → "Hoy", 1 → "Mañana", N → "faltan N días".
 
 ## Componentes
 
-- **CreditCardView**: 300 × 184, radio `card` (24), fondo `cardColors[color]`. Nombre (`bodyStrong`,
-  `onPrimary`), "**** 4821" (`secondary`, `onCardSecondary`), etiqueta "Cupo disponible" (`caption`,
-  `onCardSecondary`) y monto (`amount`, `onPrimary`), "Corte día 8 · Pago día 25" (`caption`,
-  `onCardSecondary`). `accessibilityLabel` con todo el contenido.
-- **CardCarousel**: `FlatList` horizontal, snap cada 312 (300 + 12), peek de la siguiente, puntos
-  debajo (activo `primary`, inactivos `border`) con `accessibilityLabel` "Tarjeta 1 de 3".
-- **ColorPicker**: `radiogroup` con 6 círculos de 44 en el color de tarjeta; el elegido con borde
-  `text` y un ícono de check en `onPrimary`; nombre accesible: Índigo, Petróleo, Ciruela, Grafito,
-  Bosque, Terracota.
+- **CreditCardView**: proporción 1,586:1 (el ancho lo da quien la usa), radio `card` (24), degradado
+  diagonal de `cardColors[color]`. Nombre (`bodyStrong`, `text` del color), "**** 4821"
+  (`secondary`, `textSecondary`), etiqueta "Cupo disponible" (`caption`, `textSecondary`) y monto
+  (`amount`, `text`), "Corte día 8 · Pago día 25" (`caption`, `textSecondary`). En amarillo el texto
+  es oscuro. `accessibilityLabel` con todo el contenido. En el detalle mide pantalla − 40.
+- **CardCarousel**: una tarjeta: ancho pantalla − 40, centrada, sin puntos. Varias: `FlatList`
+  horizontal, ancho pantalla − 56, separación 20 (asoman 16 px de la siguiente), `snapToOffsets`
+  alineados al margen izquierdo de 20; puntos debajo (activo `primary` y más ancho, inactivos
+  `border`) con `accessibilityLabel` "Tarjeta 1 de 3".
+- **ColorPicker**: `radiogroup` con 6 círculos de 44 con el degradado de cada color; el elegido con
+  borde `text` y un ícono de check en el `text` del color; nombre accesible: Negro, Morado,
+  Amarillo, Naranja, Verde, Marrón.
 - **TextField** (spec 001) con teclado numérico para días, montos y recordatorios; los montos se
   muestran formateados al salir del campo.
 

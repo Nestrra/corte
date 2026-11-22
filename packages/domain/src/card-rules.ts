@@ -4,14 +4,7 @@
  */
 
 /** Keys of `cardColors` in docs/design-system.md; the key is stored, not the hex value. */
-export const CARD_COLORS = [
-  'indigo',
-  'petroleo',
-  'ciruela',
-  'grafito',
-  'bosque',
-  'terracota',
-] as const;
+export const CARD_COLORS = ['negro', 'morado', 'amarillo', 'naranja', 'verde', 'marron'] as const;
 export type CardColor = (typeof CARD_COLORS)[number];
 
 export const CARD_NAME_MAX_LENGTH = 40;

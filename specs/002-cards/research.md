@@ -136,7 +136,7 @@ Con `clamp(año, mes, día)` = ese día del mes o el último día si el mes no l
 - **Decision**: `react-hook-form` + `zod` con las reglas de `@corte/domain` (mismas que el API,
   FR-011). Un esquema compartido por crear y editar. Selector de color como radio group:
   contenedor con `accessibilityRole="radiogroup"` y cada opción con `accessibilityRole="radio"`,
-  `accessibilityState={{ checked }}`, nombre accesible (Índigo, Petróleo, …), tamaño ≥ 44 y la
+  `accessibilityState={{ checked }}`, nombre accesible (Negro, Morado, …), tamaño ≥ 44 y la
   elegida marcada con un borde y un ícono de check (no solo color).
 
 ## R11. Cobertura del dominio ≥ 95% (FR-009)
@@ -144,3 +144,24 @@ Con `clamp(año, mes, día)` = ese día del mes o el último día si el mes no l
 - **Decision**: `coverage.thresholds` en `packages/domain/vitest.config.mts` con `lines`,
   `branches`, `functions` y `statements` en 95. `test:cov` falla si no se alcanza y el job
   `domain-test` de la CI ya ejecuta `test:cov`, así que no cambia el workflow.
+
+## R12. Ajustes de diseño: tamaño de tarjeta y degradados
+
+- **Tamaño**: proporción 1,586:1 (formato ID-1 de tarjeta bancaria), ancho según el número de
+  tarjetas (`layout.cardAspectRatio`, `layout.cardPeek`): una sola, pantalla − 40 y centrada;
+  varias, pantalla − 56 con separación 20, así asoman 16 px de la siguiente. Ejemplos: 393 pt →
+  337 × 212 (varias) y 353 × 223 (una); 320 pt → 264 × 166.
+- **Snap**: `snapToOffsets` calculados (cada tarjeta empieza en el margen de 20; el último offset se
+  limita al final del contenido) en vez de `snapToInterval`, que con relleno lateral puede dejar el
+  contenido corrido en Android y pedir un desplazamiento mayor que el máximo para la última tarjeta.
+  El carrusel ocupa el ancho de la pantalla con margen negativo, sin desbordar a su contenedor.
+- **Degradados**: `expo-linear-gradient` (dependencia nueva, incluida en Expo Go), diagonal de
+  arriba a la izquierda a abajo a la derecha. Un componente `CardGradient` lo aplica en la
+  tarjeta, el selector de color y la lista de archivadas.
+- **Contraste**: se calculó el texto principal y el secundario (mezclado con su opacidad) sobre los
+  dos extremos de cada degradado. Con 80% el secundario queda en 3,85 (naranja) y 3,82 (verde)
+  sobre el extremo claro; con 95% sube a 4,84 y 4,70. Los demás pasan con 80%. En amarillo el
+  texto es `#1F1300` (secundario al 80%: 5,76). Tabla en `docs/design-system.md`.
+- **Migración del enum**: Prisma genera un `ALTER TYPE` que borra los valores anteriores y falla si
+  una fila los usa; la migración se escribe a mano con un enum nuevo y un `USING CASE` que convierte
+  cada clave (data-model.md). Verificada con una base temporal con una tarjeta de cada color anterior.

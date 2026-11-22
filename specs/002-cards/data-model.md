@@ -10,7 +10,7 @@ Fase 1 de [plan.md](./plan.md). Reglas de los campos: spec FR-010; decisiones en
 | `id` | `id` | `uuid`, PK, `gen_random_uuid()` | — |
 | `userId` | `user_id` | `uuid`, FK → `users.id`, `ON DELETE CASCADE` | Siempre el usuario del token (principio III) |
 | `name` | `name` | `VARCHAR(40)` | 1–40 caracteres tras recortar espacios |
-| `color` | `color` | enum `CardColor` | `indigo`, `petroleo`, `ciruela`, `grafito`, `bosque`, `terracota` (claves de `cardColors`) |
+| `color` | `color` | enum `CardColor` | `negro`, `morado`, `amarillo`, `naranja`, `verde`, `marron` (claves de `cardColors`) |
 | `last4` | `last4` | `CHAR(4)`, nulo | Exactamente 4 dígitos o nulo |
 | `cutoffDay` | `cutoff_day` | `SMALLINT` | 1–31 |
 | `dueDay` | `due_day` | `SMALLINT` | 1–31 |
@@ -30,6 +30,10 @@ Fase 1 de [plan.md](./plan.md). Reglas de los campos: spec FR-010; decisiones en
 - **Estados**: activa (`archived_at` nulo) ⇄ archivada (`archived_at` con fecha). Archivar fija
   `archived_at = now()`; restaurar lo pone en nulo. Ambas son idempotentes. Una archivada no se
   edita (`PATCH` → 409 `CARD_ARCHIVED`).
+- **Migración de colores** (`card_color_gradients`, SQL a mano, FR-027): crea el enum nuevo,
+  convierte la columna con `grafito → negro`, `ciruela → morado`, `indigo → morado`,
+  `bosque → verde`, `petroleo → verde`, `terracota → marron`, borra el enum anterior y renombra el
+  nuevo a `card_color`. `amarillo` y `naranja` no tienen clave anterior. Los `CHECK` no cambian.
 - **Cupo disponible**: no se guarda; en esta spec el API lo devuelve igual a `credit_limit`
   (FR-017). La spec 003 lo calculará con las cuotas.
 
@@ -48,7 +52,7 @@ Calculado por `packages/domain` (R2) a partir de `cutoffDay`, `dueDay` y una fec
 
 | Constante / función | Valor o firma |
 | --- | --- |
-| `CARD_COLORS` | `['indigo', 'petroleo', 'ciruela', 'grafito', 'bosque', 'terracota']` |
+| `CARD_COLORS` | `['negro', 'morado', 'amarillo', 'naranja', 'verde', 'marron']` |
 | `CARD_NAME_MAX_LENGTH` | 40 |
 | `MAX_AMOUNT_COP` | 9_999_999_999 |
 | `DAY_OF_MONTH_MIN` / `MAX` | 1 / 31 |

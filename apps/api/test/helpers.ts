@@ -116,7 +116,7 @@ export const bearer = (token: string) => ({ Authorization: `Bearer ${token}` });
 /** Valid card body (quickstart.md B2); tests override what they need. */
 export const VALID_CARD = {
   name: 'Visa principal',
-  color: 'petroleo',
+  color: 'verde',
   last4: '4821',
   cutoffDay: 8,
   dueDay: 25,
