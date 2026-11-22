@@ -2,7 +2,7 @@ import { Stack } from 'expo-router';
 import { colors } from '../../theme';
 
 // Without a session the user lands on login (the group has no index route).
-export const unstable_settings = { initialRouteName: 'login' };
+export const unstable_settings = { anchor: 'login' };
 
 export default function AuthLayout() {
   return (

@@ -10,9 +10,13 @@ estado de sesión            pantallas accesibles
 restoring  →  splash (sin rutas)
 offline    →  "Sin conexión con el servidor" + "Reintentar" (no borra la sesión)
 signedOut  →  (auth)/login · (auth)/register
-signedIn   →  (app)/index · profile · timezone · change-password · delete-account
+signedIn   →  (app)/home · profile · timezone · change-password · delete-account
 signedIn + mustChangePassword  →  solo (app)/change-password (modo obligatorio)
 ```
+
+La ruta `/` (`app/index.tsx`) no pertenece a ningún grupo y nunca está protegida: redirige a
+`/home` con sesión y a `/login` sin ella. Los grupos no tienen `index` propio, así que sin esta ruta
+`/` no resolvería al cerrar la sesión ("Unmatched Route").
 
 Al expirar o revocarse la sesión, el estado pasa a `signedOut` y expo-router lleva a `login` con
 el último email ya escrito y un aviso ("Tu sesión expiró…" / "Tu sesión se cerró…").
@@ -23,7 +27,7 @@ el último email ya escrito y un aviso ("Tu sesión expiró…" / "Tu sesión se
 | --- | --- | --- |
 | `(auth)/login` | Título "Corte", campos Email y Contraseña, aviso de sesión expirada si aplica | "Iniciar sesión" (primario); "Crear cuenta" (secundario) → register |
 | `(auth)/register` | Campos Nombre, Email, Contraseña (ayuda: "Mínimo 8 caracteres") | "Crear cuenta" (primario); "Ya tengo cuenta" (secundario) → login |
-| `(app)/index` | Saludo "Hola, {nombre}" y nota de que el inicio completo llega pronto | "Perfil" (secundario) |
+| `(app)/home` | Saludo "Hola, {nombre}" y nota de que el inicio completo llega pronto | "Perfil" (secundario) |
 | `(app)/profile` | Nombre, email, zona horaria actual | "Zona horaria" → timezone; "Cambiar contraseña" → change-password; "Cerrar sesión" (secundario); "Eliminar cuenta" (texto en `danger`) → delete-account |
 | `(app)/timezone` | Lista curada con búsqueda; la zona actual marcada con texto "Actual" | Tocar una zona la guarda y vuelve al perfil |
 | `(app)/change-password` | Modo obligatorio: aviso "Debes cambiar tu contraseña temporal", campos Nueva y Confirmación. Modo voluntario: además "Contraseña actual" | "Guardar contraseña" (primario); en modo obligatorio también "Cerrar sesión" |

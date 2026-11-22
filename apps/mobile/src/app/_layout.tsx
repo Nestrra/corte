@@ -80,6 +80,8 @@ export default function RootLayout() {
         <OfflineScreen />
       ) : (
         <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.bg } }}>
+          {/* "/" redirects by session state (app/index.tsx); always reachable. */}
+          <Stack.Screen name="index" />
           <Stack.Protected guard={status === 'signedOut'}>
             <Stack.Screen name="(auth)" />
           </Stack.Protected>

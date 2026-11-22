@@ -81,7 +81,7 @@ export default function ChangePasswordScreen() {
         isForced ? { newPassword } : { currentPassword, newPassword },
       );
       useSessionStore.getState().setUser(user);
-      if (isForced) router.replace('/');
+      if (isForced) router.replace('/home');
       else router.back();
     } catch (error) {
       // Passwords are never kept after an error (contracts/screens.md).

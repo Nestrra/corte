@@ -145,13 +145,14 @@ apps/api/
 apps/mobile/src/
 ├── app/
 │   ├── _layout.tsx              # fuentes, QueryClient, arranque de sesión, Stack.Protected
+│   ├── index.tsx                # "/" → Redirect a /home o /login según la sesión
 │   ├── (auth)/
 │   │   ├── _layout.tsx
 │   │   ├── login.tsx
 │   │   └── register.tsx
 │   └── (app)/
 │       ├── _layout.tsx          # obliga a change-password si mustChangePassword
-│       ├── index.tsx            # inicio temporal
+│       ├── home.tsx             # inicio temporal
 │       ├── profile.tsx
 │       ├── timezone.tsx
 │       ├── change-password.tsx  # obligatorio y voluntario
