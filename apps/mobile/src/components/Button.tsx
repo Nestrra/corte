@@ -2,11 +2,14 @@ import { ActivityIndicator, Pressable, StyleSheet, type PressableProps } from 'r
 import { colors, interaction, layout, radius, spacing } from '../theme';
 import { Text } from './Text';
 
-type ButtonVariant = 'primary' | 'secondary';
+type ButtonVariant = 'primary' | 'secondary' | 'danger';
 
 export interface ButtonProps extends Omit<PressableProps, 'children' | 'style'> {
   label: string;
-  /** `primary`: `primary` background, white text. `secondary`: `primarySoft` background. */
+  /**
+   * `primary`: `primary` background, white text. `secondary`: `primarySoft` background.
+   * `danger`: `danger` background, white text (irreversible actions).
+   */
   variant?: ButtonVariant;
   /** Shows a spinner and disables the button. */
   loading?: boolean;
@@ -15,6 +18,7 @@ export interface ButtonProps extends Omit<PressableProps, 'children' | 'style'> 
 const variantStyles = {
   primary: { background: colors.primary, text: 'onPrimary' },
   secondary: { background: colors.primarySoft, text: 'primaryStrong' },
+  danger: { background: colors.danger, text: 'onPrimary' },
 } as const;
 
 /** Base button from docs/design-system.md: height ≥ 44, radius 12, theme tokens only. */

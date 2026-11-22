@@ -5,26 +5,36 @@
   "description": "Corte mobile app (Expo + expo-router)",
   "main": "expo-router/entry",
   "scripts": {
+    "prestart": "pnpm --filter @corte/domain build",
     "start": "expo start",
+    "preios": "pnpm --filter @corte/domain build",
     "ios": "expo start --ios",
+    "preandroid": "pnpm --filter @corte/domain build",
     "android": "expo start --android",
+    "pretypecheck": "pnpm --filter @corte/domain build",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@corte/domain": "workspace:*",
     "@expo-google-fonts/inter": "^0.4.2",
     "@expo-google-fonts/plus-jakarta-sans": "^0.4.2",
+    "@hookform/resolvers": "^7.0.8",
     "@tanstack/react-query": "^5.108.2",
     "expo": "~58.0.26",
     "expo-constants": "~58.0.16",
     "expo-font": "~58.0.12",
     "expo-linking": "~58.0.17",
     "expo-router": "~58.0.32",
+    "expo-secure-store": "~58.0.3",
     "expo-splash-screen": "~58.0.14",
     "expo-status-bar": "~58.0.5",
     "react": "19.3.0",
+    "react-hook-form": "^7.92.0",
     "react-native": "0.88.1",
     "react-native-safe-area-context": "~5.11.1",
-    "react-native-screens": "~4.30.1"
+    "react-native-screens": "~4.30.1",
+    "zod": "^4.6.7",
+    "zustand": "^5.1.0"
   },
   "devDependencies": {
     "@types/react": "~19.3.0",

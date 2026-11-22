@@ -1,5 +1,4 @@
-// Prisma 7 schema (research.md R4). No models in spec 000; the database is only used by the
-// health check. The connection URL lives in prisma.config.ts, not here.
+// Prisma 7 schema (spec 001: data-model.md). The connection URL lives in prisma.config.ts.
 
 generator client {
   provider     = "prisma-client"
@@ -9,4 +8,39 @@ generator client {
 
 datasource db {
   provider = "postgresql"
+}
+
+/// A person with an account. Deleting a user cascades to everything that belongs to them.
+model User {
+  id                 String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name               String         @db.VarChar(80)
+  /// Stored trimmed and lowercased (CHECK email = lower(email) added in the migration).
+  email              String         @unique @db.VarChar(254)
+  /// argon2id hash in PHC format.
+  passwordHash       String         @map("password_hash")
+  timezone           String         @default("America/Bogota") @db.VarChar(64)
+  mustChangePassword Boolean        @default(false) @map("must_change_password")
+  createdAt          DateTime       @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt          DateTime       @updatedAt @map("updated_at") @db.Timestamptz(6)
+  refreshTokens      RefreshToken[]
+
+  @@map("users")
+}
+
+/// One issued refresh token. Tokens sharing family_id form one session (one device).
+model RefreshToken {
+  id        String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId    String    @map("user_id") @db.Uuid
+  familyId  String    @map("family_id") @db.Uuid
+  /// SHA-256 hex of the opaque token; the token itself is never stored.
+  tokenHash String    @unique @map("token_hash") @db.Char(64)
+  expiresAt DateTime  @map("expires_at") @db.Timestamptz(6)
+  rotatedAt DateTime? @map("rotated_at") @db.Timestamptz(6)
+  revokedAt DateTime? @map("revoked_at") @db.Timestamptz(6)
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([familyId])
+  @@map("refresh_tokens")
 }

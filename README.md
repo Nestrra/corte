@@ -35,9 +35,10 @@ pnpm install
 # 2. Base de datos local (PostgreSQL 17 en localhost:5434, bases corte_dev y corte_test)
 pnpm db:up
 
-# 3. Variables de entorno locales (valores de ejemplo, sin secretos)
+# 3. Variables de entorno locales (valores de ejemplo, sin secretos) y tablas de la base
 cp apps/api/.env.example apps/api/.env
 cp apps/mobile/.env.example apps/mobile/.env
+pnpm --filter api db:migrate
 
 # 4. API (terminal 1) → http://localhost:3000
 pnpm --filter api dev
@@ -47,24 +48,27 @@ curl -i http://localhost:3000/api/v1/health      # HTTP 200 {"status":"ok",...}
 pnpm --filter mobile start
 ```
 
-La app debe mostrar **"Conectado"**. Para detener la base: `pnpm db:down`.
+La app debe abrir en **"Inicia sesión para continuar"**; "Crear cuenta" registra un usuario y entra
+al inicio. Para detener la base: `pnpm db:down`.
 
 ## Comandos
 
-| Comando                                | Qué hace                                                 |
-| -------------------------------------- | -------------------------------------------------------- |
-| `pnpm install`                         | Instala las dependencias de los tres paquetes            |
-| `pnpm db:up` / `pnpm db:down`          | Levanta / detiene el PostgreSQL local (Docker)           |
-| `pnpm build`                           | Compila el dominio y el API                              |
-| `pnpm lint`                            | ESLint en todo el monorepo (`eslint .`)                  |
-| `pnpm typecheck`                       | Verificación de tipos de los tres paquetes               |
-| `pnpm format` / `pnpm format:check`    | Formatea / verifica el formato con Prettier              |
-| `pnpm --filter api dev`                | API con recarga automática                               |
-| `pnpm --filter api test`               | Pruebas unitarias del API                                |
-| `pnpm --filter api test:e2e`           | Pruebas e2e del API contra PostgreSQL (requiere `db:up`) |
-| `pnpm --filter @corte/domain test:cov` | Pruebas del dominio con cobertura                        |
-| `pnpm --filter mobile start`           | Metro para la app (Expo Go, simulador o emulador)        |
-| `pnpm --filter mobile typecheck`       | Verificación de tipos de la app                          |
+| Comando                                          | Qué hace                                                 |
+| ------------------------------------------------ | -------------------------------------------------------- |
+| `pnpm install`                                   | Instala las dependencias de los tres paquetes            |
+| `pnpm db:up` / `pnpm db:down`                    | Levanta / detiene el PostgreSQL local (Docker)           |
+| `pnpm build`                                     | Compila el dominio y el API                              |
+| `pnpm lint`                                      | ESLint en todo el monorepo (`eslint .`)                  |
+| `pnpm typecheck`                                 | Verificación de tipos de los tres paquetes               |
+| `pnpm format` / `pnpm format:check`              | Formatea / verifica el formato con Prettier              |
+| `pnpm --filter api dev`                          | API con recarga automática                               |
+| `pnpm --filter api db:migrate`                   | Crea o aplica migraciones en `corte_dev`                 |
+| `pnpm --filter api admin:reset-password <email>` | Restablece la contraseña de un usuario (administrador)   |
+| `pnpm --filter api test`                         | Pruebas unitarias del API                                |
+| `pnpm --filter api test:e2e`                     | Pruebas e2e del API contra PostgreSQL (requiere `db:up`) |
+| `pnpm --filter @corte/domain test:cov`           | Pruebas del dominio con cobertura                        |
+| `pnpm --filter mobile start`                     | Metro para la app (Expo Go, simulador o emulador)        |
+| `pnpm --filter mobile typecheck`                 | Verificación de tipos de la app                          |
 
 ## API
 
@@ -76,8 +80,12 @@ API NestJS en `apps/api`. Toda su configuración sale de variables de entorno
 ```bash
 pnpm db:up                                  # PostgreSQL 17 en localhost:5434 (corte_dev y corte_test)
 cp apps/api/.env.example apps/api/.env      # valores locales de ejemplo, sin secretos
+pnpm --filter api db:migrate                # crea las tablas (users, refresh_tokens) en corte_dev
 pnpm --filter api dev                       # API en http://localhost:3000 con recarga automática
 ```
+
+Antes de `dev`, `build`, `typecheck`, `test` y `test:e2e`, el API compila `@corte/domain`
+(script `domain:build`) y genera el cliente de Prisma (`prisma:generate`) automáticamente.
 
 Comprobar la salud del servicio:
 
@@ -93,11 +101,55 @@ curl -i http://localhost:3000/api/v1/health
 - La documentación interactiva (Swagger) está en http://localhost:3000/api/docs cuando
   `SWAGGER_ENABLED=true`. En producción está prohibida: el API no arranca si se intenta activar.
 
+### Variables de entorno
+
+| Variable          | Obligatoria | Descripción                                                                                                                                                                                  |
+| ----------------- | ----------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `DATABASE_URL`    | Sí          | Conexión a PostgreSQL (`postgresql://` o `postgres://`)                                                                                                                                      |
+| `APP_ENV`         | Sí          | `development`, `test`, `staging` o `production`                                                                                                                                              |
+| `JWT_SECRET`      | Sí          | Firma de los access tokens; mínimo 32 caracteres. En producción se rechaza el valor de `.env.example`; genera uno con `openssl rand -base64 48`                                              |
+| `PORT`            | No          | Puerto HTTP (por defecto 3000)                                                                                                                                                               |
+| `GIT_SHA`         | No          | Versión reportada por el health check (por defecto `unknown`)                                                                                                                                |
+| `SWAGGER_ENABLED` | No          | `true` para servir `/api/docs` (prohibido en producción)                                                                                                                                     |
+| `TRUST_PROXY`     | No          | Saltos de proxy de confianza para la IP del cliente (por defecto 0). Ponlo en 1 si el API está detrás de un túnel o proxy inverso; si no, todos los clientes comparten el límite de intentos |
+
+Detalle en `specs/000-project-skeleton/contracts/environment.md` y
+`specs/001-auth/contracts/environment.md`.
+
+### Autenticación
+
+Contrato completo en `specs/001-auth/contracts/auth.openapi.yaml`. Resumen:
+
+- `POST /api/v1/auth/register`, `/auth/login` y `/auth/refresh` son públicos; el resto exige
+  `Authorization: Bearer <accessToken>`.
+- Access token JWT de 15 minutos; refresh token opaco que se rota en cada uso (reutilizar uno ya
+  usado revoca la sesión completa). La sesión expira tras 30 días sin uso.
+- Límites de intentos: 5 fallos por email en 15 min bloquean ese email 15 min; 20 solicitudes de
+  login y 5 de registro por IP.
+- ⚠️ **Limitación**: esos contadores viven en memoria de una sola instancia del API. Se reinician
+  al reiniciar el proceso y no sirven con varias réplicas (pasarlos a un almacén compartido está
+  en la lista de v2).
+
+### Restablecer la contraseña de un usuario (administrador)
+
+No hay recuperación por correo. Quien administra el servidor genera una contraseña temporal, que
+se muestra una sola vez; el usuario debe cambiarla al iniciar sesión y todas sus sesiones se
+cierran.
+
+```bash
+pnpm --filter api admin:reset-password ana@ejemplo.com                        # local (usa el dist existente)
+docker exec <contenedor-api> node dist/cli/reset-password.js ana@ejemplo.com  # en el servidor
+```
+
+En local el comando no compila: usa `apps/api/dist`, que genera `pnpm --filter api dev` mientras
+corre (puedes ejecutarlo con el API levantado) o `pnpm --filter api build`. Si no existe
+`dist/cli/reset-password.js`, el comando lo avisa y pide correr `pnpm --filter api build`.
+
 ### Pruebas
 
 ```bash
 pnpm --filter api test        # unitarias
-pnpm --filter api test:e2e    # e2e contra PostgreSQL real; requiere pnpm db:up (usa corte_test)
+pnpm --filter api test:e2e    # e2e contra PostgreSQL real; requiere pnpm db:up (aplica migraciones a corte_test)
 ```
 
 El cliente de Prisma se genera automáticamente antes de `dev`, `build`, `typecheck`, `test` y
@@ -118,9 +170,12 @@ pnpm --filter @corte/domain dev         # recompila en modo watch; el API lo ve 
 
 ## App móvil
 
-App Expo (SDK 58) en `apps/mobile`, con expo-router y TanStack Query. Corre en **Expo Go**. Por
-ahora muestra una pantalla temporal que consulta `/api/v1/health` e indica "Conectado" o
-"Sin conexión".
+App Expo (SDK 58) en `apps/mobile`, con expo-router y TanStack Query. Corre en **Expo Go**. Tiene
+registro, inicio de sesión, perfil (zona horaria, cambio de contraseña, eliminar cuenta) y un
+inicio temporal. Las rutas viven en `src/app/(auth)` (sin sesión) y `src/app/(app)` (con sesión),
+protegidas con `Stack.Protected`. La sesión (`src/session`) guarda el refresh token en
+`expo-secure-store` y el access token solo en memoria; `src/api/client.ts` lo renueva solo ante un 401. `pnpm --filter mobile start` compila antes `@corte/domain`, de donde salen las reglas de los
+formularios.
 
 ### Configurar la URL del API
 
@@ -148,7 +203,7 @@ pnpm --filter mobile start --clear   # si cambiaste .env o algo se ve desactuali
 ```
 
 La app usa los tokens de `docs/design-system.md` (`apps/mobile/src/theme`) y los componentes base
-`Text` y `Button` (`apps/mobile/src/components`). No escribas colores, tamaños ni espaciados
+`Text`, `Button`, `TextField` y `Screen` (`apps/mobile/src/components`). No escribas colores, tamaños ni espaciados
 sueltos en los componentes (constitución, principio IX).
 
 ## Imagen Docker
@@ -162,9 +217,15 @@ La misma imagen corre en cualquier entorno: toda la configuración entra por var
 # Construir desde la raíz del repo; GIT_SHA queda como versión reportada por /api/v1/health
 docker build -f apps/api/Dockerfile --build-arg GIT_SHA=$(git rev-parse HEAD) -t corte-api .
 
+# Aplicar migraciones con la misma imagen (target "migrate"), antes de arrancar el API
+docker build -f apps/api/Dockerfile --target migrate -t corte-api-migrate .
+docker run --rm -e DATABASE_URL=postgresql://corte:corte@host.docker.internal:5434/corte_dev \
+  corte-api-migrate
+
 # Ejecutar contra la base local (pnpm db:up). host.docker.internal apunta a tu Mac desde el contenedor
 docker run --rm -p 3001:3000 \
   -e APP_ENV=staging \
+  -e JWT_SECRET=staging-only-secret-of-at-least-32-chars \
   -e DATABASE_URL=postgresql://corte:corte@host.docker.internal:5434/corte_dev \
   corte-api
 
