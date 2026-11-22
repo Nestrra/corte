@@ -109,7 +109,8 @@ se registran los puntos delicados. Consultado el 2026-11-21: docs de Expo SDK 58
   `must_change_password` y revoca todas las sesiones. Imprime la contraseña una sola vez en
   stdout; no la registra en logs.
 - **Ejecución**:
-  - Local: `pnpm --filter api admin:reset-password <email>` (compila antes).
+  - Local: `pnpm --filter api admin:reset-password <email>`. Usa el `dist` existente (de `dev` o
+    `build`) y no compila: `nest build` vacía `dist` y tumbaría un `nest start --watch`.
   - Servidor: `docker exec <contenedor-api> node dist/cli/reset-password.js <email>`. Dentro de la
     imagen no hay pnpm ni workspace, por eso no se puede usar `pnpm --filter` en el contenedor.
 - **Salidas**: código 0 si restableció; 1 si el email no existe (mensaje claro) o hubo error.

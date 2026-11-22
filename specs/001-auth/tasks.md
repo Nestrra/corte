@@ -35,7 +35,7 @@ se reparten en un archivo por historia (ver plan.md) para poder trabajar las his
 - [X] T001 Add `argon2`, `@nestjs/jwt` and `@nestjs/throttler` to `apps/api/package.json` and approve `argon2` in `allowBuilds` of `pnpm-workspace.yaml` (research.md R1); run `pnpm install`
 - [X] T002 [P] Add to `apps/mobile` with `pnpm exec expo install`: `zustand`, `expo-secure-store`, `react-hook-form`, `@hookform/resolvers`, `zod`; add `"@corte/domain": "workspace:*"` and a `prestart` script that runs `pnpm --filter @corte/domain build` in `apps/mobile/package.json` (research.md R9, R10)
 - [X] T003 [P] Add `JWT_SECRET` (dev-only value of ≥ 32 characters) and `TRUST_PROXY=0` to `apps/api/.env.example` per `contracts/environment.md`
-- [X] T004 Add API scripts in `apps/api/package.json`: `domain:build` (`pnpm --filter @corte/domain build`) chained before `prisma:generate` in the `predev`, `prebuild`, `pretypecheck`, `pretest` and `pretest:e2e` hooks; `db:migrate` (`prisma migrate dev`), `db:migrate:deploy` (`prisma migrate deploy`), `admin:reset-password` (`node dist/cli/reset-password.js`) with `preadmin:reset-password` running the build; `pretest:e2e` also runs `prisma migrate deploy` against the test database. In `.github/workflows/ci.yml`, job `api-e2e`, add `pnpm --filter @corte/domain build` before the API steps (research.md R5, R7, R9)
+- [X] T004 Add API scripts in `apps/api/package.json`: `domain:build` (`pnpm --filter @corte/domain build`) chained before `prisma:generate` in the `predev`, `prebuild`, `pretypecheck`, `pretest` and `pretest:e2e` hooks; `db:migrate` (`prisma migrate dev`), `db:migrate:deploy` (`prisma migrate deploy`), `admin:reset-password` (runs the existing `dist/cli/reset-password.js` without building; see contracts/admin-cli.md); `pretest:e2e` also runs `prisma migrate deploy` against the test database. In `.github/workflows/ci.yml`, job `api-e2e`, add `pnpm --filter @corte/domain build` before the API steps (research.md R5, R7, R9)
 
 ---
 
@@ -208,7 +208,7 @@ navegación de la app. Todas las historias dependen de esta fase.
 - [X] T065 [P] Update `README.md`: the API compiles `@corte/domain` automatically before `dev`/`build`/`typecheck`/`test` (`domain:build`), migrations (`db:migrate`), new variables `JWT_SECRET` and `TRUST_PROXY`, the admin command (local and `docker exec`), the `migrate` image target, and the single-instance limitation of the rate limits (research.md R4)
 - [X] T066 Security pass: confirm no password, temporary password or token is logged (FR-033) by grepping the code and running the e2e suite with logs enabled; confirm `JWT_SECRET` is never committed (only the dev value in `.env.example`)
 - [X] T067 Run `pnpm format`, `pnpm lint`, `pnpm typecheck`, `pnpm build`, domain tests, API unit and e2e tests; all green
-- [ ] T068 Validate quickstart.md A1–A8 and A10; A9 (app on iOS simulator and Android emulator) is validated manually by the user
+- [X] T068 Validate quickstart.md A1–A8 and A10; A9 (app on iOS simulator and Android emulator) is validated manually by the user
 
 ---
 

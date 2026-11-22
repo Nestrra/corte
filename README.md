@@ -137,9 +137,13 @@ se muestra una sola vez; el usuario debe cambiarla al iniciar sesión y todas su
 cierran.
 
 ```bash
-pnpm --filter api admin:reset-password ana@ejemplo.com                        # local (compila antes)
+pnpm --filter api admin:reset-password ana@ejemplo.com                        # local (usa el dist existente)
 docker exec <contenedor-api> node dist/cli/reset-password.js ana@ejemplo.com  # en el servidor
 ```
+
+En local el comando no compila: usa `apps/api/dist`, que genera `pnpm --filter api dev` mientras
+corre (puedes ejecutarlo con el API levantado) o `pnpm --filter api build`. Si no existe
+`dist/cli/reset-password.js`, el comando lo avisa y pide correr `pnpm --filter api build`.
 
 ### Pruebas
 

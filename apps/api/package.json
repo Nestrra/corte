@@ -22,8 +22,7 @@
     "test": "node --experimental-vm-modules ./node_modules/jest/bin/jest.js",
     "pretest:e2e": "pnpm domain:build && pnpm prisma:generate && DATABASE_URL=${DATABASE_URL:-postgresql://corte:corte@localhost:5434/corte_test} prisma migrate deploy",
     "test:e2e": "DATABASE_URL=${DATABASE_URL:-postgresql://corte:corte@localhost:5434/corte_test} node --experimental-vm-modules ./node_modules/jest/bin/jest.js --config test/jest-e2e.json --runInBand",
-    "preadmin:reset-password": "pnpm build",
-    "admin:reset-password": "node dist/cli/reset-password.js"
+    "admin:reset-password": "node scripts/admin-reset-password.mjs"
   },
   "dependencies": {
     "@corte/domain": "workspace:*",

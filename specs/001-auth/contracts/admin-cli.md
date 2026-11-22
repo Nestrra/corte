@@ -2,10 +2,21 @@
 
 | | |
 | --- | --- |
-| Local | `pnpm --filter api admin:reset-password <email>` |
+| Local | `pnpm --filter api admin:reset-password <email>` (usa el `dist` existente; no compila) |
 | Servidor (contenedor) | `docker exec <contenedor-api> node dist/cli/reset-password.js <email>` |
 | Entrada | Un argumento: el email (se normaliza: sin espacios externos, minúsculas) |
 | Configuración | La misma del API (variables de entorno validadas); necesita `DATABASE_URL` |
+
+**Uso local**: el comando ejecuta `apps/api/dist/cli/reset-password.js` tal como está, sin
+compilar. Ese archivo lo generan `pnpm --filter api dev` (mientras corre) o
+`pnpm --filter api build`. No compila a propósito: `nest build` vacía `dist` (`deleteOutDir`) y
+tumbaría un `nest start --watch` que esté corriendo desde ahí. Si el archivo no existe, termina con
+código 1 y muestra en stderr:
+
+```text
+No existe dist/cli/reset-password.js. Compila el API primero con "pnpm --filter api build"
+(o deja corriendo "pnpm --filter api dev") y vuelve a ejecutar el comando.
+```
 
 **Salida si el usuario existe** (código de salida 0), en stdout:
 
