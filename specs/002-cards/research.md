@@ -42,6 +42,9 @@ Con `clamp(año, mes, día)` = ese día del mes o el último día si el mes no l
 - **Decision**: "hoy" se calcula fuera del dominio con
   `new Intl.DateTimeFormat('en-US', { timeZone, year: 'numeric', month: '2-digit', day: '2-digit' }).formatToParts(now)`
   y se arma `YYYY-MM-DD` con las partes `year`, `month` y `day`. Entra al dominio como parámetro.
+- **Reloj inyectable**: el API lee la hora de un proveedor `Clock` (`src/common/clock.ts`, por
+  defecto `new Date()`). Las e2e lo fijan en `2026-11-22T02:30:00Z` para afirmar fechas exactas
+  (Bogotá 21, Madrid 22) sin depender de la hora real ni fallar cerca de la medianoche.
 - **Dónde**: en el API (`src/common/today.ts`), que calcula el ciclo del detalle con el reloj del
   servidor y la zona del usuario. La app no lo necesita en esta spec: recibe `today` y las fechas
   del API y solo calcula los días restantes con el dominio (ver R7).

@@ -53,8 +53,9 @@ curl -s $API/cards/<id> -H "$AUTH"
 
 **Esperado**: `cycle.today` es la fecha de hoy en America/Bogota; con corte 8 y pago 25,
 `nextCutoff` es el próximo día 8 (hoy si hoy es 8) y `nextCutoffDue` el 25 de ese mismo mes. Cambiar
-la zona con `PATCH /me {"timezone":"Pacific/Honolulu"}` y repetir cerca de la medianoche de Bogotá:
-`today` cambia según la zona.
+la zona con `PATCH /me {"timezone":"Pacific/Kiritimati"}` (UTC+14, que ya tiene otra fecha la
+mayor parte del día) y repetir: `today` pasa a la fecha de esa zona. Las e2e lo prueban con un
+instante fijo (`2026-11-22T02:30:00Z`: Bogotá 21, Madrid 22).
 
 ## B4. Editar (US5)
 

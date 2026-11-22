@@ -115,6 +115,7 @@ apps/api/
 │   ├── app.module.ts            # + CardsModule
 │   ├── common/
 │   │   ├── errors.ts            # + CARD_ARCHIVED
+│   │   ├── clock.ts             # proveedor Clock (now); las e2e lo fijan en 2026-11-22T02:30:00Z
 │   │   └── today.ts             # todayInTimeZone(timeZone, now) con Intl
 │   └── cards/
 │       ├── cards.module.ts
