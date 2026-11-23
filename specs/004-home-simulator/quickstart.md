@@ -76,7 +76,9 @@ curl -s -X POST $API/cards/$CARD/simulate -H "$AUTH" -H 'Content-Type: applicati
 
 **Esperado**: `availableCredit.after` −500000; con fecha 5 de noviembre, primera cuota en
 `2026-11-08` con `statementStatus` `due` y `amountAfter` = `amountBefore`; el último responde 400
-`VALIDATION_ERROR` con `amount`, `installmentCount` y `purchaseDate` (`IN_FUTURE`).
+`VALIDATION_ERROR` con `amount` e `installmentCount`. La fecha futura (`purchaseDate` `IN_FUTURE`)
+se valida después, con el "hoy" del usuario, y sale sola cuando el resto es válido (igual que al
+registrar en la spec 003): `-d '{"amount":1,"purchaseDate":"2026-12-01"}'`.
 
 ## B5. Archivada, aislamiento y nada escrito (FR-006, FR-023, SC-002, SC-007)
 

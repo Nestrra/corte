@@ -84,6 +84,7 @@ Plus Jakarta Sans (600, 700) para títulos y montos; Inter (400, 500, 600) para 
 | Token | Valor | Uso |
 | --- | --- | --- |
 | `interaction.pressedOpacity` | `0.7` | Opacidad de un control pulsado o deshabilitado (p. ej. `Button`) |
+| `interaction.staleOpacity` | `0.85` | Valores de una simulación que se recalcula; solo sobre `text`, `textSecondary` y `primaryStrong` (siguen en AA: 5,17 el peor par). No se usa en avisos ni StatusChip |
 
 ## Componentes base
 
@@ -136,6 +137,6 @@ export const cardGradient = { start: { x: 0, y: 0 }, end: { x: 1, y: 1 } } as co
 
 export const spacing = { xs: 4, sm: 8, md: 12, lg: 16, xl: 20, '2xl': 24, '3xl': 32, '4xl': 48 } as const;
 export const radius = { chip: 8, control: 12, panel: 16, card: 24, full: 999 } as const;
-// en layout: cardAspectRatio: 1.586, cardPeek: 16
-export const interaction = { pressedOpacity: 0.7 } as const;
+// en layout: cardAspectRatio: 1.586, cardPeek: 16, tabCenterButton: 56
+export const interaction = { pressedOpacity: 0.7, staleOpacity: 0.85 } as const;
 ```

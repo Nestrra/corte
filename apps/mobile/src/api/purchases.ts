@@ -75,3 +75,47 @@ export function updatePurchase(id: string, input: UpdatePurchase): Promise<Purch
 export function deletePurchase(id: string): Promise<void> {
   return apiFetch<void>(`/purchases/${encodeURIComponent(id)}`, { method: 'DELETE' });
 }
+
+/** Body of `POST /cards/:id/simulate` (specs/004-home-simulator/contracts/home.openapi.yaml). */
+export type SimulatePurchase = Omit<CreatePurchase, 'concept'>;
+
+/** `SimulatedInstallment` of contracts/home.openapi.yaml (spec 004). */
+export interface SimulatedInstallment {
+  number: number;
+  cutoffDate: IsoDate;
+  dueDate: IsoDate;
+  principal: number;
+  /** Estimated interest (principle IV). */
+  interest: number;
+  /** Status the statement of this installment would have after registering. */
+  statementStatus: StatementStatus;
+}
+
+/** `Simulation` of contracts/home.openapi.yaml: nothing is stored (spec 004 FR-005). */
+export interface Simulation {
+  installments: SimulatedInstallment[];
+  totalInterest: number;
+  cycleBudget: number;
+  cycleBudgetUsage: {
+    cutoffDate: IsoDate;
+    amountBefore: number;
+    amountAfter: number;
+    percentBefore: number;
+    percentAfter: number;
+  };
+  /** May be negative before and after. */
+  availableCredit: { before: number; after: number };
+}
+
+/** Simulates a purchase; `signal` cancels it when its query is no longer used (research.md R7). */
+export function simulatePurchase(
+  cardId: string,
+  input: SimulatePurchase,
+  signal?: AbortSignal,
+): Promise<Simulation> {
+  return apiFetch<Simulation>(`/cards/${encodeURIComponent(cardId)}/simulate`, {
+    method: 'POST',
+    body: input,
+    signal,
+  });
+}

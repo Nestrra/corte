@@ -28,14 +28,14 @@ constitución y el código de las specs 001 a 003 en `main` (`71296b9`).
     purchase: { amount, purchaseDate, installmentCount, annualRate, noInterest },
     days: { cutoffDay, dueDay },
     today,
-    openStatement: { cutoffDate, amount },          // "A pagar" actual del extracto abierto
+    openStatementAmount,          // "A pagar" actual del extracto abierto (0 si no existe)
     cycleBudget,
-    availableCredit,                                // cupo disponible actual (puede ser negativo)
-    paidCutoffs: IsoDate[],                         // cortes de extractos existentes ya pagados
-    existingCutoffs: IsoDate[],                     // cortes de todos los extractos existentes
+    availableCredit,              // cupo disponible actual (puede ser negativo)
+    statements: [{ cutoffDate, paidAt }],   // extractos existentes de la tarjeta
   }) → {
     installments: [{ number, cutoffDate, dueDate, principal, interest, statementStatus }],
     totalInterest,
+    cycleBudget,
     cycleBudgetUsage: { cutoffDate, amountBefore, amountAfter, percentBefore, percentAfter },
     availableCredit: { before, after },
   }
@@ -45,8 +45,8 @@ constitución y el código de las specs 001 a 003 en `main` (`71296b9`).
   - **Estado del extracto de cada cuota**: si el extracto existe y está pagado → `paid`; si existe
     y no está pagado → `statementStatus` (spec 003); si no existe y su fecha límite ya pasó →
     `paid` (así lo crearía el registro, FR-030 de la spec 003); si no → `statementStatus`.
-  - **Tope después** (FR-003): `amountAfter = openStatement.amount + principal + interest` de la
-    cuota cuyo corte es `openStatement.cutoffDate` (a lo sumo una, porque las cuotas caen en cortes
+  - **Tope después** (FR-003): el dominio calcula el corte del extracto abierto con `nextCutoff`
+    (spec 002); `amountAfter = openStatementAmount + principal + interest` de la cuota con ese corte (a lo sumo una, porque las cuotas caen en cortes
     distintos); si ninguna cae ahí, `amountAfter = amountBefore`. Porcentajes con
     `budgetUsagePercent` (floor, spec 003).
   - **Cupo después** (FR-004): `availableCredit − amount`.

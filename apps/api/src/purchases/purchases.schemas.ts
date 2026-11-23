@@ -27,6 +27,10 @@ export const createPurchaseSchema = z.strictObject({
 });
 export type CreatePurchaseInput = z.output<typeof createPurchaseSchema>;
 
+/** spec 004 contracts/home.openapi.yaml → SimulatePurchase: the create body without the concept. */
+export const simulatePurchaseSchema = createPurchaseSchema.omit({ concept: true });
+export type SimulatePurchaseInput = z.output<typeof simulatePurchaseSchema>;
+
 /** Any subset of the create fields (at least one). */
 export const updatePurchaseSchema = z
   .strictObject({

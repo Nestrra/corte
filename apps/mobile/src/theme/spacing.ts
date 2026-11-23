@@ -22,6 +22,8 @@ export const layout = {
   cardAspectRatio: 1.586,
   /** How much of the next card the carousel shows when there are several. */
   cardPeek: 16,
+  /** Diameter of the center "Registrar compra" button of the TabBar (spec 004). */
+  tabCenterButton: 56,
 } as const;
 
 export const radius = { chip: 8, control: 12, panel: 16, card: 24, full: 999 } as const;
@@ -29,4 +31,11 @@ export const radius = { chip: 8, control: 12, panel: 16, card: 24, full: 999 } a
 export type SpacingToken = keyof typeof spacing;
 
 /** Interaction states (docs/design-system.md → Interacción). */
-export const interaction = { pressedOpacity: 0.7 } as const;
+export const interaction = {
+  pressedOpacity: 0.7,
+  /**
+   * Last values of a simulation being recalculated (spec 004 research.md R7). Only on `text`,
+   * `textSecondary` and `primaryStrong`, which stay AA at this opacity (5.17 the worst pair).
+   */
+  staleOpacity: 0.85,
+} as const;

@@ -1,12 +1,18 @@
-import { validatePurchaseDate, type IsoDate } from '@corte/domain';
+import {
+  nextCutoff,
+  simulatePurchase,
+  validatePurchaseDate,
+  type IsoDate,
+  type Simulation,
+} from '@corte/domain';
 import { Injectable } from '@nestjs/common';
 import type { Purchase } from '../generated/prisma/client';
-import { toBigIntAmount } from '../cards/card.mapper';
+import { toBigIntAmount, toNumberAmount } from '../cards/card.mapper';
 import { CardsService } from '../cards/cards.service';
 import { AppErrors } from '../common/errors';
 import { fromDbDate, toDbDate } from '../common/iso-date';
 import { isUuid } from '../common/uuid';
-import { LedgerService, type Db } from '../ledger/ledger.service';
+import { LedgerService, toNumberRate, type Db } from '../ledger/ledger.service';
 import { PrismaService } from '../prisma/prisma.service';
 import {
   toPublicPurchase,
@@ -14,7 +20,11 @@ import {
   type PublicPurchase,
   type PurchaseDetail,
 } from './purchase.mapper';
-import type { CreatePurchaseInput, UpdatePurchaseInput } from './purchases.schemas';
+import type {
+  CreatePurchaseInput,
+  SimulatePurchaseInput,
+  UpdatePurchaseInput,
+} from './purchases.schemas';
 
 const WITH_PLAN = { installments: { include: { statement: true } } } as const;
 
@@ -75,6 +85,58 @@ export class PurchasesService {
       return { id: purchase.id, today };
     });
     return this.detail(userId, id, today);
+  }
+
+  /**
+   * Spec 004 FR-001 – FR-006 (research.md R1 – R3): the purchase as it would be registered, with
+   * the same validations and the user's "today", computed by @corte/domain. Read-only: no
+   * transaction and no lock, nothing is written (FR-005).
+   */
+  async simulate(
+    userId: string,
+    cardId: string,
+    input: SimulatePurchaseInput,
+  ): Promise<Simulation> {
+    const card = await this.cards.findOwned(userId, cardId);
+    if (card.archivedAt) throw AppErrors.cardArchivedPurchases();
+    const today = await this.ledger.todayFor(userId);
+    const purchaseDate = input.purchaseDate ?? today;
+    this.checkDate(purchaseDate, today);
+
+    const days = { cutoffDay: card.cutoffDay, dueDay: card.dueDay };
+    const purchase = {
+      amount: input.amount,
+      purchaseDate,
+      installmentCount: input.installmentCount,
+      // Like registering (FR-009): the card's current rate.
+      annualRate: toNumberRate(card.annualRate),
+      noInterest: input.noInterest,
+    };
+    const [debts, statements] = await Promise.all([
+      this.ledger.debtByCard([card.id]),
+      // Statements that the plan can touch: from the purchase's cycle on.
+      this.prisma.statement.findMany({
+        where: { cardId: card.id, cutoffDate: { gte: toDbDate(purchaseDate) } },
+        select: { cutoffDate: true, paidAt: true },
+      }),
+    ]);
+    const openStatementAmount = await this.ledger.totalForCutoff(
+      card.id,
+      nextCutoff(today, days).cutoffDate,
+    );
+
+    return simulatePurchase({
+      purchase,
+      days,
+      today,
+      openStatementAmount: toNumberAmount(openStatementAmount),
+      cycleBudget: toNumberAmount(card.cycleBudget),
+      availableCredit: toNumberAmount(card.creditLimit - (debts.get(card.id) ?? 0n)),
+      statements: statements.map((statement) => ({
+        cutoffDate: fromDbDate(statement.cutoffDate),
+        paidAt: statement.paidAt === null ? null : fromDbDate(statement.paidAt),
+      })),
+    });
   }
 
   /**

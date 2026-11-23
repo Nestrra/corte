@@ -1,3 +1,4 @@
+import type { Simulation } from '@corte/domain';
 import {
   Body,
   Controller,
@@ -16,13 +17,18 @@ import { ZodValidationPipe } from '../common/zod-validation.pipe';
 import type { PublicPurchase, PurchaseDetail } from './purchase.mapper';
 import {
   createPurchaseSchema,
+  simulatePurchaseSchema,
   updatePurchaseSchema,
   type CreatePurchaseInput,
+  type SimulatePurchaseInput,
   type UpdatePurchaseInput,
 } from './purchases.schemas';
 import { PurchasesService } from './purchases.service';
 
-/** spec 003 contracts/purchases.openapi.yaml. The user always comes from the token. */
+/**
+ * spec 003 contracts/purchases.openapi.yaml and spec 004 contracts/home.openapi.yaml (simulate).
+ * The user always comes from the token.
+ */
 @ApiTags('purchases')
 @ApiBearerAuth()
 @Controller()
@@ -42,6 +48,17 @@ export class PurchasesController {
     @Body(new ZodValidationPipe(createPurchaseSchema)) body: CreatePurchaseInput,
   ): Promise<PurchaseDetail> {
     return this.purchases.create(user.id, cardId, body);
+  }
+
+  /** Spec 004: the purchase as it would be registered; nothing is stored (FR-005). */
+  @Post('cards/:id/simulate')
+  @HttpCode(HttpStatus.OK)
+  simulate(
+    @CurrentUser() user: RequestUser,
+    @Param('id') cardId: string,
+    @Body(new ZodValidationPipe(simulatePurchaseSchema)) body: SimulatePurchaseInput,
+  ): Promise<Simulation> {
+    return this.purchases.simulate(user.id, cardId, body);
   }
 
   @Get('purchases/:id')
