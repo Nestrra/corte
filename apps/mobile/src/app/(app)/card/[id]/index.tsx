@@ -23,6 +23,7 @@ import { Text } from '../../../../components/Text';
 import { CreditCardView } from '../../../../components/CreditCardView';
 import { daysLeftLabel, formatLongDate } from '../../../../features/dates';
 import { formatCop } from '../../../../features/money';
+import { formatRate } from '../../../../features/rate';
 import { useRefetchOnFocus } from '../../../../features/use-refetch-on-focus';
 import { colors, interaction, layout, radius, spacing } from '../../../../theme';
 
@@ -46,6 +47,45 @@ function DataRow({
       <Text variant="bodyStrong" style={amount ? styles.tabular : undefined}>
         {value}
       </Text>
+    </View>
+  );
+}
+
+/**
+ * Debt and use of the cycle budget (spec 003 FR-023, FR-024). Interest never counts in the debt;
+ * a budget above 100% is said in text, not only with color (principle IX).
+ */
+function LedgerPanel({ card }: { card: CardDetail }) {
+  const { amount, percent } = card.cycleBudgetUsage;
+  const budgetValue = `${percent}% · ${formatCop(amount)} de ${formatCop(card.cycleBudget)}`;
+  const overBudget = percent >= 100;
+  return (
+    <View style={styles.panel}>
+      <DataRow label="Deuda total" value={formatCop(card.totalDebt)} amount />
+      <View style={styles.divider} />
+      <View
+        style={styles.cycleRow}
+        accessible
+        accessibilityLabel={`Tope del ciclo, estimado: ${budgetValue}${overBudget ? '. Superaste el tope' : ''}`}
+      >
+        {/* The amount may include estimated interest (principle IV). */}
+        <Text variant="secondary" color="textSecondary">
+          Tope del ciclo (estimado)
+        </Text>
+        <Text variant="bodyStrong" style={styles.tabular}>
+          {budgetValue}
+        </Text>
+        {overBudget ? (
+          <Text variant="secondary" color="danger">
+            Superaste el tope
+          </Text>
+        ) : null}
+      </View>
+      <View style={styles.divider} />
+      <DataRow
+        label="Tasa"
+        value={card.annualRate === null ? 'Sin tasa' : formatRate(card.annualRate)}
+      />
     </View>
   );
 }
@@ -161,6 +201,33 @@ export default function CardDetailScreen() {
 
       <CyclePanel card={card} />
 
+      <LedgerPanel card={card} />
+
+      <View style={styles.actions}>
+        {isArchived ? null : (
+          <Button
+            label="Registrar compra"
+            onPress={() => router.push({ pathname: '/card/[id]/purchases/new', params: { id } })}
+          />
+        )}
+        <View style={styles.row}>
+          <View style={styles.cell}>
+            <Button
+              label="Compras"
+              variant="secondary"
+              onPress={() => router.push({ pathname: '/card/[id]/purchases', params: { id } })}
+            />
+          </View>
+          <View style={styles.cell}>
+            <Button
+              label="Extractos"
+              variant="secondary"
+              onPress={() => router.push({ pathname: '/card/[id]/statements', params: { id } })}
+            />
+          </View>
+        </View>
+      </View>
+
       <View style={styles.panel}>
         <DataRow label="Cupo total" value={formatCop(card.creditLimit)} amount />
         <View style={styles.divider} />
@@ -237,6 +304,8 @@ const styles = StyleSheet.create({
   tabular: { fontVariant: ['tabular-nums'] },
   divider: { height: 1, backgroundColor: colors.divider, marginLeft: spacing.lg },
   actions: { gap: spacing.md },
+  row: { flexDirection: 'row', gap: spacing.md },
+  cell: { flex: 1 },
   textButton: {
     minHeight: layout.minTouchTarget,
     alignItems: 'center',

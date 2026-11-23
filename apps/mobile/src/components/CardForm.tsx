@@ -133,6 +133,14 @@ export function CardForm({ defaultValues, onSubmit, onCancel }: CardFormProps) {
           hint="Cuánto quieres gastar como máximo en cada corte"
           amount
         />
+        <FormField
+          control={control}
+          name="annualRate"
+          label="Tasa de interés EA (%) (opcional)"
+          hint="La usamos para estimar intereses de compras a cuotas"
+          keyboardType="decimal-pad"
+          maxLength={6}
+        />
         <View style={styles.row}>
           <View style={styles.cell}>
             <FormField

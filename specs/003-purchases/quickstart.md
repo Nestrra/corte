@@ -151,7 +151,7 @@ pnpm --filter api test:e2e          # incluye purchases*, statements*, card-resc
 3. Una compra mayor que el cupo disponible → aviso con el cupo; "Guardar" la guarda y el cupo se
    ve negativo con el texto "Superaste el cupo".
 4. Carrusel y detalle muestran el cupo disponible real; el detalle, "Deuda total" y "Tope del
-   ciclo: N% · $X de $Y", sin recargar (SC-005).
+   ciclo (estimado)" con "N% · $X de $Y", sin recargar (SC-005).
 5. "Extractos": estados con texto (Abierto, Por pagar, Vencido, Pagado) y "estimado" junto a los
    totales con interés. Abrir uno → cuotas "k de n" con abono e interés (estimado).
 6. Marcar pagado (con confirmación) y deshacer; el cupo cambia. En uno Abierto no aparece el botón.

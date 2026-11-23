@@ -5,6 +5,7 @@ import {
   isValidLast4,
   normalizeCardName,
   validateAmount,
+  validateAnnualRate,
   validateCardName,
   validateCycleBudget,
   validateDayOfMonth,
@@ -15,6 +16,7 @@ import { z } from 'zod';
 import type { Card, CardInput } from '../api/cards';
 import { cardFieldErrorText } from '../api/errors';
 import { formatCop, parseAmountInput } from './money';
+import { formatRateNumber, parseRateInput } from './rate';
 
 /** Reads a whole number typed in a numeric field ("08" → 8); null when it is not one. */
 function parseWholeNumber(text: string): number | null {
@@ -63,6 +65,13 @@ export const cardFormSchema = z
     cycleBudget: checkedField('cycleBudget', parseAmountInput, validateAmount),
     remindCutoffDays: checkedField('remindCutoffDays', parseWholeNumber, validateReminderDays),
     remindDueDays: checkedField('remindDueDays', parseWholeNumber, validateReminderDays),
+    // Optional (spec 003 FR-006): empty means no rate; comma or point as decimal separator.
+    annualRate: z.string().superRefine((text, ctx) => {
+      const rate = parseRateInput(text);
+      if (rate === null) return;
+      const code = Number.isNaN(rate) ? 'OUT_OF_RANGE' : validateAnnualRate(rate);
+      if (code) ctx.addIssue({ code: 'custom', message: cardFieldErrorText('annualRate', code) });
+    }),
   })
   .superRefine((values, ctx) => {
     // Compared only when both amounts are valid, so a bad limit does not add a second error.
@@ -92,6 +101,7 @@ export const CARD_FORM_FIELDS = [
   'cycleBudget',
   'remindCutoffDays',
   'remindDueDays',
+  'annualRate',
 ] as const satisfies readonly (keyof CardFormValues)[];
 
 export const EMPTY_CARD_FORM: CardFormValues = {
@@ -104,6 +114,7 @@ export const EMPTY_CARD_FORM: CardFormValues = {
   cycleBudget: '',
   remindCutoffDays: String(DEFAULT_REMIND_CUTOFF_DAYS),
   remindDueDays: String(DEFAULT_REMIND_DUE_DAYS),
+  annualRate: '',
 };
 
 /** Current values of a card, for the edit form (amounts already formatted). */
@@ -118,6 +129,7 @@ export function cardToFormValues(card: Card): CardFormValues {
     cycleBudget: formatCop(card.cycleBudget),
     remindCutoffDays: String(card.remindCutoffDays),
     remindDueDays: String(card.remindDueDays),
+    annualRate: card.annualRate === null ? '' : formatRateNumber(card.annualRate),
   };
 }
 
@@ -136,5 +148,6 @@ export function toCardInput(values: CardFormValues): CardInput {
     cycleBudget: amount(values.cycleBudget),
     remindCutoffDays: whole(values.remindCutoffDays),
     remindDueDays: whole(values.remindDueDays),
+    annualRate: parseRateInput(values.annualRate),
   };
 }
