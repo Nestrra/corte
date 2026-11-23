@@ -118,22 +118,27 @@ pnpm --filter api test && pnpm --filter api test:e2e
 1. **Inicio**: "Hola, Ana", "Mis tarjetas" con "Agregar", el carrusel y el resumen: "Próximo
    pago $850.000 · Paga hasta 25 nov · En 2 días" con "Pronto" en el color de alerta; "Próximo
    corte 8 dic · En 15 días"; "Tope del ciclo (estimado) 75% · $1.500.000 de $2.000.000" con la
-   barra en alerta.
+   barra en alerta. Cronometrar: desde abrir la app, saber cuánto y cuándo pagar toma menos
+   de 5 segundos sin tocar nada (SC-004).
 2. **Deslizar**: con dos tarjetas, el resumen cambia a la del frente y VoiceOver/TalkBack anuncia
    "Resumen de <tarjeta>".
 3. **Tocar**: el próximo pago abre su extracto; el ciclo actual abre los extractos de la tarjeta.
 4. **Botón central** desde Inicio, Tarjetas y Perfil: abre "Registrar compra" con la tarjeta del
-   frente; "Cambiar" lista las activas y al elegir otra se conservan los datos escritos.
+   frente; "Cambiar" lista las activas y al elegir otra se conservan los datos escritos. Si se
+   archiva la tarjeta del frente desde su detalle y se toca el botón central sin pasar por el
+   inicio, se preselecciona la primera activa.
 5. **Simulación en vivo**: al escribir $600.000 aparece "Tope del ciclo (estimado): 75% → 105%",
    el aviso "Con esta compra superas el tope del ciclo" y el cupo después; con 3 cuotas el plan
    muestra 3 meses con interés estimado y el total. Responde en menos de 1 segundo tras dejar de
    escribir. Mientras recalcula, los valores anteriores se ven atenuados con "Actualizando…" (sin
    spinner); al escribir rápido el valor 1, 12, 120.000… el panel termina mostrando la última combinación.
-   Con el valor vacío dice "Escribe el valor para simular".
+   Con 72 cuotas, escribir en el valor sigue fluido mientras el plan se actualiza. Con el valor
+   vacío dice "Escribe el valor para simular".
 6. **Salir sin guardar**: "Cancelar" y volver; las cifras del inicio no cambian.
 7. **Guardar**: confirmación de la spec 003; "Listo" vuelve a la pestaña de origen y el inicio
    muestra el nuevo tope sin recargar. Desde el detalle de la tarjeta, "Registrar compra" abre la
-   misma pantalla con esa tarjeta y con simulación.
+   misma pantalla con esa tarjeta y con simulación. Cronometrar: simular y registrar una compra
+   a cuotas desde cualquier pestaña toma menos de 45 segundos (SC-005).
 8. **Al día**: pagar el extracto del 8 de noviembre → el próximo pago dice "Sin pagos pendientes";
    deshacerlo → vuelve; editar el tope de la tarjeta → el porcentaje cambia; editar y borrar una
    compra, crear, archivar y restaurar una tarjeta → el inicio refleja cada cambio al volver.

@@ -117,7 +117,7 @@ carrusel y comprobar que el resumen cambia a la tarjeta del frente con las cifra
    Tarjetas) y debajo el resumen de la tarjeta al frente.
 2. **Given** una tarjeta con un extracto Por pagar de $850.000 con fecha límite 25 de noviembre y
    hoy 23 de noviembre, **When** está al frente, **Then** el resumen muestra "Próximo pago
-   $850.000 · 25 nov · En 2 días" resaltado con el color de alerta (faltan 5 días o menos).
+   $850.000 · Paga hasta 25 nov · En 2 días" resaltado con el color de alerta (faltan 5 días o menos).
 3. **Given** un próximo pago con fecha límite en 12 días, **When** la tarjeta está al frente,
    **Then** se muestra sin resaltar.
 4. **Given** una tarjeta con un extracto Vencido, **When** está al frente, **Then** el próximo
@@ -272,7 +272,7 @@ Como usuario quiero que nadie pueda simular sobre mis tarjetas ni ver mis cifras
   botón; mientras los datos sean incompletos o inválidos MUST decir qué falta en lugar de cifras.
 - **FR-008**: La simulación MUST mostrar un aviso cuando el uso del tope después de la compra sea
   100% o más, y otro cuando el cupo disponible después de la compra sea negativo; la barra del
-  tope de la simulación sigue los colores de FR-014. Los avisos no impiden guardar.
+  tope de la simulación sigue los colores de FR-017. Los avisos no impiden guardar.
 - **FR-009**: Todo interés de la simulación MUST mostrarse como "estimado" (principio IV).
 - **FR-010**: El usuario MUST poder salir del formulario sin guardar en cualquier momento.
 
