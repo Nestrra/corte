@@ -53,7 +53,7 @@ export default function StatementsScreen() {
         </Text>
         <Button
           label="Registrar compra"
-          onPress={() => router.push({ pathname: '/card/[id]/purchases/new', params: { id } })}
+          onPress={() => router.push({ pathname: '/purchase/new', params: { cardId: id } })}
         />
       </Screen>
     );

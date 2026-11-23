@@ -90,8 +90,11 @@ Plus Jakarta Sans (600, 700) para títulos y montos; Inter (400, 500, 600) para 
 
 - **CreditCardView**: proporción 1,586:1 (formato de tarjeta bancaria), radio 24, degradado del color de tarjeta con su `text` y `textSecondary`. Muestra nombre, últimos 4 dígitos, cupo disponible y "Corte día X · Pago día Y". Toque → detalle de la tarjeta.
 - **CardCarousel**: con una sola tarjeta, ancho = pantalla − 40, centrada. Con varias, ancho = pantalla − 56 y separación de 20, de modo que asoman 16 px de la siguiente; snap alineado al margen izquierdo de 20 (la última descansa en el margen derecho). Indicador de puntos (el activo más ancho).
-- **CycleSummary**: panel del ciclo de la tarjeta al frente: próximo pago (monto, fecha, días restantes), próximo corte y barra del % del tope.
-- **ProgressBar**: alto 8, fondo `primarySoft`, relleno `primary`; `warning` desde 70% y `danger` desde 100%.
+- **CycleSummary** (spec 004): panel del ciclo de la tarjeta al frente: próximo pago (monto, "Paga hasta 25 nov", días restantes), próximo corte y "Tope del ciclo (estimado)" con su barra. El próximo pago con 5 días o menos lleva fondo `warningSoft` y chip "Pronto" (`warning` sobre `surface`, 5,43); vencido, fondo `dangerSoft` y chip "Vencido" (`danger` sobre `surface`, 6,57); los textos sobre esos fondos pasan 7,07 o más. Desde 100% dice "Superaste el tope". El encabezado "Resumen de <tarjeta>" se anuncia al deslizar. Filas tocables ≥ 44.
+- **ProgressBar**: alto 8, fondo `primarySoft`, relleno `primary`; `warning` desde 70% y `danger` desde 100% (`budgetLevel` de `@corte/domain`). Rol `progressbar` con el porcentaje real en la etiqueta; el porcentaje siempre va escrito junto a la barra.
+- **SimulationPanel** (spec 004): "Si la registras": primera cuota, tope del ciclo antes → después con su barra, cupo disponible después, intereses estimados y el plan (InstallmentRow con StatusChip). Avisos de tope y cupo superados en `danger` sobre `dangerSoft`. Mientras recalcula muestra los últimos valores atenuados con `interaction.staleOpacity` y "Actualizando…", sin spinner; la atenuación solo se aplica a cifras, fechas y barra (`text`, `textSecondary`, `primaryStrong`: 5,17 el peor par a 0,85), nunca a avisos ni StatusChip.
+- **CardPicker** (spec 004): fila con la tarjeta elegida ("Visa ·· 1234") y "Cambiar", que despliega las tarjetas activas como opciones de radio. Filas ≥ 44.
+- **EmptyCards** (spec 004): "Agrega tu primera tarjeta", texto y botón "Agregar tarjeta"; en el inicio y en "Registrar compra" sin tarjetas.
 - **StatTile**: etiqueta, monto y línea secundaria (Total del mes, Pagado).
 - **ListRow**: nombre y fecha a la izquierda; monto y StatusChip a la derecha.
 - **StatusChip**: Pagado (`success`), Pendiente (`warning`), Vencido (`danger`). Los extractos
@@ -101,8 +104,10 @@ Plus Jakarta Sans (600, 700) para títulos y montos; Inter (400, 500, 600) para 
 - **SectionHeader**: título de sección y botón secundario con ícono + ("Agregar", "Nuevo").
 - **Button**: primario (`primary`, texto blanco) y secundario (`primarySoft`, texto `primaryStrong`), alto 44.
 - **TabBar**: Inicio, Tarjetas, botón central "Registrar compra" (56 px, `primary`), Pagos, Perfil.
-  Se construye por partes: la spec 002 trae Inicio, Tarjetas y Perfil; el botón central y Pagos
-  llegan en specs posteriores, sin cambiar los tokens.
+  Se construye por partes: la spec 002 trae Inicio, Tarjetas y Perfil; la spec 004, el botón
+  central (`layout.tabCenterButton`, ícono `add` en `onPrimary`, 6,29; etiqueta accesible
+  "Registrar compra"), que abre el registro con la tarjeta al frente del inicio; Pagos llega en la
+  spec 006, sin cambiar los tokens.
 
 ## Pantalla de inicio
 

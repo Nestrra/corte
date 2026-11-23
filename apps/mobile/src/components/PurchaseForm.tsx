@@ -1,9 +1,10 @@
 import { PURCHASE_MAX_AGE_MONTHS, type IsoDate } from '@corte/domain';
 import { zodResolver } from '@hookform/resolvers/zod';
+import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { useMemo, useState } from 'react';
 import { Controller, useForm, useWatch, type Control, type FieldPath } from 'react-hook-form';
 import { Alert, Pressable, StyleSheet, Switch, View } from 'react-native';
-import type { CreatePurchase } from '../api/purchases';
+import { simulatePurchase, type CreatePurchase } from '../api/purchases';
 import { errorText, purchaseFieldErrorText } from '../api/errors';
 import { applyApiFieldErrors } from '../features/forms';
 import { formatCop, parseAmountInput } from '../features/money';
@@ -11,13 +12,17 @@ import {
   chargesInterest,
   PURCHASE_FORM_FIELDS,
   purchaseFormSchema,
+  simulationMissing,
   toPurchaseInput,
+  toSimulateInput,
   type PurchaseFormValues,
 } from '../features/purchase-schema';
+import { useDebouncedValue } from '../features/use-debounced-value';
 import { formatRate } from '../features/rate';
 import { colors, interaction, layout, radius, spacing } from '../theme';
 import { Button } from './Button';
 import { DateField, monthsBefore } from './DateField';
+import { SimulationPanel } from './SimulationPanel';
 import { Text } from './Text';
 import { TextField, type TextFieldProps } from './TextField';
 
@@ -31,6 +36,11 @@ export interface PurchaseFormProps {
   availableCredit: number;
   /** When editing, the current amount: only the increase is compared with the available credit. */
   previousAmount?: number;
+  /**
+   * Card to simulate on (spec 004 FR-007, FR-013). With it the form shows the live simulation;
+   * without it (editing a purchase) it does not. It can change without resetting the form.
+   */
+  simulateOnCardId?: string;
   submitLabel: string;
   /** Sends the purchase; a thrown error is shown on the form and the values are kept. */
   onSubmit: (input: Required<CreatePurchase>) => Promise<void>;
@@ -67,6 +77,11 @@ function FormField({ control, name, amount = false, ...props }: FieldProps) {
   );
 }
 
+/** Wait after the last change before simulating (spec 004 SC-003: under 1 s in total). */
+const SIMULATION_DELAY_MS = 350;
+/** Old simulations are dropped from the cache soon; they are never shown for other values. */
+const SIMULATION_CACHE_MS = 30_000;
+
 /** Asks before saving a purchase above the available credit (FR-012); true to go on. */
 function confirmOverLimit(availableCredit: number): Promise<boolean> {
   return new Promise((resolve) => {
@@ -92,6 +107,7 @@ export function PurchaseForm({
   annualRate,
   availableCredit,
   previousAmount = 0,
+  simulateOnCardId,
   submitLabel,
   onSubmit,
   onCancel,
@@ -104,10 +120,37 @@ export function PurchaseForm({
     setError,
     formState: { isSubmitting },
   } = useForm<PurchaseFormValues>({ resolver: zodResolver(schema), defaultValues });
-  const [installmentCount, noInterest] = useWatch({
+  const [amount, purchaseDate, installmentCount, noInterest] = useWatch({
     control,
-    name: ['installmentCount', 'noInterest'],
+    name: ['amount', 'purchaseDate', 'installmentCount', 'noInterest'],
   });
+
+  // Live simulation (spec 004 research.md R7): only valid values are sent, 350 ms after the last
+  // change. Each combination is its own query key, so a late answer for earlier values is never
+  // shown for the current ones, and the previous request is cancelled through its signal.
+  const fields = { amount, purchaseDate, installmentCount, noInterest };
+  const missing = simulateOnCardId === undefined ? null : simulationMissing(fields, today);
+  const request =
+    simulateOnCardId !== undefined && missing === null
+      ? { cardId: simulateOnCardId, input: toSimulateInput(fields) }
+      : null;
+  const debounced = useDebouncedValue(request, SIMULATION_DELAY_MS);
+  const simulation = useQuery({
+    queryKey: ['simulation', debounced?.cardId, debounced?.input],
+    queryFn: ({ signal }) => {
+      if (debounced === null) throw new Error('No simulation requested');
+      return simulatePurchase(debounced.cardId, debounced.input, signal);
+    },
+    enabled: debounced !== null,
+    placeholderData: keepPreviousData,
+    staleTime: 0,
+    gcTime: SIMULATION_CACHE_MS,
+    retry: false,
+  });
+  const stale =
+    simulation.isPlaceholderData ||
+    simulation.isFetching ||
+    JSON.stringify(request) !== JSON.stringify(debounced);
 
   const submit = handleSubmit(async (values) => {
     setFormError(null);
@@ -190,6 +233,16 @@ export function PurchaseForm({
               Se aplicará {formatRate(annualRate)} (estimado)
             </Text>
           </View>
+        ) : null}
+        {simulateOnCardId !== undefined ? (
+          <SimulationPanel
+            simulation={simulation.data}
+            missing={missing}
+            stale={stale}
+            error={simulation.error}
+            onRetry={() => void simulation.refetch()}
+            retrying={simulation.isFetching}
+          />
         ) : null}
         {formError !== null ? (
           <Text color="danger" accessibilityLiveRegion="polite">

@@ -1,27 +1,112 @@
-import { StyleSheet, View } from 'react-native';
+import Ionicons from '@expo/vector-icons/Ionicons';
+import { useQuery } from '@tanstack/react-query';
+import { router } from 'expo-router';
+import { ActivityIndicator, Pressable, StyleSheet, View } from 'react-native';
+import { getSummary, summaryKeys } from '../../../api/summary';
+import { CardCarousel } from '../../../components/CardCarousel';
+import { CycleSummary } from '../../../components/CycleSummary';
+import { EmptyCards } from '../../../components/EmptyCards';
+import { QueryError } from '../../../components/QueryError';
 import { Screen } from '../../../components/Screen';
 import { Text } from '../../../components/Text';
+import { useFrontCardStore } from '../../../features/front-card-store';
+import { useRefetchOnAppActive } from '../../../features/use-refetch-on-app-active';
+import { useRefetchOnFocus } from '../../../features/use-refetch-on-focus';
 import { useSessionStore } from '../../../session/session-store';
-import { spacing } from '../../../theme';
+import { colors, interaction, layout, radius, spacing } from '../../../theme';
 
-/** Temporary home (spec 001); the full home arrives in a later spec. Profile is now a tab. */
+const ICON_SIZE = spacing.xl;
+
+/** SectionHeader of docs/design-system.md: section title and a secondary "+ Agregar" button. */
+function SectionHeader() {
+  return (
+    <View style={styles.sectionHeader}>
+      <Text variant="section" accessibilityRole="header">
+        Mis tarjetas
+      </Text>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel="Agregar tarjeta"
+        onPress={() => router.push('/card/new')}
+        style={({ pressed }) => [styles.add, pressed && styles.pressed]}
+      >
+        <Ionicons name="add" size={ICON_SIZE} color={colors.primaryStrong} />
+        <Text variant="bodyStrong" color="primaryStrong">
+          Agregar
+        </Text>
+      </Pressable>
+    </View>
+  );
+}
+
+/**
+ * Inicio (spec 004 US2, US4, US5; docs/design-system.md → Pantalla de inicio): greeting, "Mis
+ * tarjetas" with the carousel, and the summary of the card in front. The summary is fetched again
+ * on focus and when the app comes back to the foreground, so days follow the new "today".
+ */
 export default function HomeScreen() {
   const name = useSessionStore((state) => state.user?.name ?? '');
+  const frontCardId = useFrontCardStore((state) => state.frontCardId);
+  const setFrontCardId = useFrontCardStore((state) => state.setFrontCardId);
+  const summary = useQuery({ queryKey: summaryKeys.all, queryFn: getSummary });
+  useRefetchOnFocus(summary.refetch);
+  useRefetchOnAppActive(summary.refetch);
+
+  const cards = summary.data?.cards ?? [];
+  // The stored card may have been archived meanwhile: then the first one is in front.
+  const front = cards.find((item) => item.card.id === frontCardId) ?? cards[0];
 
   return (
     <Screen edges={['top']}>
-      <View style={styles.header}>
-        <Text variant="title" accessibilityRole="header">
-          Hola, {name}
-        </Text>
-        <Text color="textSecondary">
-          Pronto verás aquí tus tarjetas y lo que debes pagar en cada corte.
-        </Text>
-      </View>
+      <Text variant="title" accessibilityRole="header">
+        Hola, {name}
+      </Text>
+
+      {summary.isPending ? (
+        <ActivityIndicator color={colors.primary} accessibilityLabel="Cargando inicio" />
+      ) : summary.isError ? (
+        <QueryError
+          error={summary.error}
+          onRetry={() => void summary.refetch()}
+          retrying={summary.isFetching}
+        />
+      ) : cards.length === 0 ? (
+        <EmptyCards />
+      ) : (
+        <>
+          <View style={styles.section}>
+            <SectionHeader />
+            <CardCarousel
+              cards={cards.map((item) => item.card)}
+              onPressCard={(card) =>
+                router.push({ pathname: '/card/[id]', params: { id: card.id } })
+              }
+              onActiveChange={(card) => setFrontCardId(card.id)}
+            />
+          </View>
+          {front ? <CycleSummary summary={front} /> : null}
+        </>
+      )}
     </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  header: { gap: spacing.sm },
+  section: { gap: spacing.md },
+  sectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: spacing.md,
+  },
+  add: {
+    minHeight: layout.minTouchTarget,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+    paddingHorizontal: spacing.md,
+    borderRadius: radius.control,
+    backgroundColor: colors.primarySoft,
+  },
+  pressed: { opacity: interaction.pressedOpacity },
 });

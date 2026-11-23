@@ -56,7 +56,7 @@ export default function PurchasesScreen() {
   const registerButton = isActive ? (
     <Button
       label="Registrar compra"
-      onPress={() => router.push({ pathname: '/card/[id]/purchases/new', params: { id } })}
+      onPress={() => router.push({ pathname: '/purchase/new', params: { cardId: id } })}
     />
   ) : null;
 

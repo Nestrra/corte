@@ -1,17 +1,18 @@
 import { useQueryClient } from '@tanstack/react-query';
 import { router } from 'expo-router';
-import { cardKeys, createCard, type CardInput } from '../../../api/cards';
+import { createCard, type CardInput } from '../../../api/cards';
 import { CardForm } from '../../../components/CardForm';
 import { Screen } from '../../../components/Screen';
 import { EMPTY_CARD_FORM } from '../../../features/card-schema';
+import { invalidateCards } from '../../../features/ledger-cache';
 
-/** "Nueva tarjeta" (spec US2): creates the card and goes back to the Tarjetas tab. */
+/** "Nueva tarjeta" (spec 002 US2): creates the card and goes back (Tarjetas tab or home). */
 export default function NewCardScreen() {
   const queryClient = useQueryClient();
 
   const onSubmit = async (input: CardInput) => {
     await createCard(input);
-    await queryClient.invalidateQueries({ queryKey: cardKeys.all });
+    await invalidateCards(queryClient);
     router.back();
   };
 

@@ -116,13 +116,13 @@ Todo bajo `/api/v1`; salvo auth y health, pide JWT. Cada consulta filtra por el 
 | POST / DELETE | `/devices`, `/devices/:id` | Registra o quita un token de push de Expo. |
 | GET / POST | `/cards` | Lista o crea tarjetas. |
 | GET / PATCH / DELETE | `/cards/:id` | Detalle, edición (recalcula extractos abiertos) o archivado. |
-| POST | `/cards/:id/simulate` | Devuelve extracto, fecha de pago, plan de cuotas y % del tope. No guarda nada. |
+| POST | `/cards/:id/simulate` | Devuelve extracto, fecha de pago, plan de cuotas, intereses, % del tope y cupo después de la compra. No guarda nada (contrato en `specs/004-home-simulator/contracts/home.openapi.yaml`). |
 | GET / POST | `/cards/:id/purchases` | Lista compras o registra una y genera sus cuotas. |
 | GET / PATCH / DELETE | `/purchases/:id` | Detalle con el plan de cuotas, edición o borrado de una compra y sus cuotas. |
 | GET | `/cards/:id/statements` | Extractos de la tarjeta con su total y estado. |
 | GET | `/statements/:id` | Extracto con el detalle de cuotas. |
 | POST / DELETE | `/statements/:id/payment` | Marca el extracto como pagado o lo deshace. |
-| GET | `/summary` | Datos del inicio. |
+| GET | `/summary` | Datos del inicio: por tarjeta activa, próximo pago, próximo corte y uso del tope (contrato en `specs/004-home-simulator/contracts/home.openapi.yaml`). |
 | GET / POST | `/recurring` | Lista o crea pagos recurrentes. |
 | PATCH / DELETE | `/recurring/:id` | Edita o elimina un pago recurrente. |
 | POST | `/recurring/:id/pause`, `/recurring/:id/resume` | Pausa o reanuda. |

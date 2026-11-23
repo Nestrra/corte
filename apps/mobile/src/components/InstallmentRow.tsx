@@ -2,7 +2,7 @@ import type { StatementStatus } from '@corte/domain';
 import type { ReactNode } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { formatCop } from '../features/money';
-import { colors, layout, spacing } from '../theme';
+import { colors, interaction, layout, spacing } from '../theme';
 import { StatusChip, statusLabel } from './StatusChip';
 import { Text } from './Text';
 
@@ -14,13 +14,26 @@ export interface InstallmentRowProps {
   principal: number;
   /** Estimated interest; always shown with "(estimado)" (principle IV). */
   interest: number;
-  /** Status of the statement the installment falls in (purchase detail only). */
+  /** Status of the statement the installment falls in (purchase detail and simulation). */
   status?: StatementStatus;
+  /**
+   * Values of a simulation being recalculated (spec 004 research.md R7): the texts and amounts
+   * are dimmed with `interaction.staleOpacity`; the StatusChip never is (AA).
+   */
+  dimmed?: boolean;
 }
 
-function Amounts({ principal, interest }: { principal: number; interest: number }): ReactNode {
+function Amounts({
+  principal,
+  interest,
+  dimmed,
+}: {
+  principal: number;
+  interest: number;
+  dimmed: boolean;
+}): ReactNode {
   return (
-    <View style={styles.right}>
+    <View style={[styles.right, dimmed && styles.dimmed]}>
       <Text variant="bodyStrong" style={styles.tabular}>
         {formatCop(principal)}
       </Text>
@@ -41,6 +54,7 @@ export function InstallmentRow({
   principal,
   interest,
   status,
+  dimmed = false,
 }: InstallmentRowProps) {
   const label = [
     title,
@@ -55,13 +69,15 @@ export function InstallmentRow({
   return (
     <View style={styles.row} accessible accessibilityLabel={label}>
       <View style={styles.left}>
-        <Text numberOfLines={2}>{title}</Text>
-        <Text variant="secondary" color="textSecondary">
-          Cuota {position}
-        </Text>
+        <View style={[styles.left, dimmed && styles.dimmed]}>
+          <Text numberOfLines={2}>{title}</Text>
+          <Text variant="secondary" color="textSecondary">
+            Cuota {position}
+          </Text>
+        </View>
         {status ? <StatusChip status={status} /> : null}
       </View>
-      <Amounts principal={principal} interest={interest} />
+      <Amounts principal={principal} interest={interest} dimmed={dimmed} />
     </View>
   );
 }
@@ -80,4 +96,5 @@ const styles = StyleSheet.create({
   left: { flex: 1, gap: spacing.xs },
   right: { alignItems: 'flex-end', gap: spacing.xs },
   tabular: { fontVariant: ['tabular-nums'] },
+  dimmed: { opacity: interaction.staleOpacity },
 });
