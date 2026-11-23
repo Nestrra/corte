@@ -11,8 +11,12 @@ export interface Card {
   dueDay: number;
   creditLimit: number;
   cycleBudget: number;
-  /** Always equal to `creditLimit` in spec 002 (FR-017). */
+  /** creditLimit − totalDebt; may be negative (spec 003 FR-023). */
   availableCredit: number;
+  /** Principal still owed in unpaid statements (spec 003 FR-023). */
+  totalDebt: number;
+  /** Annual effective rate in percent, or null (spec 003 FR-006). */
+  annualRate: number | null;
   remindCutoffDays: number;
   remindDueDays: number;
   archivedAt: string | null;
@@ -28,8 +32,16 @@ export interface Cycle {
   nextDue: IsoDate;
 }
 
+/** Use of the cycle budget by the next statement (spec 003 FR-024). */
+export interface CycleBudgetUsage {
+  cutoffDate: IsoDate;
+  amount: number;
+  percent: number;
+}
+
 export interface CardDetail extends Card {
   cycle: Cycle;
+  cycleBudgetUsage: CycleBudgetUsage;
 }
 
 /** Body of `POST /cards`; `PATCH /cards/:id` accepts any subset of it. */
@@ -43,6 +55,8 @@ export interface CardInput {
   cycleBudget: number;
   remindCutoffDays: number;
   remindDueDays: number;
+  /** Optional; null clears the rate (spec 003 FR-006). */
+  annualRate?: number | null;
 }
 
 /** Query keys shared by the screens, so mutations can invalidate them. */

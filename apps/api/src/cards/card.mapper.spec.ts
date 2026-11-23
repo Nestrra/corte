@@ -1,4 +1,4 @@
-import type { Card } from '../generated/prisma/client';
+import { Prisma, type Card } from '../generated/prisma/client';
 import { toBigIntAmount, toPublicCard } from './card.mapper';
 
 function makeCard(overrides: Partial<Card> = {}): Card {
@@ -14,6 +14,7 @@ function makeCard(overrides: Partial<Card> = {}): Card {
     cycleBudget: 2_000_000n,
     remindCutoffDays: 2,
     remindDueDays: 3,
+    annualRate: null,
     archivedAt: null,
     createdAt: new Date('2026-11-21T15:00:00.000Z'),
     updatedAt: new Date('2026-11-21T16:00:00.000Z'),
@@ -26,8 +27,24 @@ describe('card mapper (contracts/cards.openapi.yaml → Card)', () => {
     const card = toPublicCard(makeCard());
     expect(card.creditLimit).toBe(5_000_000);
     expect(card.cycleBudget).toBe(2_000_000);
-    // FR-017: no purchases yet, so the available credit equals the limit.
+    // Without purchases the available credit equals the limit.
     expect(card.availableCredit).toBe(5_000_000);
+    expect(card.totalDebt).toBe(0);
+  });
+
+  it('subtracts the debt from the limit, even below zero (spec 003 FR-023)', () => {
+    const card = toPublicCard(makeCard(), 1_200_000n);
+    expect(card.totalDebt).toBe(1_200_000);
+    expect(card.availableCredit).toBe(3_800_000);
+    expect(toPublicCard(makeCard(), 5_300_000n).availableCredit).toBe(-300_000);
+  });
+
+  it('maps the annual rate from NUMERIC(5,2) to a number, or null (spec 003 FR-006)', () => {
+    expect(toPublicCard(makeCard()).annualRate).toBeNull();
+    expect(toPublicCard(makeCard({ annualRate: new Prisma.Decimal('26.82') })).annualRate).toBe(
+      26.82,
+    );
+    expect(toPublicCard(makeCard({ annualRate: new Prisma.Decimal('24.00') })).annualRate).toBe(24);
   });
 
   it('keeps the maximum amount exact', () => {

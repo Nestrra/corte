@@ -1,10 +1,14 @@
-/** Spec 002 — /api/v1/cards (US2–US6; contracts/cards.openapi.yaml, contracts/errors.md). */
+/**
+ * Spec 002 — /api/v1/cards (US2–US6; contracts/cards.openapi.yaml, contracts/errors.md), plus the
+ * spec 003 card changes: annualRate (US8) and the real credit, debt and budget usage (US5).
+ */
 import type { INestApplication } from '@nestjs/common';
 import request from 'supertest';
 import { PrismaService } from '../src/prisma/prisma.service';
 import {
   bearer,
   createCard,
+  createPurchase,
   createTestApp,
   createUser,
   FIXED_NOW,
@@ -407,6 +411,111 @@ describe('Cards (e2e)', () => {
     it('answers 404 for missing ids', async () => {
       await action(RANDOM_UUID, 'archive').expect(404);
       await action('no-es-uuid', 'restore').expect(404);
+    });
+  });
+
+  describe('annualRate (spec 003 US8)', () => {
+    it('is null when omitted and stored with up to 2 decimals', async () => {
+      expect((await post(VALID_CARD).expect(201)).body.annualRate).toBeNull();
+      const created = await post({ ...VALID_CARD, annualRate: 26.82 }).expect(201);
+      expect(created.body.annualRate).toBe(26.82);
+
+      const id = created.body.id as string;
+      const changed = await http()
+        .patch(`/api/v1/cards/${id}`)
+        .set(bearer(token))
+        .send({ annualRate: 24 })
+        .expect(200);
+      expect(changed.body.annualRate).toBe(24);
+      const cleared = await http()
+        .patch(`/api/v1/cards/${id}`)
+        .set(bearer(token))
+        .send({ annualRate: null })
+        .expect(200);
+      expect(cleared.body.annualRate).toBeNull();
+    });
+
+    it('is returned by the list and the detail', async () => {
+      const card = await createCard(app, token, { annualRate: 26.82 });
+      const list = await http().get('/api/v1/cards').set(bearer(token)).expect(200);
+      expect(list.body[0].annualRate).toBe(26.82);
+      const detail = await http().get(`/api/v1/cards/${card.id}`).set(bearer(token)).expect(200);
+      expect(detail.body.annualRate).toBe(26.82);
+    });
+
+    it.each([
+      [-1, 'OUT_OF_RANGE'],
+      [100.5, 'OUT_OF_RANGE'],
+      [26.825, 'TOO_MANY_DECIMALS'],
+      ['26,82', 'OUT_OF_RANGE'],
+    ])('rejects %j with %s', async (annualRate, code) => {
+      const response = await post({ ...VALID_CARD, annualRate }).expect(400);
+      expect(response.body.errors).toContainEqual({ field: 'annualRate', code });
+    });
+  });
+
+  describe('credit and debt (spec 003 US5)', () => {
+    let card: CardBody;
+    const detail = async () =>
+      (await http().get(`/api/v1/cards/${card.id}`).set(bearer(token)).expect(200)).body;
+
+    beforeEach(async () => {
+      card = await createCard(app, token, { annualRate: 24 });
+    });
+
+    it('starts with no debt and the full limit available', async () => {
+      expect(card).toMatchObject({ totalDebt: 0, availableCredit: 5_000_000 });
+      expect(await detail()).toMatchObject({
+        totalDebt: 0,
+        availableCredit: 5_000_000,
+        cycleBudgetUsage: { cutoffDate: '2026-12-08', amount: 0, percent: 0 },
+      });
+    });
+
+    it('counts the principal of unpaid installments, never the interest', async () => {
+      await createPurchase(app, token, card.id, {
+        amount: 1_200_000,
+        purchaseDate: '2026-10-20',
+        installmentCount: 12,
+      });
+      const list = await http().get('/api/v1/cards').set(bearer(token)).expect(200);
+      expect(list.body[0]).toMatchObject({ totalDebt: 1_200_000, availableCredit: 3_800_000 });
+      expect(await detail()).toMatchObject({ totalDebt: 1_200_000, availableCredit: 3_800_000 });
+
+      const november = await http()
+        .get(`/api/v1/cards/${card.id}/statements`)
+        .set(bearer(token))
+        .expect(200);
+      const first = (november.body as Array<{ id: string; cutoffDate: string }>).find(
+        (statement) => statement.cutoffDate === '2026-11-08',
+      );
+      await http().post(`/api/v1/statements/${first?.id}/payment`).set(bearer(token)).expect(200);
+      expect(await detail()).toMatchObject({ totalDebt: 1_100_000, availableCredit: 3_900_000 });
+    });
+
+    it('goes below zero when purchases exceed the limit', async () => {
+      await createPurchase(app, token, card.id, { amount: 5_300_000 });
+      expect(await detail()).toMatchObject({ totalDebt: 5_300_000, availableCredit: -300_000 });
+    });
+
+    it('reports the use of the cycle budget for the next cutoff', async () => {
+      await createPurchase(app, token, card.id, { amount: 900_000, purchaseDate: '2026-11-15' });
+      expect((await detail()).cycleBudgetUsage).toEqual({
+        cutoffDate: '2026-12-08',
+        amount: 900_000,
+        percent: 45,
+      });
+      await createPurchase(app, token, card.id, {
+        amount: 1_200_000,
+        purchaseDate: '2026-11-16',
+        installmentCount: 12,
+      });
+      // 900.000 + 100.000 principal + 21.705 estimated interest.
+      expect((await detail()).cycleBudgetUsage).toEqual({
+        cutoffDate: '2026-12-08',
+        amount: 1_021_705,
+        percent: 51,
+      });
     });
   });
 });

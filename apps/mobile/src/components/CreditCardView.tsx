@@ -31,7 +31,8 @@ export function cycleDaysText(card: Pick<Card, 'cutoffDay' | 'dueDay'>): string 
 /** Everything the card shows, read as one sentence by screen readers. */
 export function creditCardLabel(card: CardSummary): string {
   const last4 = card.last4 ? `, terminada en ${card.last4}` : '';
-  return `${card.name}${last4}. Cupo disponible ${formatCop(card.availableCredit)}. ${cycleDaysText(card)}`;
+  const over = card.availableCredit < 0 ? ' Superaste el cupo.' : '';
+  return `${card.name}${last4}. Cupo disponible ${formatCop(card.availableCredit)}.${over} ${cycleDaysText(card)}`;
 }
 
 /**
@@ -58,12 +59,14 @@ export function CreditCardView({ card, width, onPress }: CreditCardViewProps) {
         ) : null}
       </View>
       <View>
+        {/* Below zero the label itself says so: the state is never conveyed by the sign alone. */}
         <Text variant="caption" style={secondary}>
-          Cupo disponible
+          {card.availableCredit < 0 ? 'Superaste el cupo' : 'Cupo disponible'}
         </Text>
         <Text variant="amount" style={text} numberOfLines={1} adjustsFontSizeToFit>
           {formatCop(card.availableCredit)}
         </Text>
+
         <Text variant="caption" style={secondary}>
           {cycleDaysText(card)}
         </Text>

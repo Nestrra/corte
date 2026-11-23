@@ -6,6 +6,7 @@ import { CardForm } from '../../../../components/CardForm';
 import { QueryError } from '../../../../components/QueryError';
 import { Screen } from '../../../../components/Screen';
 import { cardToFormValues } from '../../../../features/card-schema';
+import { invalidateCardLedger } from '../../../../features/ledger-cache';
 import { colors } from '../../../../theme';
 
 /** "Editar tarjeta" (spec US5): the same form with the current values; sends the full form. */
@@ -16,10 +17,8 @@ export default function EditCardScreen() {
 
   const onSubmit = async (input: CardInput) => {
     await updateCard(id, input);
-    await Promise.all([
-      queryClient.invalidateQueries({ queryKey: cardKeys.all }),
-      queryClient.invalidateQueries({ queryKey: cardKeys.detail(id) }),
-    ]);
+    // A new cutoff or due day reschedules the open statements (spec 003 FR-021, SC-005).
+    await invalidateCardLedger(queryClient, id);
     router.back();
   };
 

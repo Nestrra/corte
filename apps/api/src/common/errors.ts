@@ -13,7 +13,8 @@ export type ErrorCode =
   | 'SAME_PASSWORD'
   | 'RATE_LIMITED'
   | 'NOT_FOUND'
-  | 'CARD_ARCHIVED';
+  | 'CARD_ARCHIVED'
+  | 'STATEMENT_OPEN';
 
 export interface FieldError {
   field: string;
@@ -73,4 +74,16 @@ export const AppErrors = {
   notFound: (message: string) => new AppException(HttpStatus.NOT_FOUND, 'NOT_FOUND', message),
   cardArchived: () =>
     new AppException(HttpStatus.CONFLICT, 'CARD_ARCHIVED', 'Restore the card before editing it'),
+  cardArchivedPurchases: () =>
+    new AppException(
+      HttpStatus.CONFLICT,
+      'CARD_ARCHIVED',
+      'Restore the card before changing its purchases',
+    ),
+  statementOpen: () =>
+    new AppException(
+      HttpStatus.CONFLICT,
+      'STATEMENT_OPEN',
+      'The statement has not been cut yet; it can be paid after its cutoff date',
+    ),
 };

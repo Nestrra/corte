@@ -31,3 +31,24 @@ export function daysLeftLabel(today: IsoDate, date: IsoDate): string {
   if (days === 1) return 'Mañana';
   return `faltan ${days} días`;
 }
+
+const SHORT_MONTHS = [
+  'ene',
+  'feb',
+  'mar',
+  'abr',
+  'may',
+  'jun',
+  'jul',
+  'ago',
+  'sep',
+  'oct',
+  'nov',
+  'dic',
+] as const;
+
+/** '2026-12-08' → "8 dic 2026", for rows where the long date does not fit. */
+export function formatShortDate(date: IsoDate): string {
+  const { year, month, day } = parseIsoDate(date);
+  return `${day} ${SHORT_MONTHS[month - 1]} ${year}`;
+}

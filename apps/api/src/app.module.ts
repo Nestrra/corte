@@ -7,6 +7,8 @@ import { ClockModule } from './common/clock';
 import { validateEnv } from './config/env.schema';
 import { HealthModule } from './health/health.module';
 import { PrismaModule } from './prisma/prisma.module';
+import { PurchasesModule } from './purchases/purchases.module';
+import { StatementsModule } from './statements/statements.module';
 import { UsersModule } from './users/users.module';
 
 @Module({})
@@ -30,6 +32,8 @@ export class AppModule {
         AuthModule,
         UsersModule,
         CardsModule,
+        PurchasesModule,
+        StatementsModule,
       ],
     };
   }

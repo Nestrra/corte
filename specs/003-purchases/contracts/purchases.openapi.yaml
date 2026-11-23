@@ -1,0 +1,421 @@
+openapi: 3.1.0
+info:
+  title: Corte API — Compras, cuotas y extractos
+  version: 0.3.0
+  description: >
+    Spec 003. Todo bajo /api/v1 y con `Authorization: Bearer <accessToken>`. Solo se ven y
+    modifican compras y extractos de tarjetas del usuario del token (principio III); un recurso de
+    otro usuario, uno inexistente y un id que no es UUID responden igual: 404 NOT_FOUND. Con la
+    contraseña temporal pendiente, todas responden 403 PASSWORD_CHANGE_REQUIRED (spec 001).
+    Montos: enteros en pesos COP. Fechas: strings YYYY-MM-DD. Tasas: número en porcentaje con
+    hasta 2 decimales. Errores: ver contracts/errors.md. Los esquemas Card, CardDetail, CreateCard
+    y UpdateCard de specs/002-cards/contracts/cards.openapi.yaml cambian como se indica en
+    "Cambios a /cards".
+servers:
+  - url: http://localhost:3000/api/v1
+security:
+  - bearer: []
+components:
+  securitySchemes:
+    bearer:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    IsoDate:
+      type: string
+      pattern: '^\d{4}-\d{2}-\d{2}$'
+      example: '2026-12-08'
+    Amount:
+      type: integer
+      minimum: 1
+      maximum: 9999999999
+      description: Pesos COP, entero
+    AnnualRate:
+      type: [number, 'null']
+      minimum: 0
+      maximum: 100
+      multipleOf: 0.01
+      example: 26.82
+      description: Tasa efectiva anual en porcentaje; null = sin tasa
+    StatementStatus:
+      type: string
+      enum: [open, due, overdue, paid]
+      description: >
+        Derivado con el "hoy" del usuario: open (Abierto, hoy ≤ corte), due (Por pagar, corte <
+        hoy ≤ fecha límite), overdue (Vencido, hoy > fecha límite), paid (Pagado, marcado).
+
+    # ---- Cambios a /cards (spec 002) ----
+    CardAdditions:
+      type: object
+      description: >
+        Campos que se agregan a Card (y por tanto a CardDetail). availableCredit deja de ser igual
+        a creditLimit: ahora es creditLimit − totalDebt y puede ser negativo.
+      required: [annualRate, totalDebt, availableCredit]
+      properties:
+        annualRate: { $ref: '#/components/schemas/AnnualRate' }
+        totalDebt:
+          type: integer
+          minimum: 0
+          description: Suma de abonos de cuotas en extractos no pagados
+        availableCredit:
+          type: integer
+          description: creditLimit − totalDebt (puede ser negativo)
+    CardDetailAdditions:
+      type: object
+      description: Se agrega a CardDetail.
+      required: [cycleBudgetUsage]
+      properties:
+        cycleBudgetUsage:
+          type: object
+          additionalProperties: false
+          required: [cutoffDate, amount, percent]
+          properties:
+            cutoffDate:
+              $ref: '#/components/schemas/IsoDate'
+              description: Corte del próximo extracto (cycle.nextCutoff)
+            amount:
+              type: integer
+              minimum: 0
+              description: "A pagar" de ese extracto (0 si no existe)
+            percent:
+              type: integer
+              minimum: 0
+              description: floor(amount × 100 / cycleBudget); puede pasar de 100
+    CardRateField:
+      type: object
+      description: >
+        Campo nuevo, opcional, en CreateCard y UpdateCard. En UpdateCard, null borra la tasa.
+        Cambiar cutoffDay o dueDay con PATCH reprograma los extractos abiertos (FR-021).
+      properties:
+        annualRate: { $ref: '#/components/schemas/AnnualRate' }
+
+    # ---- Compras ----
+    Purchase:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - cardId
+        - amount
+        - concept
+        - purchaseDate
+        - installmentCount
+        - noInterest
+        - annualRate
+        - createdAt
+        - updatedAt
+      properties:
+        id: { type: string, format: uuid }
+        cardId: { type: string, format: uuid }
+        amount: { $ref: '#/components/schemas/Amount' }
+        concept: { type: string, minLength: 1, maxLength: 60 }
+        purchaseDate: { $ref: '#/components/schemas/IsoDate' }
+        installmentCount: { type: integer, minimum: 1, maximum: 72 }
+        noInterest: { type: boolean }
+        annualRate:
+          $ref: '#/components/schemas/AnnualRate'
+          description: Copia de la tasa de la tarjeta al registrar; no cambia al editar
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+    PlanInstallment:
+      type: object
+      additionalProperties: false
+      required:
+        [number, cutoffDate, dueDate, principal, interest, statementId, statementStatus]
+      properties:
+        number: { type: integer, minimum: 1, maximum: 72 }
+        cutoffDate: { $ref: '#/components/schemas/IsoDate' }
+        dueDate: { $ref: '#/components/schemas/IsoDate' }
+        principal: { type: integer, minimum: 0, description: Abono a capital }
+        interest: { type: integer, minimum: 0, description: Interés estimado }
+        statementId: { type: string, format: uuid }
+        statementStatus: { $ref: '#/components/schemas/StatementStatus' }
+    PurchaseDetail:
+      allOf:
+        - $ref: '#/components/schemas/Purchase'
+        - type: object
+          required: [installments]
+          properties:
+            installments:
+              type: array
+              description: En orden de number; la primera da la confirmación de FR-010
+              items: { $ref: '#/components/schemas/PlanInstallment' }
+    CreatePurchase:
+      type: object
+      additionalProperties: false
+      required: [amount, concept]
+      properties:
+        amount: { $ref: '#/components/schemas/Amount' }
+        concept: { type: string, description: Se recortan espacios; 1–60 caracteres }
+        purchaseDate:
+          $ref: '#/components/schemas/IsoDate'
+          description: Por defecto, hoy en la zona del usuario. No futura ni anterior a hoy − 72 meses.
+        installmentCount: { type: integer, minimum: 1, maximum: 72, default: 1 }
+        noInterest: { type: boolean, default: false }
+    UpdatePurchase:
+      type: object
+      additionalProperties: false
+      minProperties: 1
+      description: >
+        Cualquier subconjunto de CreatePurchase. Si solo cambia concept, las cuotas no se tocan; si
+        cambia otro campo, el plan se regenera con la tasa guardada en la compra.
+      properties:
+        amount: { $ref: '#/components/schemas/Amount' }
+        concept: { type: string }
+        purchaseDate: { $ref: '#/components/schemas/IsoDate' }
+        installmentCount: { type: integer, minimum: 1, maximum: 72 }
+        noInterest: { type: boolean }
+
+    # ---- Extractos ----
+    Statement:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - cardId
+        - cutoffDate
+        - dueDate
+        - status
+        - total
+        - hasInterest
+        - installmentsInStatement
+        - paidAt
+        - paidAmount
+      properties:
+        id: { type: string, format: uuid }
+        cardId: { type: string, format: uuid }
+        cutoffDate: { $ref: '#/components/schemas/IsoDate' }
+        dueDate: { $ref: '#/components/schemas/IsoDate' }
+        status: { $ref: '#/components/schemas/StatementStatus' }
+        total:
+          type: integer
+          minimum: 0
+          description: '"A pagar": suma de abonos más intereses estimados de sus cuotas'
+        hasInterest:
+          type: boolean
+          description: true si alguna cuota tiene interés (la app marca el total como estimado)
+        installmentsInStatement:
+          type: integer
+          minimum: 0
+          description: Cuántas cuotas tiene este extracto
+        paidAt:
+          type: [string, 'null']
+          pattern: '^\d{4}-\d{2}-\d{2}$'
+          description: Fecha de pago (hoy del usuario al marcar); null si no está pagado
+        paidAmount:
+          type: [integer, 'null']
+          minimum: 0
+          description: '"A pagar" al marcarlo pagado; puede diferir de total (FR-031)'
+    StatementInstallment:
+      type: object
+      additionalProperties: false
+      required:
+        [purchaseId, concept, purchaseDate, number, purchaseInstallmentCount, principal, interest]
+      properties:
+        purchaseId: { type: string, format: uuid }
+        concept: { type: string }
+        purchaseDate: { $ref: '#/components/schemas/IsoDate' }
+        number: { type: integer, minimum: 1 }
+        purchaseInstallmentCount:
+          type: integer
+          minimum: 1
+          description: Número de cuotas de la compra (la n de "k de n")
+        principal: { type: integer, minimum: 0 }
+        interest: { type: integer, minimum: 0 }
+    StatementDetail:
+      allOf:
+        - $ref: '#/components/schemas/Statement'
+        - type: object
+          required: [installments]
+          properties:
+            installments:
+              type: array
+              description: Por fecha de compra y luego número de cuota
+              items: { $ref: '#/components/schemas/StatementInstallment' }
+
+    Error:
+      type: object
+      required: [statusCode, code, message]
+      properties:
+        statusCode: { type: integer }
+        code: { type: string }
+        message: { type: string }
+        errors:
+          type: array
+          items:
+            type: object
+            properties:
+              field: { type: string }
+              code: { type: string }
+  responses:
+    ValidationError:
+      description: VALIDATION_ERROR con errores por campo
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+    Unauthorized:
+      description: TOKEN_EXPIRED / SESSION_REVOKED (spec 001)
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+    PasswordChangeRequired:
+      description: PASSWORD_CHANGE_REQUIRED (spec 001)
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+    NotFound:
+      description: NOT_FOUND — inexistente, de otro usuario o id inválido (mismo cuerpo)
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+    CardArchived:
+      description: CARD_ARCHIVED — la tarjeta está archivada
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+  parameters:
+    Id:
+      name: id
+      in: path
+      required: true
+      schema: { type: string }
+paths:
+  /cards/{id}/purchases:
+    parameters:
+      - $ref: '#/components/parameters/Id'
+    get:
+      summary: Compras de la tarjeta (activa o archivada), por fecha descendente
+      responses:
+        '200':
+          description: Compras (sin plan)
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/Purchase' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/PasswordChangeRequired' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    post:
+      summary: Registra una compra y genera sus cuotas y extractos
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CreatePurchase' }
+      responses:
+        '201':
+          description: Compra con su plan
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/PurchaseDetail' }
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/PasswordChangeRequired' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/CardArchived' }
+  /purchases/{id}:
+    parameters:
+      - $ref: '#/components/parameters/Id'
+    get:
+      summary: Compra con su plan de cuotas
+      responses:
+        '200':
+          description: Compra con su plan
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/PurchaseDetail' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/PasswordChangeRequired' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    patch:
+      summary: Edita una compra de una tarjeta activa y recalcula sus cuotas
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/UpdatePurchase' }
+      responses:
+        '200':
+          description: Compra con su plan
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/PurchaseDetail' }
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/PasswordChangeRequired' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/CardArchived' }
+    delete:
+      summary: Borra una compra de una tarjeta activa y sus cuotas
+      responses:
+        '204': { description: Borrada }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/PasswordChangeRequired' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/CardArchived' }
+  /cards/{id}/statements:
+    parameters:
+      - $ref: '#/components/parameters/Id'
+    get:
+      summary: >
+        Extractos de la tarjeta: primero no pagados por corte ascendente, luego pagados por corte
+        descendente
+      responses:
+        '200':
+          description: Extractos (sin cuotas)
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/Statement' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/PasswordChangeRequired' }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /statements/{id}:
+    parameters:
+      - $ref: '#/components/parameters/Id'
+    get:
+      summary: Extracto con sus cuotas
+      responses:
+        '200':
+          description: Extracto con cuotas
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/StatementDetail' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/PasswordChangeRequired' }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /statements/{id}/payment:
+    parameters:
+      - $ref: '#/components/parameters/Id'
+    post:
+      summary: >
+        Marca el extracto como pagado (solo due u overdue; idempotente si ya está pagado). Se
+        permite con la tarjeta archivada.
+      responses:
+        '200':
+          description: Extracto pagado
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Statement' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/PasswordChangeRequired' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409':
+          description: STATEMENT_OPEN — el extracto aún no corta
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+    delete:
+      summary: Deshace el pago (idempotente si no está pagado). Se permite con la tarjeta archivada.
+      responses:
+        '200':
+          description: Extracto con su estado por fechas
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Statement' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/PasswordChangeRequired' }
+        '404': { $ref: '#/components/responses/NotFound' }
