@@ -1,5 +1,5 @@
 /**
- * Shared helpers for the e2e suites (specs 001 and 002). Each suite boots its own app, so the in-memory
+ * Shared helpers for the e2e suites (specs 001–003). Each suite boots its own app, so the in-memory
  * rate-limit storage starts empty (research.md R4).
  */
 import type { INestApplication } from '@nestjs/common';
@@ -61,7 +61,7 @@ export async function createTestApp(
   return app;
 }
 
-/** Deletes every user (and, by cascade, everything they own, including cards). */
+/** Deletes every user (and, by cascade, cards, purchases, installments and statements). */
 export async function resetDatabase(app: INestApplication): Promise<void> {
   await app.get(PrismaService).$executeRawUnsafe('TRUNCATE TABLE "users" CASCADE');
 }
@@ -134,6 +134,8 @@ export interface CardBody {
   creditLimit: number;
   cycleBudget: number;
   availableCredit: number;
+  totalDebt: number;
+  annualRate: number | null;
   remindCutoffDays: number;
   remindDueDays: number;
   archivedAt: string | null;
@@ -153,4 +155,98 @@ export async function createCard(
     .send({ ...VALID_CARD, ...overrides })
     .expect(201);
   return response.body as CardBody;
+}
+
+/** Valid purchase body (spec 003 quickstart.md B3); tests override what they need. */
+export const VALID_PURCHASE = {
+  amount: 300_000,
+  concept: 'Mercado',
+  purchaseDate: '2026-11-09',
+  installmentCount: 1,
+} as const;
+
+export interface PlanInstallmentBody {
+  number: number;
+  cutoffDate: string;
+  dueDate: string;
+  principal: number;
+  interest: number;
+  statementId: string;
+  statementStatus: 'open' | 'due' | 'overdue' | 'paid';
+}
+
+export interface PurchaseBody {
+  id: string;
+  cardId: string;
+  amount: number;
+  concept: string;
+  purchaseDate: string;
+  installmentCount: number;
+  noInterest: boolean;
+  annualRate: number | null;
+  createdAt: string;
+  updatedAt: string;
+  installments: PlanInstallmentBody[];
+}
+
+export interface StatementBody {
+  id: string;
+  cardId: string;
+  cutoffDate: string;
+  dueDate: string;
+  status: 'open' | 'due' | 'overdue' | 'paid';
+  total: number;
+  hasInterest: boolean;
+  installmentsInStatement: number;
+  paidAt: string | null;
+  paidAmount: number | null;
+}
+
+/** Registers a purchase through the API (fails the test on non-201). */
+export async function createPurchase(
+  app: INestApplication,
+  token: string,
+  cardId: string,
+  overrides: Record<string, unknown> = {},
+): Promise<PurchaseBody> {
+  const response = await request(app.getHttpServer())
+    .post(`/api/v1/cards/${cardId}/purchases`)
+    .set(bearer(token))
+    .send({ ...VALID_PURCHASE, ...overrides })
+    .expect(201);
+  return response.body as PurchaseBody;
+}
+
+/** GET /cards/:id/statements (fails the test on non-200). */
+export async function listStatements(
+  app: INestApplication,
+  token: string,
+  cardId: string,
+): Promise<StatementBody[]> {
+  const response = await request(app.getHttpServer())
+    .get(`/api/v1/cards/${cardId}/statements`)
+    .set(bearer(token))
+    .expect(200);
+  return response.body as StatementBody[];
+}
+
+/** The statement of a card with this cutoff date, or undefined. */
+export async function statementByCutoff(
+  app: INestApplication,
+  token: string,
+  cardId: string,
+  cutoffDate: string,
+): Promise<StatementBody | undefined> {
+  const statements = await listStatements(app, token, cardId);
+  return statements.find((statement) => statement.cutoffDate === cutoffDate);
+}
+
+/** Creates a user and logs in; returns the session (helper for the spec 003 suites). */
+export async function signUp(
+  app: INestApplication,
+  email: string,
+  password = 'clave-segura-1',
+): Promise<AuthResult> {
+  await createUser(app, { name: email.split('@')[0], email, password });
+  return login(app, email, password);
 }

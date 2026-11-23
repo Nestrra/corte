@@ -80,7 +80,7 @@ API NestJS en `apps/api`. Toda su configuración sale de variables de entorno
 ```bash
 pnpm db:up                                  # PostgreSQL 17 en localhost:5434 (corte_dev y corte_test)
 cp apps/api/.env.example apps/api/.env      # valores locales de ejemplo, sin secretos
-pnpm --filter api db:migrate                # crea las tablas (users, refresh_tokens) en corte_dev
+pnpm --filter api db:migrate                # crea las tablas (users, refresh_tokens, cards, purchases, installments, statements) en corte_dev
 pnpm --filter api dev                       # API en http://localhost:3000 con recarga automática
 ```
 
@@ -144,11 +144,37 @@ ven las tarjetas del usuario del token:
 | `POST /api/v1/cards/:id/archive` | Archiva (idempotente); no hay borrado individual                       |
 | `POST /api/v1/cards/:id/restore` | Restaura (idempotente)                                                 |
 
-- Montos en pesos enteros (`BIGINT` en la base, `number` en el JSON). `availableCredit` es igual a
-  `creditLimit` hasta que lleguen las compras (spec 003).
+- Montos en pesos enteros (`BIGINT` en la base, `number` en el JSON). `availableCredit` es
+  `creditLimit − totalDebt` (spec 003) y puede ser negativo; `annualRate` es la tasa EA opcional.
 - "Hoy" se calcula en la zona horaria del usuario con el reloj del servidor (proveedor `Clock`,
   que las e2e fijan en `2026-11-22T02:30:00Z`).
 - Una tarjeta de otro usuario, inexistente o con un id que no es UUID responde el mismo 404.
+
+### Compras y extractos
+
+Contrato en `specs/003-purchases/contracts/purchases.openapi.yaml`. Todas las rutas exigen sesión
+y solo ven compras y extractos de las tarjetas del usuario del token:
+
+| Método y ruta                           | Qué hace                                                             |
+| --------------------------------------- | -------------------------------------------------------------------- |
+| `GET /api/v1/cards/:id/purchases`       | Compras de la tarjeta, por fecha de compra descendente               |
+| `POST /api/v1/cards/:id/purchases`      | Registra una compra y genera sus cuotas y extractos (201)            |
+| `GET /api/v1/purchases/:id`             | Compra con su plan de cuotas                                         |
+| `PATCH /api/v1/purchases/:id`           | Edita; si cambia algo más que el concepto, regenera las cuotas       |
+| `DELETE /api/v1/purchases/:id`          | Borra la compra y sus cuotas (204)                                   |
+| `GET /api/v1/cards/:id/statements`      | Extractos con `total`, `status` y orden de pago                      |
+| `GET /api/v1/statements/:id`            | Extracto con sus cuotas                                              |
+| `POST /api/v1/statements/:id/payment`   | Marca pagado (solo `due` u `overdue`; `open` → 409 `STATEMENT_OPEN`) |
+| `DELETE /api/v1/statements/:id/payment` | Deshace el pago                                                      |
+
+- El plan de cuotas lo calcula `@corte/domain` (`buildInstallmentPlan`): abono sin decimales con el
+  residuo en la última cuota e interés estimado sobre el saldo.
+- El estado de un extracto (`open`, `due`, `overdue`, `paid`) se deriva del "hoy" del usuario;
+  solo se guardan `paid_at` y `paid_amount`.
+- Las escrituras bloquean la tarjeta (`SELECT … FOR UPDATE`) y corren en una transacción. Un
+  extracto pasado que se crea al registrar una compra con fecha pasada nace pagado.
+- Cambiar el día de corte o de pago de una tarjeta reprograma solo los extractos abiertos y no
+  pagados.
 
 ### Restablecer la contraseña de un usuario (administrador)
 

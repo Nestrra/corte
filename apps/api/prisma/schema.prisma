@@ -1,4 +1,4 @@
-// Prisma 7 schema (specs 001 and 002: data-model.md). The connection URL lives in prisma.config.ts.
+// Prisma 7 schema (specs 001–003: data-model.md). The connection URL lives in prisma.config.ts.
 
 generator client {
   provider     = "prisma-client"
@@ -61,25 +61,87 @@ enum CardColor {
 /// A credit card of one user (spec 002, data-model.md → Card). Ranges are also enforced by CHECK
 /// constraints added by hand in the migration.
 model Card {
-  id               String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  userId           String    @map("user_id") @db.Uuid
-  name             String    @db.VarChar(40)
+  id               String      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId           String      @map("user_id") @db.Uuid
+  name             String      @db.VarChar(40)
   color            CardColor
-  last4            String?   @db.Char(4)
-  cutoffDay        Int       @map("cutoff_day") @db.SmallInt
-  dueDay           Int       @map("due_day") @db.SmallInt
+  last4            String?     @db.Char(4)
+  cutoffDay        Int         @map("cutoff_day") @db.SmallInt
+  dueDay           Int         @map("due_day") @db.SmallInt
   /// Integer pesos (COP).
-  creditLimit      BigInt    @map("credit_limit")
+  creditLimit      BigInt      @map("credit_limit")
   /// Integer pesos (COP), not greater than credit_limit.
-  cycleBudget      BigInt    @map("cycle_budget")
-  remindCutoffDays Int       @default(2) @map("remind_cutoff_days") @db.SmallInt
-  remindDueDays    Int       @default(3) @map("remind_due_days") @db.SmallInt
+  cycleBudget      BigInt      @map("cycle_budget")
+  remindCutoffDays Int         @default(2) @map("remind_cutoff_days") @db.SmallInt
+  remindDueDays    Int         @default(3) @map("remind_due_days") @db.SmallInt
+  /// Annual effective rate in percent (0–100, 2 decimals); null = no rate (spec 003 FR-006).
+  annualRate       Decimal?    @map("annual_rate") @db.Decimal(5, 2)
   /// Null while the card is active.
-  archivedAt       DateTime? @map("archived_at") @db.Timestamptz(6)
-  createdAt        DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt        DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
-  user             User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  archivedAt       DateTime?   @map("archived_at") @db.Timestamptz(6)
+  createdAt        DateTime    @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt        DateTime    @updatedAt @map("updated_at") @db.Timestamptz(6)
+  user             User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  purchases        Purchase[]
+  statements       Statement[]
 
   @@index([userId, archivedAt, createdAt])
   @@map("cards")
+}
+
+/// A purchase on a card (spec 003, data-model.md → Purchase). Ownership goes through card.user_id.
+model Purchase {
+  id               String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  cardId           String        @map("card_id") @db.Uuid
+  /// Integer pesos (COP).
+  amount           BigInt
+  concept          String        @db.VarChar(60)
+  purchaseDate     DateTime      @map("purchase_date") @db.Date
+  installmentCount Int           @map("installment_count") @db.SmallInt
+  noInterest       Boolean       @default(false) @map("no_interest")
+  /// Copy of the card's rate when the purchase was registered; never changes afterwards (FR-007).
+  annualRate       Decimal?      @map("annual_rate") @db.Decimal(5, 2)
+  createdAt        DateTime      @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt        DateTime      @updatedAt @map("updated_at") @db.Timestamptz(6)
+  card             Card          @relation(fields: [cardId], references: [id], onDelete: Cascade)
+  installments     Installment[]
+
+  @@index([cardId, purchaseDate(sort: Desc), createdAt(sort: Desc)])
+  @@map("purchases")
+}
+
+/// Installment k of a purchase, placed in one statement (data-model.md → Installment).
+model Installment {
+  id          String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  purchaseId  String    @map("purchase_id") @db.Uuid
+  statementId String    @map("statement_id") @db.Uuid
+  number      Int       @db.SmallInt
+  /// Principal (abono a capital), integer pesos.
+  principal   BigInt
+  /// Estimated interest, integer pesos.
+  interest    BigInt
+  purchase    Purchase  @relation(fields: [purchaseId], references: [id], onDelete: Cascade)
+  statement   Statement @relation(fields: [statementId], references: [id], onDelete: Cascade)
+
+  @@unique([purchaseId, number])
+  @@index([statementId])
+  @@map("installments")
+}
+
+/// What is paid for one cutoff of a card (data-model.md → Statement). The status is derived.
+model Statement {
+  id           String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  cardId       String        @map("card_id") @db.Uuid
+  cutoffDate   DateTime      @map("cutoff_date") @db.Date
+  dueDate      DateTime      @map("due_date") @db.Date
+  /// Business date (the user's "today" when marked paid), not an instant; null while unpaid.
+  paidAt       DateTime?     @map("paid_at") @db.Date
+  /// The statement total when it was marked paid, integer pesos.
+  paidAmount   BigInt?       @map("paid_amount")
+  createdAt    DateTime      @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt    DateTime      @updatedAt @map("updated_at") @db.Timestamptz(6)
+  card         Card          @relation(fields: [cardId], references: [id], onDelete: Cascade)
+  installments Installment[]
+
+  @@unique([cardId, cutoffDate])
+  @@map("statements")
 }

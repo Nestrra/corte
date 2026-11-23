@@ -1,4 +1,5 @@
 import type { Card } from '../generated/prisma/client';
+import { toNumberRate } from '../ledger/ledger.service';
 
 /** The `Card` schema of contracts/cards.openapi.yaml (never exposes the owner). */
 export interface PublicCard {
@@ -10,8 +11,12 @@ export interface PublicCard {
   dueDay: number;
   creditLimit: number;
   cycleBudget: number;
-  /** Equal to the credit limit until purchases exist (FR-017; spec 003 computes it). */
+  /** creditLimit − totalDebt; may be negative (spec 003 FR-023). */
   availableCredit: number;
+  /** Principal of installments in unpaid statements (spec 003 FR-023). */
+  totalDebt: number;
+  /** Annual effective rate in percent, or null (spec 003 FR-006). */
+  annualRate: number | null;
   remindCutoffDays: number;
   remindDueDays: number;
   archivedAt: string | null;
@@ -32,8 +37,10 @@ export function toBigIntAmount(value: number): bigint {
   return BigInt(value);
 }
 
-export function toPublicCard(card: Card): PublicCard {
+/** `totalDebt` comes from LedgerService.debtByCard; 0 for a card without purchases. */
+export function toPublicCard(card: Card, totalDebt: bigint = 0n): PublicCard {
   const creditLimit = toNumberAmount(card.creditLimit);
+  const debt = toNumberAmount(totalDebt);
   return {
     id: card.id,
     name: card.name,
@@ -43,7 +50,9 @@ export function toPublicCard(card: Card): PublicCard {
     dueDay: card.dueDay,
     creditLimit,
     cycleBudget: toNumberAmount(card.cycleBudget),
-    availableCredit: creditLimit,
+    availableCredit: creditLimit - debt,
+    totalDebt: debt,
+    annualRate: toNumberRate(card.annualRate),
     remindCutoffDays: card.remindCutoffDays,
     remindDueDays: card.remindDueDays,
     archivedAt: card.archivedAt?.toISOString() ?? null,

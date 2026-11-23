@@ -4,7 +4,7 @@
  */
 import { addMonths, clampedDate, parseIsoDate, type IsoDate } from './calendar';
 import { validateAmount, validateDayOfMonth } from './card-rules';
-import { cycleForDate, dueDateForCutoff, type CycleDays } from './cycles';
+import { cutoffForDate, cycleForDate, dueDateForCutoff, type CycleDays } from './cycles';
 import { validateInstallmentCount } from './purchase-rules';
 import { monthlyRate, roundHalfUp, validateAnnualRate } from './rates';
 
@@ -92,4 +92,65 @@ export function buildInstallmentPlan(
       interest: chargesInterest ? roundHalfUp(owedBefore * em) : 0,
     };
   });
+}
+
+export interface InstallmentToReschedule {
+  /** Opaque id (the installment row), returned untouched. */
+  id: string;
+  number: number;
+  /** Current cutoff of its statement. */
+  cutoffDate: IsoDate;
+}
+
+export interface PurchaseToReschedule {
+  purchaseDate: IsoDate;
+  installments: InstallmentToReschedule[];
+}
+
+export interface RescheduledInstallment {
+  id: string;
+  cutoffDate: IsoDate;
+  dueDate: IsoDate;
+}
+
+/**
+ * FR-021 (research.md R7): new statements for the open installments after the card's cutoff or
+ * due day changes. Installments whose cutoff is before `today` (closed statements) are left out
+ * and never change. For each purchase, the first open installment j goes to the later of the cutoff
+ * the rule gives it with the new days and the first cutoff on or after today; the following ones
+ * go to consecutive months. Returns only the installments that are rescheduled.
+ */
+export function rescheduleInstallments(
+  purchases: PurchaseToReschedule[],
+  today: IsoDate,
+  days: CycleDays,
+): RescheduledInstallment[] {
+  const firstOpenCutoff = cutoffForDate(today, days.cutoffDay);
+  const result: RescheduledInstallment[] = [];
+
+  for (const purchase of purchases) {
+    const open = purchase.installments
+      .filter((installment) => installment.cutoffDate >= today)
+      .sort((a, b) => a.number - b.number);
+    const first = open[0];
+    if (!first) continue;
+
+    const purchaseCutoff = cutoffForDate(purchase.purchaseDate, days.cutoffDay);
+    const ruleCutoff = cutoffForMonthOffset(purchaseCutoff, first.number - 1, days.cutoffDay);
+    const start = ruleCutoff > firstOpenCutoff ? ruleCutoff : firstOpenCutoff;
+
+    for (const installment of open) {
+      const cutoffDate = cutoffForMonthOffset(
+        start,
+        installment.number - first.number,
+        days.cutoffDay,
+      );
+      result.push({
+        id: installment.id,
+        cutoffDate,
+        dueDate: dueDateForCutoff(cutoffDate, days.dueDay),
+      });
+    }
+  }
+  return result;
 }

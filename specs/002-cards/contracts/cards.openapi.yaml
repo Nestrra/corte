@@ -68,7 +68,7 @@ components:
         cycleBudget: { $ref: '#/components/schemas/Amount' }
         availableCredit:
           type: integer
-          description: En esta spec siempre igual a creditLimit (FR-017); la spec 003 lo calcula.
+          description: creditLimit − totalDebt desde la spec 003 (ver specs/003-purchases/contracts/purchases.openapi.yaml)
         remindCutoffDays: { $ref: '#/components/schemas/ReminderDays' }
         remindDueDays: { $ref: '#/components/schemas/ReminderDays' }
         archivedAt: { type: [string, 'null'], format: date-time, description: Nulo si está activa }

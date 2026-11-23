@@ -64,7 +64,7 @@ Toda la lógica de fechas y montos vive en `packages/domain` (constitución, pri
 **Cuotas**
 
 1. La cuota k de una compra (k = 1..n) cae en el extracto que está k − 1 ciclos después del de la compra.
-2. Abono a capital = valor / n, redondeado al peso. La diferencia de redondeo se suma a la última cuota.
+2. Abono a capital = floor(valor / n) (sin decimales, hacia abajo). El residuo se suma a la última cuota, así la suma de los abonos es exactamente el valor (spec 003, confirmado con un extracto real de Davivienda).
 3. Interés de la cuota k = saldo de capital antes de la cuota × tasa mensual. Con tasa 0 (o a 1 cuota) no hay interés.
 4. La tasa se ingresa efectiva anual y se convierte a mensual con EM = (1 + EA)^(1/12) − 1. La app la muestra como **estimado**: el banco liquida por días.
 5. Los montos se guardan como enteros en pesos colombianos (COP).
@@ -97,8 +97,8 @@ Cada spec define su parte en su `data-model.md`; esta tabla es la visión de con
 | `refresh_tokens` | id, user_id, token_hash, expires_at, revoked_at | Rotación en cada refresh. |
 | `devices` | id, user_id, expo_push_token, platform | Un usuario puede tener varios dispositivos. |
 | `cards` | id, user_id, name, color, last4, cutoff_day, due_day, credit_limit, cycle_budget, remind_cutoff_days, remind_due_days, archived_at | `color` es una clave de `cardColors`; `last4` es opcional. |
-| `statements` | id, card_id, cutoff_date, due_date, status, paid_at, paid_amount | Único por (card_id, cutoff_date). |
-| `purchases` | id, card_id, amount, concept, purchase_date, installments, annual_rate | `annual_rate` nulo o 0 si no tiene interés. |
+| `statements` | id, card_id, cutoff_date, due_date, paid_at, paid_amount | Único por (card_id, cutoff_date). `paid_at` es DATE (fecha de negocio); el estado se deriva de las fechas. |
+| `purchases` | id, card_id, amount, concept, purchase_date, installment_count, no_interest, annual_rate | `annual_rate` es la tasa de la tarjeta al registrar (nula si no tiene). |
 | `installments` | id, purchase_id, statement_id, number, principal, interest | La suma de los principal da el valor de la compra. |
 | `alert_logs` | id, card_id, statement_id, kind, threshold, sent_at | Evita repetir un aviso en el mismo ciclo. |
 | `recurring_payments` | id, user_id, name, amount, frequency, due_day, due_month, remind_days, paused_at | `due_month` solo aplica a la frecuencia anual. |
@@ -118,7 +118,7 @@ Todo bajo `/api/v1`; salvo auth y health, pide JWT. Cada consulta filtra por el 
 | GET / PATCH / DELETE | `/cards/:id` | Detalle, edición (recalcula extractos abiertos) o archivado. |
 | POST | `/cards/:id/simulate` | Devuelve extracto, fecha de pago, plan de cuotas y % del tope. No guarda nada. |
 | GET / POST | `/cards/:id/purchases` | Lista compras o registra una y genera sus cuotas. |
-| PATCH / DELETE | `/purchases/:id` | Edita o borra una compra y sus cuotas. |
+| GET / PATCH / DELETE | `/purchases/:id` | Detalle con el plan de cuotas, edición o borrado de una compra y sus cuotas. |
 | GET | `/cards/:id/statements` | Extractos de la tarjeta con su total y estado. |
 | GET | `/statements/:id` | Extracto con el detalle de cuotas. |
 | POST / DELETE | `/statements/:id/payment` | Marca el extracto como pagado o lo deshace. |
@@ -146,5 +146,5 @@ La infraestructura del homelab (stacks, túnel, secretos, respaldos, deploy) va 
 - Nombre: **Corte**.
 - Recuperar contraseña: sin email en el MVP; el administrador la restablece con un comando en el servidor.
 - Registro abierto, sin código de invitación.
-- Pendiente: confirmar con un extracto real cómo liquida el banco las cuotas (supuesto: abono fijo a capital + interés sobre saldo), antes de la spec 003.
+- Liquidación de cuotas confirmada con un extracto real de Davivienda (spec 003): abono fijo a capital con el residuo en la última cuota e interés sobre saldo; la app muestra el interés como estimado.
 - Pendiente: estrategia de despliegue a producción y publicación en tiendas.

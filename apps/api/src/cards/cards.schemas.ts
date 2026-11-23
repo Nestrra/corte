@@ -8,32 +8,16 @@ import {
   validateCardName,
   validateCycleBudget,
   validateDayOfMonth,
+  validateAnnualRate,
   validateReminderDays,
 } from '@corte/domain';
 import { z } from 'zod';
+import { checkedNumber, checkedString, typeError } from '../common/zod-fields';
 
 // Issue messages are the field error codes of contracts/errors.md; the rules come from
 // @corte/domain so the app validates exactly the same way (FR-011).
 
-/** A missing field reports REQUIRED; a value of the wrong type reports `code`. */
-const typeError = (code: string) => ({
-  error: (issue: { input?: unknown }) => (issue.input === undefined ? 'REQUIRED' : code),
-});
-
-function checkedNumber(validate: (value: number) => string | null) {
-  return z.number(typeError('OUT_OF_RANGE')).superRefine((value, ctx) => {
-    const code = validate(value);
-    if (code) ctx.addIssue({ code: 'custom', message: code });
-  });
-}
-
-const name = z
-  .string(typeError('REQUIRED'))
-  .superRefine((value, ctx) => {
-    const code = validateCardName(value);
-    if (code) ctx.addIssue({ code: 'custom', message: code });
-  })
-  .transform(normalizeCardName);
+const name = checkedString(validateCardName, normalizeCardName);
 const color = z.enum(CARD_COLORS, typeError('INVALID'));
 const last4 = z
   .string(typeError('INVALID_FORMAT'))
@@ -42,6 +26,8 @@ const last4 = z
 const day = checkedNumber(validateDayOfMonth);
 const amount = checkedNumber(validateAmount);
 const reminderDays = checkedNumber(validateReminderDays);
+/** Spec 003 FR-006 (data-model.md → Card.annualRate): null clears the rate. */
+const annualRate = checkedNumber(validateAnnualRate).nullable();
 
 /** Adds EXCEEDS_CREDIT_LIMIT on cycleBudget when both amounts are present and valid. */
 function checkBudget(
@@ -68,6 +54,7 @@ export const createCardSchema = z
     cycleBudget: amount,
     remindCutoffDays: reminderDays.default(DEFAULT_REMIND_CUTOFF_DAYS),
     remindDueDays: reminderDays.default(DEFAULT_REMIND_DUE_DAYS),
+    annualRate: annualRate.optional().transform((value) => value ?? null),
   })
   .superRefine(checkBudget);
 export type CreateCardInput = z.output<typeof createCardSchema>;
@@ -84,6 +71,7 @@ export const updateCardSchema = z
     cycleBudget: amount.optional(),
     remindCutoffDays: reminderDays.optional(),
     remindDueDays: reminderDays.optional(),
+    annualRate: annualRate.optional(),
   })
   .refine((value) => Object.keys(value).length > 0, { error: 'REQUIRED' })
   .superRefine(checkBudget);

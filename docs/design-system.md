@@ -93,7 +93,10 @@ Plus Jakarta Sans (600, 700) para títulos y montos; Inter (400, 500, 600) para 
 - **ProgressBar**: alto 8, fondo `primarySoft`, relleno `primary`; `warning` desde 70% y `danger` desde 100%.
 - **StatTile**: etiqueta, monto y línea secundaria (Total del mes, Pagado).
 - **ListRow**: nombre y fecha a la izquierda; monto y StatusChip a la derecha.
-- **StatusChip**: Pagado (`success`), Pendiente (`warning`), Vencido (`danger`).
+- **StatusChip**: Pagado (`success`), Pendiente (`warning`), Vencido (`danger`). Los extractos
+  (spec 003) agregan Abierto (neutral: `textSecondary` sobre `surface`, borde `border`) y Por pagar
+  (`warning`); el estado siempre va escrito. Contraste del texto sobre su fondo: Abierto 7,69;
+  Por pagar 5,20; Vencido 6,05; Pagado 5,40.
 - **SectionHeader**: título de sección y botón secundario con ícono + ("Agregar", "Nuevo").
 - **Button**: primario (`primary`, texto blanco) y secundario (`primarySoft`, texto `primaryStrong`), alto 44.
 - **TabBar**: Inicio, Tarjetas, botón central "Registrar compra" (56 px, `primary`), Pagos, Perfil.

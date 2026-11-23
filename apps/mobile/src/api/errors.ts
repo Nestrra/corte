@@ -12,6 +12,7 @@ export type ApiErrorCode =
   | 'RATE_LIMITED'
   | 'NOT_FOUND'
   | 'CARD_ARCHIVED'
+  | 'STATEMENT_OPEN'
   | 'UNKNOWN';
 
 export interface FieldError {
@@ -61,7 +62,15 @@ const codeTexts: Partial<Record<ApiErrorCode, string>> = {
   // specs/002-cards/contracts/errors.md
   NOT_FOUND: 'No encontramos esa tarjeta',
   CARD_ARCHIVED: 'Restaura la tarjeta para editarla',
+  // specs/003-purchases/contracts/errors.md
+  STATEMENT_OPEN: 'Este extracto aún no corta; podrás pagarlo después del corte',
 };
+
+// specs/003-purchases/contracts/errors.md: the same codes read differently on purchase and
+// statement screens.
+export const PURCHASE_NOT_FOUND_TEXT = 'No encontramos esa compra';
+export const STATEMENT_NOT_FOUND_TEXT = 'No encontramos ese extracto';
+export const CARD_ARCHIVED_PURCHASES_TEXT = 'Restaura la tarjeta para cambiar sus compras';
 
 /** Spanish text for any error thrown by the API client. */
 export function errorText(error: unknown): string {
@@ -106,7 +115,35 @@ const cardFieldTexts: Record<string, Record<string, string>> = {
   },
   remindCutoffDays: reminderTexts,
   remindDueDays: reminderTexts,
+  // spec 003 FR-006
+  annualRate: {
+    OUT_OF_RANGE: 'Escribe una tasa entre 0 y 100',
+    TOO_MANY_DECIMALS: 'Máximo 2 decimales',
+  },
 };
+
+// Purchase fields (specs/003-purchases/contracts/errors.md).
+const purchaseFieldTexts: Record<string, Record<string, string>> = {
+  amount: {
+    OUT_OF_RANGE: 'Escribe un valor mayor que 0',
+    REQUIRED: 'Escribe un valor mayor que 0',
+  },
+  concept: { REQUIRED: 'Escribe un concepto', TOO_LONG: 'Máximo 60 caracteres' },
+  purchaseDate: {
+    INVALID: 'Elige una fecha válida',
+    IN_FUTURE: 'La fecha no puede ser posterior a hoy',
+    TOO_OLD: 'La fecha no puede ser de hace más de 6 años',
+  },
+  installmentCount: {
+    OUT_OF_RANGE: 'Elige de 1 a 72 cuotas',
+    REQUIRED: 'Elige de 1 a 72 cuotas',
+  },
+};
+
+/** Spanish text for a purchase field error code (specs/003-purchases/contracts/errors.md). */
+export function purchaseFieldErrorText(field: string, code: string): string {
+  return purchaseFieldTexts[field]?.[code] ?? 'Revisa este campo';
+}
 
 /** Spanish text for a card field error code (specs/002-cards/contracts/errors.md). */
 export function cardFieldErrorText(field: string, code: string): string {
@@ -131,6 +168,7 @@ const KNOWN_CODES = new Set<string>([
   'RATE_LIMITED',
   'NOT_FOUND',
   'CARD_ARCHIVED',
+  'STATEMENT_OPEN',
 ]);
 
 /** Builds an ApiError from any response body, tolerating unexpected shapes. */

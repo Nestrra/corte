@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   buildInstallmentPlan,
   cutoffForMonthOffset,
+  rescheduleInstallments,
   type InstallmentPlanInput,
   type InstallmentPlanItem,
 } from './installments';
@@ -263,5 +264,145 @@ describe('real Davivienda statement (SC-003)', () => {
     const ours = remainingAfter(plan, 520_000, 4);
     expect(ours).toBe(460_572);
     expect(ours - bankReported).toBe(1);
+  });
+});
+
+// spec 003 → User Story 7, FR-021; research.md R7.
+describe('rescheduleInstallments', () => {
+  const NEW_15_DUE_2 = { cutoffDay: 15, dueDay: 2 };
+
+  it('scenario 1: November 9 at 3, corte 8/25 → 15/2 on November 23', () => {
+    const moved = rescheduleInstallments(
+      [
+        {
+          purchaseDate: '2026-11-09',
+          installments: [
+            { id: 'a1', number: 1, cutoffDate: '2026-12-08' },
+            { id: 'a2', number: 2, cutoffDate: '2027-01-08' },
+            { id: 'a3', number: 3, cutoffDate: '2027-02-08' },
+          ],
+        },
+      ],
+      '2026-11-23',
+      NEW_15_DUE_2,
+    );
+    expect(moved).toEqual([
+      { id: 'a1', cutoffDate: '2026-12-15', dueDate: '2027-01-02' },
+      { id: 'a2', cutoffDate: '2027-01-15', dueDate: '2027-02-02' },
+      { id: 'a3', cutoffDate: '2027-02-15', dueDate: '2027-03-02' },
+    ]);
+  });
+
+  it('keeps closed installments and places the rest consecutively from the first open cutoff', () => {
+    // Purchase of 2026-09-20 at 4 with corte 8: Oct 8 and Nov 8 are closed on November 23.
+    const moved = rescheduleInstallments(
+      [
+        {
+          purchaseDate: '2026-09-20',
+          installments: [
+            { id: 'b1', number: 1, cutoffDate: '2026-10-08' },
+            { id: 'b2', number: 2, cutoffDate: '2026-11-08' },
+            { id: 'b3', number: 3, cutoffDate: '2026-12-08' },
+            { id: 'b4', number: 4, cutoffDate: '2027-01-08' },
+          ],
+        },
+      ],
+      '2026-11-23',
+      NEW_15_DUE_2,
+    );
+    expect(moved.map((item) => [item.id, item.cutoffDate])).toEqual([
+      ['b3', '2026-12-15'],
+      ['b4', '2027-01-15'],
+    ]);
+  });
+
+  it('when today is the new cutoff day, the first open cutoff is today', () => {
+    const moved = rescheduleInstallments(
+      [
+        {
+          purchaseDate: '2026-11-09',
+          installments: [{ id: 'c1', number: 1, cutoffDate: '2026-12-08' }],
+        },
+      ],
+      '2026-11-23',
+      { cutoffDay: 23, dueDay: 10 },
+    );
+    expect(moved).toEqual([{ id: 'c1', cutoffDate: '2026-11-23', dueDate: '2026-12-10' }]);
+  });
+
+  it('a later cutoff by the rule wins over the first open one', () => {
+    // Corte 1: installments 1–3 (Sep 1, Oct 1, Nov 1) are closed; installment 4 (Dec 1) is open.
+    // With corte 23 the rule puts installment 4 on Dec 23, after the first open cutoff (Nov 23).
+    const moved = rescheduleInstallments(
+      [
+        {
+          purchaseDate: '2026-09-01',
+          installments: [
+            { id: 'd1', number: 1, cutoffDate: '2026-09-01' },
+            { id: 'd2', number: 2, cutoffDate: '2026-10-01' },
+            { id: 'd3', number: 3, cutoffDate: '2026-11-01' },
+            { id: 'd4', number: 4, cutoffDate: '2026-12-01' },
+          ],
+        },
+      ],
+      '2026-11-23',
+      { cutoffDay: 23, dueDay: 10 },
+    );
+    expect(moved).toEqual([{ id: 'd4', cutoffDate: '2026-12-23', dueDate: '2027-01-10' }]);
+  });
+
+  it('corte 31 → 30 clamps February', () => {
+    const moved = rescheduleInstallments(
+      [
+        {
+          purchaseDate: '2027-01-10',
+          installments: [
+            { id: 'e1', number: 1, cutoffDate: '2027-01-31' },
+            { id: 'e2', number: 2, cutoffDate: '2027-02-28' },
+            { id: 'e3', number: 3, cutoffDate: '2027-03-31' },
+          ],
+        },
+      ],
+      '2027-01-10',
+      { cutoffDay: 30, dueDay: 15 },
+    );
+    expect(moved.map((item) => item.cutoffDate)).toEqual([
+      '2027-01-30',
+      '2027-02-28',
+      '2027-03-30',
+    ]);
+  });
+
+  it('returns nothing for purchases without open installments', () => {
+    expect(
+      rescheduleInstallments(
+        [
+          {
+            purchaseDate: '2026-09-20',
+            installments: [{ id: 'f1', number: 1, cutoffDate: '2026-10-08' }],
+          },
+          { purchaseDate: '2026-09-20', installments: [] },
+        ],
+        '2026-11-23',
+        NEW_15_DUE_2,
+      ),
+    ).toEqual([]);
+  });
+
+  it('orders installments by number whatever the input order', () => {
+    const moved = rescheduleInstallments(
+      [
+        {
+          purchaseDate: '2026-11-09',
+          installments: [
+            { id: 'g2', number: 2, cutoffDate: '2027-01-08' },
+            { id: 'g1', number: 1, cutoffDate: '2026-12-08' },
+          ],
+        },
+      ],
+      '2026-11-23',
+      NEW_15_DUE_2,
+    );
+    expect(moved.map((item) => item.id)).toEqual(['g1', 'g2']);
   });
 });

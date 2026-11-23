@@ -5,9 +5,16 @@ import { MAX_AMOUNT_COP } from '@corte/domain';
 // iOS and Android; the formatter is created once.
 const copFormat = new Intl.NumberFormat('es-CO', { maximumFractionDigits: 0 });
 
-/** Pesos without decimals: 5000000 → "$5.000.000" (FR-024). */
+/** Minus sign (U+2212), not a hyphen: it reads and aligns as a sign in tabular amounts. */
+const MINUS = '\u2212';
+
+/**
+ * Pesos without decimals: 5000000 → "$5.000.000" (FR-024). Negative amounts (an available credit
+ * below zero, spec 003 FR-023) keep the sign before the symbol: −300000 → "−$300.000".
+ */
 export function formatCop(amount: number): string {
-  return `$${copFormat.format(amount)}`;
+  const formatted = `$${copFormat.format(Math.abs(amount))}`;
+  return amount < 0 ? `${MINUS}${formatted}` : formatted;
 }
 
 /**
