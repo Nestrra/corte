@@ -1,0 +1,282 @@
+openapi: 3.1.0
+info:
+  title: Corte API — Pagos recurrentes
+  version: 0.5.0
+  description: >
+    Spec 005. Todo bajo /api/v1 y con `Authorization: Bearer <accessToken>`. Solo se usan pagos
+    del usuario del token (principio III); un pago u ocurrencia de otro usuario, uno inexistente,
+    uno eliminado (salvo las ocurrencias pagadas de un pago eliminado) y un id que no es UUID
+    responden igual: 404 NOT_FOUND. Con la contraseña temporal pendiente, todo responde 403
+    PASSWORD_CHANGE_REQUIRED (spec 001). Montos: enteros en pesos COP. Fechas: strings
+    YYYY-MM-DD; meses YYYY-MM. Errores: specs/003-purchases/contracts/errors.md más el código
+    RECURRING_DELETED y los códigos de campo de este archivo. `GET /recurring/occurrences` y
+    `GET /summary` pueden crear las ocurrencias que falten del mes pedido (research.md R4).
+servers:
+  - url: http://localhost:3000/api/v1
+security:
+  - bearer: []
+components:
+  securitySchemes:
+    bearer:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    IsoDate:
+      type: string
+      pattern: '^\d{4}-\d{2}-\d{2}$'
+      example: '2026-11-28'
+    YearMonth:
+      type: string
+      pattern: '^\d{4}-\d{2}$'
+      example: '2026-11'
+    Amount:
+      type: integer
+      minimum: 1
+      maximum: 9999999999
+    Frequency:
+      type: string
+      enum: [monthly, annual]
+    CreateRecurringPayment:
+      type: object
+      additionalProperties: false
+      required: [name, amount, frequency, firstDueDate]
+      properties:
+        name: { type: string, minLength: 1, maxLength: 40, description: Se guarda sin espacios sobrantes }
+        amount: { $ref: '#/components/schemas/Amount' }
+        frequency: { $ref: '#/components/schemas/Frequency' }
+        firstDueDate:
+          $ref: '#/components/schemas/IsoDate'
+          description: Desde el 1.º del mes actual hasta hoy + 12 meses (TOO_OLD, TOO_FAR)
+    UpdateRecurringPayment:
+      type: object
+      additionalProperties: false
+      minProperties: 1
+      description: >
+        El nombre aplica a todas las ocurrencias; monto, frecuencia y fecha solo a las no pagadas
+        con fecha de hoy en adelante (research.md R5). Cambiar `frequency` exige `nextDueDate`.
+      properties:
+        name: { type: string, minLength: 1, maxLength: 40 }
+        amount: { $ref: '#/components/schemas/Amount' }
+        frequency: { $ref: '#/components/schemas/Frequency' }
+        nextDueDate:
+          $ref: '#/components/schemas/IsoDate'
+          description: >
+            Entre hoy y hoy + 12 meses (IN_PAST, TOO_FAR); nuevo ancla del calendario. Con cambio
+            de frecuencia debe ser posterior al último vencimiento pagado (BEFORE_LAST_PAID).
+    RecurringPayment:
+      type: object
+      required: [id, name, amount, frequency, anchorDate, status, nextDueDate]
+      properties:
+        id: { type: string, format: uuid }
+        name: { type: string }
+        amount: { $ref: '#/components/schemas/Amount' }
+        frequency: { $ref: '#/components/schemas/Frequency' }
+        anchorDate:
+          $ref: '#/components/schemas/IsoDate'
+          description: Día (y mes, si es anual) de cada vencimiento ("Mensual · día 5", "Anual · 10 mar")
+        status: { type: string, enum: [active, paused] }
+        nextDueDate:
+          oneOf:
+            - $ref: '#/components/schemas/IsoDate'
+            - type: 'null'
+          description: Primer vencimiento ≥ hoy cuyo periodo no está pagado; null si está pausado
+    OccurrenceStatus:
+      type: string
+      enum: [pending, overdue, paid]
+    Occurrence:
+      type: object
+      required:
+        [id, recurringPaymentId, name, frequency, dueDate, expectedAmount, paidAmount, paidAt, status, paymentDeleted]
+      properties:
+        id: { type: string, format: uuid }
+        recurringPaymentId: { type: string, format: uuid }
+        name: { type: string, description: Nombre actual del pago }
+        frequency: { $ref: '#/components/schemas/Frequency' }
+        dueDate: { $ref: '#/components/schemas/IsoDate' }
+        expectedAmount: { $ref: '#/components/schemas/Amount' }
+        paidAmount:
+          oneOf:
+            - $ref: '#/components/schemas/Amount'
+            - type: 'null'
+        paidAt:
+          oneOf:
+            - $ref: '#/components/schemas/IsoDate'
+            - type: 'null'
+        status: { $ref: '#/components/schemas/OccurrenceStatus' }
+        paymentDeleted: { type: boolean, description: true si el pago fue eliminado (no se puede deshacer) }
+    MonthView:
+      type: object
+      required: [month, today, bounds, hasPayments, totals, items]
+      properties:
+        month: { $ref: '#/components/schemas/YearMonth' }
+        today: { $ref: '#/components/schemas/IsoDate' }
+        bounds:
+          type: object
+          required: [first, last]
+          properties:
+            first: { $ref: '#/components/schemas/YearMonth' }
+            last: { $ref: '#/components/schemas/YearMonth' }
+        hasPayments: { type: boolean, description: El usuario tiene al menos un pago no eliminado }
+        totals:
+          type: object
+          required: [total, paid, remaining]
+          description: total = paid + remaining (data-model.md → MonthView)
+          properties:
+            total: { type: integer, minimum: 0 }
+            paid: { type: integer, minimum: 0 }
+            remaining: { type: integer, minimum: 0 }
+        items:
+          type: array
+          description: Vencidas, pendientes y pagadas; dentro de cada grupo por dueDate y nombre
+          items: { $ref: '#/components/schemas/Occurrence' }
+    PayOccurrence:
+      type: object
+      additionalProperties: false
+      properties:
+        amount:
+          $ref: '#/components/schemas/Amount'
+          description: Monto real; por defecto el esperado
+    SummaryRecurring:
+      description: >
+        Ampliación de Summary (specs/004-home-simulator/contracts/home.openapi.yaml): se agrega
+        `recurring` con la MonthView del mes actual, también cuando no hay tarjetas.
+      type: object
+      required: [recurring]
+      properties:
+        recurring: { $ref: '#/components/schemas/MonthView' }
+paths:
+  /recurring:
+    get:
+      summary: Mis pagos (no eliminados), activos antes que pausados y por nombre
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { type: array, items: { $ref: '#/components/schemas/RecurringPayment' } }
+    post:
+      summary: Crear un pago recurrente (queda activo)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CreateRecurringPayment' }
+      responses:
+        '201':
+          description: Creado
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/RecurringPayment' }
+        '400': { description: VALIDATION_ERROR — name, amount, frequency, firstDueDate }
+  /recurring/occurrences:
+    get:
+      summary: Vista de un mes (materializa las ocurrencias que falten)
+      parameters:
+        - name: month
+          in: query
+          required: true
+          schema: { $ref: '#/components/schemas/YearMonth' }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/MonthView' }
+        '400': { description: 'VALIDATION_ERROR — month: INVALID u OUT_OF_RANGE (fuera de bounds)' }
+  /recurring/{id}:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: string } }
+    get:
+      summary: Detalle de un pago
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/RecurringPayment' }
+        '404': { description: NOT_FOUND — inexistente, ajeno, eliminado o id inválido }
+    patch:
+      summary: Editar (aplica a las ocurrencias no pagadas con fecha de hoy en adelante)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/UpdateRecurringPayment' }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/RecurringPayment' }
+        '400': { description: VALIDATION_ERROR }
+        '404': { description: NOT_FOUND }
+    delete:
+      summary: Eliminar (borra las no pagadas; conserva las pagadas)
+      responses:
+        '204': { description: Eliminado }
+        '404': { description: NOT_FOUND }
+  /recurring/{id}/pause:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: string } }
+    post:
+      summary: Pausar (idempotente); conserva las ocurrencias hasta el periodo actual
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/RecurringPayment' }
+        '404': { description: NOT_FOUND }
+  /recurring/{id}/resume:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: string } }
+    post:
+      summary: Reanudar (idempotente) desde el próximo vencimiento igual o posterior a hoy
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/RecurringPayment' }
+        '404': { description: NOT_FOUND }
+  /occurrences/{id}:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: string } }
+    get:
+      summary: Detalle de una ocurrencia (también pagadas de pagos eliminados)
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Occurrence' }
+        '404': { description: NOT_FOUND }
+  /occurrences/{id}/payment:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: string } }
+    post:
+      summary: Marcar pagada (idempotente si ya lo está); paidAt = hoy
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/PayOccurrence' }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Occurrence' }
+        '400': { description: 'VALIDATION_ERROR — amount: OUT_OF_RANGE' }
+        '404': { description: NOT_FOUND }
+    delete:
+      summary: Deshacer el pago (idempotente si no está pagada)
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Occurrence' }
+        '404': { description: NOT_FOUND }
+        '409': { description: RECURRING_DELETED — el pago fue eliminado; lo pagado no se deshace }
