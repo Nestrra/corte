@@ -171,8 +171,8 @@ al volver a primer plano.
 - [X] T035 [P] Update `docs/design-system.md`: components CycleSummary (urgency chips "Pronto" / "Vencido"), ProgressBar (accessibility), CardPicker, SimulationPanel (dimming rule and its contrast) and EmptyCards; check every new color pair is in the measured list (AA)
 - [X] T036 [P] Update `docs/mvp-spec.md`: `POST /cards/:id/simulate` and `GET /summary` descriptions with links to `specs/004-home-simulator/contracts/home.openapi.yaml`; and `README.md` with a short "Inicio y simulador" section
 - [X] T037 Design review of the new screens against `docs/design-system.md` and contracts/screens.md (tokens only, no hand-written values, touch areas ≥ 44, tabular amounts, states with text, AA contrast including dimmed values; with $9.999.999.999 nothing is cut or overflows in CycleSummary, SimulationPanel and CardPicker); fix what is found
-- [ ] T038 Run quickstart.md B1–B7 (curl and test commands) and `pnpm lint && pnpm format:check && pnpm typecheck`, `pnpm --filter @corte/domain test:cov`, `pnpm --filter api test && pnpm --filter api test:e2e`, and `pnpm --filter mobile exec expo export` for iOS and Android; B8 (app on iOS simulator and Android emulator) is validated manually by the user
-- [ ] T039 After B8 passes, mark spec 004 as "(cerrada)" in "Orden de specs" of `docs/mvp-spec.md`
+- [X] T038 Run quickstart.md B1–B7 (curl and test commands) and `pnpm lint && pnpm format:check && pnpm typecheck`, `pnpm --filter @corte/domain test:cov`, `pnpm --filter api test && pnpm --filter api test:e2e`, and `pnpm --filter mobile exec expo export` for iOS and Android; B8 (app on iOS simulator and Android emulator) is validated manually by the user
+- [X] T039 After B8 passes, mark spec 004 as "(cerrada)" in "Orden de specs" of `docs/mvp-spec.md`
 
 ---
 
