@@ -3,6 +3,8 @@ import { daysBetween } from './calendar';
 import { buildInstallmentPlan } from './installments';
 
 // spec 003 FR-005 / SC-001; research.md R12: properties checked by exhaustive walk (no library).
+// One test per installment count; violations are collected and compared once, so the walk stays
+// fast under coverage in CI and a failure names the case.
 const AMOUNTS = [1_000_000, 3_090_000, 4_765_548, 999_999_937, 9_999_999_999];
 const RATES = [null, 0, 26.82];
 const DAYS = { cutoffDay: 31, dueDay: 15 };
@@ -12,45 +14,50 @@ function amountsFor(n: number): number[] {
   return [...new Set([1, ...small, ...AMOUNTS])];
 }
 
-describe('buildInstallmentPlan properties (n = 1..72)', () => {
-  it('holds for every installment count, amount, rate and interest flag', () => {
-    let plans = 0;
-    for (let n = 1; n <= 72; n++) {
-      for (const amount of amountsFor(n)) {
-        for (const annualRate of RATES) {
-          for (const noInterest of [false, true]) {
-            const plan = buildInstallmentPlan(
-              { amount, purchaseDate: '2027-01-15', installmentCount: n, annualRate, noInterest },
-              DAYS,
-            );
-            plans++;
-            const base = Math.floor(amount / n);
+/** Every property of FR-001 – FR-004 that a plan breaks, as readable strings. */
+function violations(n: number): string[] {
+  const found: string[] = [];
+  for (const amount of amountsFor(n)) {
+    for (const annualRate of RATES) {
+      for (const noInterest of [false, true]) {
+        const label = `amount ${amount}, rate ${annualRate}, noInterest ${noInterest}`;
+        const plan = buildInstallmentPlan(
+          { amount, purchaseDate: '2027-01-15', installmentCount: n, annualRate, noInterest },
+          DAYS,
+        );
+        const base = Math.floor(amount / n);
+        const interestFree = n === 1 || noInterest || annualRate === null || annualRate === 0;
 
-            expect(plan.map((item) => item.number)).toEqual(
-              Array.from({ length: n }, (_, i) => i + 1),
-            );
-            expect(plan.reduce((total, item) => total + item.principal, 0)).toBe(amount);
-            plan.forEach((item, index) => {
-              expect(item.principal).toBeGreaterThanOrEqual(0);
-              if (index < n - 1) expect(item.principal).toBe(base);
-              expect(Number.isInteger(item.interest)).toBe(true);
-              expect(item.interest).toBeGreaterThanOrEqual(0);
-              expect(item.dueDate > item.cutoffDate).toBe(true);
-              if (index > 0) {
-                const gap = daysBetween(plan[index - 1]!.cutoffDate, item.cutoffDate);
-                expect(gap).toBeGreaterThanOrEqual(28);
-                expect(gap).toBeLessThanOrEqual(31);
-              }
-            });
+        if (plan.length !== n) found.push(`${label}: ${plan.length} installments`);
+        const total = plan.reduce((sum, item) => sum + item.principal, 0);
+        if (total !== amount) found.push(`${label}: principal adds up to ${total}`);
 
-            const interestFree = n === 1 || noInterest || annualRate === null || annualRate === 0;
-            if (interestFree) {
-              expect(plan.every((item) => item.interest === 0)).toBe(true);
-            }
+        plan.forEach((item, index) => {
+          const at = `${label}, installment ${item.number}`;
+          if (item.number !== index + 1) found.push(`${at}: wrong number`);
+          if (item.principal < 0) found.push(`${at}: negative principal`);
+          if (index < n - 1 && item.principal !== base) found.push(`${at}: principal ≠ floor`);
+          if (!Number.isInteger(item.interest) || item.interest < 0) {
+            found.push(`${at}: interest ${item.interest}`);
           }
-        }
+          if (interestFree && item.interest !== 0) found.push(`${at}: interest should be 0`);
+          if (item.dueDate <= item.cutoffDate) found.push(`${at}: due date not after cutoff`);
+          if (index > 0) {
+            const gap = daysBetween(plan[index - 1]!.cutoffDate, item.cutoffDate);
+            if (gap < 28 || gap > 31) found.push(`${at}: cutoffs ${gap} days apart`);
+          }
+        });
       }
     }
-    expect(plans).toBeGreaterThan(72 * 5 * 3 * 2);
-  });
+  }
+  return found;
+}
+
+describe('buildInstallmentPlan properties (n = 1..72)', () => {
+  it.each(Array.from({ length: 72 }, (_, i) => i + 1))(
+    'holds for %i installments with every amount, rate and interest flag',
+    (n) => {
+      expect(violations(n)).toEqual([]);
+    },
+  );
 });
