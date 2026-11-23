@@ -220,6 +220,29 @@ export class LedgerService {
     return statement ? (await this.totalsOf(db, statement.id)).total : 0n;
   }
 
+  /**
+   * "A pagar" of one statement per card, by cutoff, in one query (spec 004 GET /summary, research.md
+   * R4): principal plus estimated interest; 0 for a card whose statement does not exist yet.
+   */
+  async totalsForCutoffs(
+    pairs: Array<{ cardId: string; cutoffDate: IsoDate }>,
+    db: Db = this.prisma,
+  ): Promise<Map<string, bigint>> {
+    const result = new Map<string, bigint>(pairs.map((pair) => [pair.cardId, 0n]));
+    if (pairs.length === 0) return result;
+    const cardIds = pairs.map((pair) => pair.cardId);
+    const cutoffs = pairs.map((pair) => pair.cutoffDate);
+    const rows = await db.$queryRaw<Array<{ card_id: string; total: bigint }>>`
+      SELECT s.card_id, SUM(i.principal + i.interest)::bigint AS total
+      FROM statements s
+      JOIN installments i ON i.statement_id = s.id
+      JOIN UNNEST(${cardIds}::uuid[], ${cutoffs}::date[]) AS wanted(card_id, cutoff_date)
+        ON wanted.card_id = s.card_id AND wanted.cutoff_date = s.cutoff_date
+      GROUP BY s.card_id`;
+    for (const row of rows) result.set(row.card_id, BigInt(row.total));
+    return result;
+  }
+
   /** An unpaid statement with this cutoff, created or reused with the given due date. */
   private async openStatementFor(
     tx: Db,

@@ -176,6 +176,21 @@ y solo ven compras y extractos de las tarjetas del usuario del token:
 - Cambiar el día de corte o de pago de una tarjeta reprograma solo los extractos abiertos y no
   pagados.
 
+### Inicio y simulador
+
+Contrato en `specs/004-home-simulator/contracts/home.openapi.yaml`. Las dos rutas solo leen: no
+crean ni modifican nada.
+
+| Método y ruta                     | Qué hace                                                                         |
+| --------------------------------- | -------------------------------------------------------------------------------- |
+| `POST /api/v1/cards/:id/simulate` | Simula una compra: plan de cuotas, intereses estimados, tope y cupo después      |
+| `GET /api/v1/summary`             | Inicio: por tarjeta activa, próximo pago, próximo corte y uso del tope del ciclo |
+
+- La simulación usa `simulatePurchase` de `@corte/domain` con las mismas validaciones y el mismo
+  "hoy" que el registro; simular y registrar la misma compra dan el mismo plan.
+- En la app, el botón central "Registrar compra" abre el registro desde cualquier pestaña con la
+  tarjeta al frente del inicio, y el formulario simula la compra mientras se escribe.
+
 ### Restablecer la contraseña de un usuario (administrador)
 
 No hay recuperación por correo. Quien administra el servidor genera una contraseña temporal, que

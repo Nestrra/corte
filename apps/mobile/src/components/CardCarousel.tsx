@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   FlatList,
   StyleSheet,
@@ -40,13 +40,18 @@ export function carouselSnapOffsets(screenWidth: number, count: number): number[
 export interface CardCarouselProps {
   cards: Card[];
   onPressCard: (card: Card) => void;
+  /**
+   * The card in front: called on mount, after each swipe and when the list changes (spec 004
+   * contracts/screens.md → CardCarousel). Only the home uses it.
+   */
+  onActiveChange?: (card: Card) => void;
 }
 
 /**
  * Carousel of active cards (contracts/screens.md → CardCarousel). A single card is centered;
  * several scroll one at a time with dots that tell the position by size as well as color.
  */
-export function CardCarousel({ cards, onPressCard }: CardCarouselProps) {
+export function CardCarousel({ cards, onPressCard, onActiveChange }: CardCarouselProps) {
   const { width: screenWidth } = useWindowDimensions();
   const [position, setPosition] = useState(0);
   const cardWidth = carouselCardWidth(screenWidth, cards.length);
@@ -56,6 +61,19 @@ export function CardCarousel({ cards, onPressCard }: CardCarouselProps) {
   );
   // The list can shrink (a card archived elsewhere) while the index is kept.
   const active = Math.min(position, Math.max(cards.length - 1, 0));
+  const activeCard = cards[active];
+
+  // The latest callback and card, kept in refs so the effect below only runs when the card in
+  // front changes (mount, swipe, or a list where another card ends up in front).
+  const latest = useRef({ onActiveChange, activeCard });
+  useEffect(() => {
+    latest.current = { onActiveChange, activeCard };
+  });
+  const activeId = activeCard?.id;
+  useEffect(() => {
+    const { onActiveChange: notify, activeCard: card } = latest.current;
+    if (card && card.id === activeId) notify?.(card);
+  }, [activeId]);
 
   const firstCard = cards[0];
   if (cards.length === 1 && firstCard !== undefined) {

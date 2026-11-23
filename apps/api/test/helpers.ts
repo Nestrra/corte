@@ -1,5 +1,5 @@
 /**
- * Shared helpers for the e2e suites (specs 001–003). Each suite boots its own app, so the in-memory
+ * Shared helpers for the e2e suites (specs 001–004). Each suite boots its own app, so the in-memory
  * rate-limit storage starts empty (research.md R4).
  */
 import type { INestApplication } from '@nestjs/common';
@@ -23,6 +23,9 @@ export type TestEnv = Partial<
 
 /** Fixed instant of the spec 002 e2e (research.md R3): 21 Nov in Bogotá, 22 Nov in Madrid. */
 export const FIXED_NOW = new Date('2026-11-22T02:30:00Z');
+
+/** Fixed instant of the spec 004 e2e: 23 Nov 2026 in Bogotá (10:00 there). */
+export const HOME_NOW = new Date('2026-11-23T15:00:00Z');
 
 export interface TestAppOptions {
   /** Replaces the Clock provider with a fixed instant. */
@@ -249,4 +252,32 @@ export async function signUp(
 ): Promise<AuthResult> {
   await createUser(app, { name: email.split('@')[0], email, password });
   return login(app, email, password);
+}
+
+export interface LedgerRowCounts {
+  purchases: number;
+  installments: number;
+  statements: number;
+  availableCredit: number;
+}
+
+/** What a card has stored, to prove that an operation wrote nothing (spec 004 SC-002). */
+export async function countLedgerRows(
+  app: INestApplication,
+  token: string,
+  cardId: string,
+): Promise<LedgerRowCounts> {
+  const prisma = app.get(PrismaService);
+  const [purchases, installments, statements, card] = await Promise.all([
+    prisma.purchase.count({ where: { cardId } }),
+    prisma.installment.count({ where: { purchase: { cardId } } }),
+    prisma.statement.count({ where: { cardId } }),
+    request(app.getHttpServer()).get(`/api/v1/cards/${cardId}`).set(bearer(token)).expect(200),
+  ]);
+  return {
+    purchases,
+    installments,
+    statements,
+    availableCredit: (card.body as CardBody).availableCredit,
+  };
 }

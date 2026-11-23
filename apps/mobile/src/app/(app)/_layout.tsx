@@ -26,8 +26,8 @@ export default function AppLayout() {
         <Stack.Screen name="card/[id]/edit" options={{ title: 'Editar tarjeta' }} />
         <Stack.Screen name="card/archived" options={{ title: 'Archivadas' }} />
         <Stack.Screen name="card/[id]/purchases/index" options={{ title: 'Compras' }} />
-        <Stack.Screen name="card/[id]/purchases/new" options={{ title: 'Registrar compra' }} />
         <Stack.Screen name="card/[id]/statements" options={{ title: 'Extractos' }} />
+        <Stack.Screen name="purchase/new" options={{ title: 'Registrar compra' }} />
         <Stack.Screen name="purchase/[id]/index" options={{ title: 'Compra' }} />
         <Stack.Screen name="purchase/[id]/edit" options={{ title: 'Editar compra' }} />
         <Stack.Screen name="statement/[id]" options={{ title: 'Extracto' }} />

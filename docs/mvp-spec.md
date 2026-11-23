@@ -116,13 +116,13 @@ Todo bajo `/api/v1`; salvo auth y health, pide JWT. Cada consulta filtra por el 
 | POST / DELETE | `/devices`, `/devices/:id` | Registra o quita un token de push de Expo. |
 | GET / POST | `/cards` | Lista o crea tarjetas. |
 | GET / PATCH / DELETE | `/cards/:id` | Detalle, edición (recalcula extractos abiertos) o archivado. |
-| POST | `/cards/:id/simulate` | Devuelve extracto, fecha de pago, plan de cuotas y % del tope. No guarda nada. |
+| POST | `/cards/:id/simulate` | Devuelve extracto, fecha de pago, plan de cuotas, intereses, % del tope y cupo después de la compra. No guarda nada (contrato en `specs/004-home-simulator/contracts/home.openapi.yaml`). |
 | GET / POST | `/cards/:id/purchases` | Lista compras o registra una y genera sus cuotas. |
 | GET / PATCH / DELETE | `/purchases/:id` | Detalle con el plan de cuotas, edición o borrado de una compra y sus cuotas. |
 | GET | `/cards/:id/statements` | Extractos de la tarjeta con su total y estado. |
 | GET | `/statements/:id` | Extracto con el detalle de cuotas. |
 | POST / DELETE | `/statements/:id/payment` | Marca el extracto como pagado o lo deshace. |
-| GET | `/summary` | Datos del inicio. |
+| GET | `/summary` | Datos del inicio: por tarjeta activa, próximo pago, próximo corte y uso del tope (contrato en `specs/004-home-simulator/contracts/home.openapi.yaml`). |
 | GET / POST | `/recurring` | Lista o crea pagos recurrentes. |
 | PATCH / DELETE | `/recurring/:id` | Edita o elimina un pago recurrente. |
 | POST | `/recurring/:id/pause`, `/recurring/:id/resume` | Pausa o reanuda. |
@@ -135,7 +135,7 @@ Todo bajo `/api/v1`; salvo auth y health, pide JWT. Cada consulta filtra por el 
 2. **001 — Auth** (cerrada): HU-01.
 3. **002 — Tarjetas y dominio de ciclos** (cerrada): HU-02.
 4. **003 — Compras, cuotas y extractos** (cerrada): HU-03 y HU-04.
-5. **004 — Simulador e inicio:** HU-05 y HU-08.
+5. **004 — Simulador e inicio** (cerrada): HU-05 y HU-08.
 6. **005 — Alertas y recordatorios:** HU-06.
 7. **006 — Pagos recurrentes:** HU-07.
 

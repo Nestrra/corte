@@ -104,6 +104,35 @@ describe('LedgerService.writePlan (FR-030, FR-031)', () => {
   });
 });
 
+describe('LedgerService.totalsForCutoffs (spec 004 R4)', () => {
+  const ledger = new LedgerService({} as PrismaService, systemClock);
+
+  it('does not query without cards', async () => {
+    const queryRaw = jest.fn();
+    const result = await ledger.totalsForCutoffs([], { $queryRaw: queryRaw } as unknown as Db);
+    expect(result.size).toBe(0);
+    expect(queryRaw).not.toHaveBeenCalled();
+  });
+
+  it('runs one query and gives 0 to cards whose statement does not exist', async () => {
+    const queryRaw = jest.fn(async () => [{ card_id: 'card-1', total: 1_521_705n }]);
+    const result = await ledger.totalsForCutoffs(
+      [
+        { cardId: 'card-1', cutoffDate: '2026-12-08' },
+        { cardId: 'card-2', cutoffDate: '2026-12-15' },
+      ],
+      { $queryRaw: queryRaw } as unknown as Db,
+    );
+    expect(queryRaw).toHaveBeenCalledTimes(1);
+    expect(result).toEqual(
+      new Map([
+        ['card-1', 1_521_705n],
+        ['card-2', 0n],
+      ]),
+    );
+  });
+});
+
 describe('toNumberRate', () => {
   it('maps NUMERIC(5,2) to a number and keeps null', () => {
     expect(toNumberRate(null)).toBeNull();

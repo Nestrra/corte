@@ -9,7 +9,7 @@ import {
 } from '@corte/domain';
 import { z } from 'zod';
 import { purchaseFieldErrorText } from '../api/errors';
-import type { CreatePurchase, Purchase } from '../api/purchases';
+import type { CreatePurchase, Purchase, SimulatePurchase } from '../api/purchases';
 import { formatCop, parseAmountInput } from './money';
 
 /** Reads a whole number of installments ("12" → 12); null when it is not one. */
@@ -106,4 +106,32 @@ export function chargesInterest(
 ): annualRate is number {
   const count = parseInstallments(installmentCount);
   return annualRate !== null && annualRate > 0 && count !== null && count > 1 && !noInterest;
+}
+
+/** The fields the simulation depends on; the concept does not change it (spec 004 FR-007). */
+export type SimulationFields = Pick<
+  PurchaseFormValues,
+  'amount' | 'purchaseDate' | 'installmentCount' | 'noInterest'
+>;
+
+/**
+ * What the simulation still needs, with the same rules and texts as the form (spec 004 US1-8), or
+ * null when it can be requested. An empty value gets its own invitation.
+ */
+export function simulationMissing(values: SimulationFields, today: IsoDate): string | null {
+  if (values.amount.trim() === '') return 'Escribe el valor para simular';
+  const result = purchaseFormSchema(today)
+    .pick({ amount: true, purchaseDate: true, installmentCount: true, noInterest: true })
+    .safeParse(values);
+  return result.success ? null : (result.error.issues[0]?.message ?? 'Revisa los datos');
+}
+
+/** Valid simulation fields → body of `POST /cards/:id/simulate`. */
+export function toSimulateInput(values: SimulationFields): Required<SimulatePurchase> {
+  return {
+    amount: parseAmountInput(values.amount) ?? 0,
+    purchaseDate: values.purchaseDate,
+    installmentCount: parseInstallments(values.installmentCount) ?? INSTALLMENTS_MIN,
+    noInterest: values.noInterest,
+  };
 }

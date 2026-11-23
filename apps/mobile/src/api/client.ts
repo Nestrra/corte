@@ -12,14 +12,23 @@ export interface RequestOptions {
   body?: unknown;
   /** Send the access token and handle session errors. Default: true. */
   auth?: boolean;
+  /** Cancels the request (e.g. TanStack Query's signal when a query is no longer used). */
+  signal?: AbortSignal;
 }
 
 /**
  * One HTTP request to `{API_URL}/api/v1{path}`. Throws `NetworkError` without an answer and
  * `ApiError` for any non-2xx answer. Uses AbortController + setTimeout (Hermes support of
- * AbortSignal.timeout varies).
+ * AbortSignal.timeout varies). An abort through the caller's `signal` rethrows the abort error, so
+ * the caller can tell a cancelled request from a network failure.
  */
-async function request<T>(path: string, method: string, body: unknown, token: string | null) {
+async function request<T>(
+  path: string,
+  method: string,
+  body: unknown,
+  token: string | null,
+  signal?: AbortSignal,
+) {
   if (API_URL === null) throw new NetworkError('EXPO_PUBLIC_API_URL is not configured');
 
   const headers: Record<string, string> = { Accept: 'application/json' };
@@ -28,6 +37,9 @@ async function request<T>(path: string, method: string, body: unknown, token: st
 
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+  const abortFromCaller = () => controller.abort();
+  if (signal?.aborted) controller.abort();
+  signal?.addEventListener('abort', abortFromCaller);
   let response: Response;
   try {
     response = await fetch(`${API_URL}/api/v1${path}`, {
@@ -36,10 +48,12 @@ async function request<T>(path: string, method: string, body: unknown, token: st
       body: body === undefined ? undefined : JSON.stringify(body),
       signal: controller.signal,
     });
-  } catch {
+  } catch (error) {
+    if (signal?.aborted) throw error;
     throw new NetworkError();
   } finally {
     clearTimeout(timer);
+    signal?.removeEventListener('abort', abortFromCaller);
   }
 
   if (response.status === 204) return undefined as T;
@@ -104,16 +118,16 @@ async function handleSessionError(error: unknown): Promise<void> {
  * renews the session once and retries; revoked or expired sessions send the user to login.
  */
 export async function apiFetch<T>(path: string, options: RequestOptions = {}): Promise<T> {
-  const { method = 'GET', body, auth = true } = options;
-  if (!auth) return request<T>(path, method, body, null);
+  const { method = 'GET', body, auth = true, signal } = options;
+  if (!auth) return request<T>(path, method, body, null, signal);
 
   try {
     try {
-      return await request<T>(path, method, body, useSessionStore.getState().accessToken);
+      return await request<T>(path, method, body, useSessionStore.getState().accessToken, signal);
     } catch (error) {
       if (!(error instanceof ApiError && error.code === 'TOKEN_EXPIRED')) throw error;
       const accessToken = await refreshAccessToken();
-      return await request<T>(path, method, body, accessToken);
+      return await request<T>(path, method, body, accessToken, signal);
     }
   } catch (error) {
     await handleSessionError(error);

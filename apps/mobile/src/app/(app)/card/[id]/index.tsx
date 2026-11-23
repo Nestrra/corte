@@ -23,6 +23,7 @@ import { Text } from '../../../../components/Text';
 import { CreditCardView } from '../../../../components/CreditCardView';
 import { daysLeftLabel, formatLongDate } from '../../../../features/dates';
 import { formatCop } from '../../../../features/money';
+import { invalidateCards } from '../../../../features/ledger-cache';
 import { formatRate } from '../../../../features/rate';
 import { useRefetchOnFocus } from '../../../../features/use-refetch-on-focus';
 import { colors, interaction, layout, radius, spacing } from '../../../../theme';
@@ -129,10 +130,7 @@ export default function CardDetailScreen() {
   useRefetchOnFocus(detail.refetch);
 
   const afterChange = async () => {
-    await Promise.all([
-      queryClient.invalidateQueries({ queryKey: cardKeys.all }),
-      queryClient.invalidateQueries({ queryKey: cardKeys.detail(id) }),
-    ]);
+    await invalidateCards(queryClient, id);
     router.dismissTo('/cards');
   };
   const archive = useMutation({ mutationFn: () => archiveCard(id), onSuccess: afterChange });
@@ -207,7 +205,7 @@ export default function CardDetailScreen() {
         {isArchived ? null : (
           <Button
             label="Registrar compra"
-            onPress={() => router.push({ pathname: '/card/[id]/purchases/new', params: { id } })}
+            onPress={() => router.push({ pathname: '/purchase/new', params: { cardId: id } })}
           />
         )}
         <View style={styles.row}>

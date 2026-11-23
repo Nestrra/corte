@@ -1,0 +1,186 @@
+openapi: 3.1.0
+info:
+  title: Corte API — Inicio y simulador
+  version: 0.4.0
+  description: >
+    Spec 004. Todo bajo /api/v1 y con `Authorization: Bearer <accessToken>`. Solo se usan tarjetas
+    del usuario del token (principio III); una tarjeta de otro usuario, una inexistente y un id
+    que no es UUID responden igual: 404 NOT_FOUND. Con la contraseña temporal pendiente, ambas
+    responden 403 PASSWORD_CHANGE_REQUIRED (spec 001). Montos: enteros en pesos COP. Fechas:
+    strings YYYY-MM-DD. Errores: ver specs/003-purchases/contracts/errors.md (sin códigos nuevos).
+    Ninguna de estas operaciones escribe en la base.
+servers:
+  - url: http://localhost:3000/api/v1
+security:
+  - bearer: []
+components:
+  securitySchemes:
+    bearer:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    IsoDate:
+      type: string
+      pattern: '^\d{4}-\d{2}-\d{2}$'
+      example: '2026-12-08'
+    StatementStatus:
+      type: string
+      enum: [open, due, overdue, paid]
+    SimulatePurchase:
+      type: object
+      additionalProperties: false
+      required: [amount]
+      properties:
+        amount:
+          type: integer
+          minimum: 1
+          maximum: 9999999999
+        purchaseDate:
+          $ref: '#/components/schemas/IsoDate'
+          description: Por defecto hoy en la zona del usuario; no futura ni de más de 72 meses atrás
+        installmentCount:
+          type: integer
+          minimum: 1
+          maximum: 72
+          default: 1
+        noInterest:
+          type: boolean
+          default: false
+    SimulatedInstallment:
+      type: object
+      required: [number, cutoffDate, dueDate, principal, interest, statementStatus]
+      properties:
+        number: { type: integer, minimum: 1, maximum: 72 }
+        cutoffDate: { $ref: '#/components/schemas/IsoDate' }
+        dueDate: { $ref: '#/components/schemas/IsoDate' }
+        principal: { type: integer, minimum: 0 }
+        interest:
+          type: integer
+          minimum: 0
+          description: Interés estimado (principio IV)
+        statementStatus:
+          $ref: '#/components/schemas/StatementStatus'
+          description: >
+            Estado que tendría el extracto de esa cuota: el del extracto existente, o `paid` si el
+            extracto no existe y su fecha límite ya pasó (spec 003 FR-030).
+    Simulation:
+      type: object
+      required: [installments, totalInterest, cycleBudget, cycleBudgetUsage, availableCredit]
+      properties:
+        installments:
+          type: array
+          items: { $ref: '#/components/schemas/SimulatedInstallment' }
+        totalInterest:
+          type: integer
+          minimum: 0
+          description: Suma de los intereses estimados
+        cycleBudget: { type: integer, minimum: 1 }
+        cycleBudgetUsage:
+          type: object
+          required: [cutoffDate, amountBefore, amountAfter, percentBefore, percentAfter]
+          properties:
+            cutoffDate:
+              $ref: '#/components/schemas/IsoDate'
+              description: Corte del extracto abierto (ciclo actual)
+            amountBefore: { type: integer, minimum: 0 }
+            amountAfter:
+              type: integer
+              minimum: 0
+              description: amountBefore + abono e interés de la cuota que cae en ese corte, si hay
+            percentBefore: { type: integer, minimum: 0 }
+            percentAfter: { type: integer, minimum: 0 }
+        availableCredit:
+          type: object
+          required: [before, after]
+          properties:
+            before:
+              type: integer
+              description: Cupo disponible actual; puede ser negativo
+            after:
+              type: integer
+              description: before − amount; puede ser negativo
+    NextPayment:
+      type: object
+      required: [statementId, cutoffDate, dueDate, amount, status, daysLeft]
+      properties:
+        statementId: { type: string, format: uuid }
+        cutoffDate: { $ref: '#/components/schemas/IsoDate' }
+        dueDate: { $ref: '#/components/schemas/IsoDate' }
+        amount:
+          type: integer
+          minimum: 0
+          description: '"A pagar" (abonos + intereses estimados)'
+        status:
+          type: string
+          enum: [due, overdue]
+        daysLeft:
+          type: integer
+          description: Días de hoy a la fecha límite; negativo si ya venció
+    CardSummary:
+      type: object
+      required: [card, nextPayment, nextCutoff, cycleBudgetUsage]
+      properties:
+        card:
+          $ref: '../../002-cards/contracts/cards.openapi.yaml#/components/schemas/Card'
+        nextPayment:
+          oneOf:
+            - $ref: '#/components/schemas/NextPayment'
+            - type: 'null'
+        nextCutoff:
+          type: object
+          required: [cutoffDate, dueDate, daysLeft]
+          properties:
+            cutoffDate: { $ref: '#/components/schemas/IsoDate' }
+            dueDate: { $ref: '#/components/schemas/IsoDate' }
+            daysLeft: { type: integer, minimum: 0 }
+        cycleBudgetUsage:
+          type: object
+          required: [cutoffDate, amount, percent]
+          properties:
+            cutoffDate: { $ref: '#/components/schemas/IsoDate' }
+            amount: { type: integer, minimum: 0 }
+            percent: { type: integer, minimum: 0 }
+    Summary:
+      type: object
+      required: [today, cards]
+      properties:
+        today: { $ref: '#/components/schemas/IsoDate' }
+        cards:
+          type: array
+          description: Tarjetas activas, en el orden de GET /cards
+          items: { $ref: '#/components/schemas/CardSummary' }
+paths:
+  /cards/{id}/simulate:
+    post:
+      summary: Simula una compra sin guardarla (FR-001 a FR-006)
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/SimulatePurchase' }
+            example: { amount: 300000, purchaseDate: '2026-11-23', installmentCount: 3 }
+      responses:
+        '200':
+          description: Simulación (no crea ni modifica nada)
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Simulation' }
+        '400':
+          description: >
+            VALIDATION_ERROR con códigos por campo de la spec 003 (amount, purchaseDate con
+            IN_FUTURE o TOO_OLD, installmentCount, noInterest); un campo desconocido (p. ej.
+            concept) es UNKNOWN_FIELD como en el resto del API
+        '404': { description: NOT_FOUND — tarjeta inexistente, ajena o id inválido }
+        '409': { description: CARD_ARCHIVED — la tarjeta está archivada }
+  /summary:
+    get:
+      summary: Datos del inicio (FR-014 a FR-017, FR-022)
+      responses:
+        '200':
+          description: Resumen de las tarjetas activas del usuario; `cards` vacío si no tiene
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Summary' }
