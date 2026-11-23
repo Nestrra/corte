@@ -18,6 +18,10 @@ export const layout = {
   sectionGap: 28,
   /** Minimum touch target (WCAG / design-system rule 3). */
   minTouchTarget: 44,
+  /** Width : height of a credit card (ID-1 card format). */
+  cardAspectRatio: 1.586,
+  /** How much of the next card the carousel shows when there are several. */
+  cardPeek: 16,
 } as const;
 
 export const radius = { chip: 8, control: 12, panel: 16, card: 24, full: 999 } as const;

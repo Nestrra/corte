@@ -12,7 +12,8 @@ export type ErrorCode =
   | 'EMAIL_TAKEN'
   | 'SAME_PASSWORD'
   | 'RATE_LIMITED'
-  | 'NOT_FOUND';
+  | 'NOT_FOUND'
+  | 'CARD_ARCHIVED';
 
 export interface FieldError {
   field: string;
@@ -70,4 +71,6 @@ export const AppErrors = {
   rateLimited: () =>
     new AppException(HttpStatus.TOO_MANY_REQUESTS, 'RATE_LIMITED', 'Too many attempts'),
   notFound: (message: string) => new AppException(HttpStatus.NOT_FOUND, 'NOT_FOUND', message),
+  cardArchived: () =>
+    new AppException(HttpStatus.CONFLICT, 'CARD_ARCHIVED', 'Restore the card before editing it'),
 };

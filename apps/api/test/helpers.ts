@@ -1,5 +1,5 @@
 /**
- * Shared helpers for the e2e suites (spec 001). Each suite boots its own app, so the in-memory
+ * Shared helpers for the e2e suites (specs 001 and 002). Each suite boots its own app, so the in-memory
  * rate-limit storage starts empty (research.md R4).
  */
 import type { INestApplication } from '@nestjs/common';
@@ -8,6 +8,7 @@ import request from 'supertest';
 import { AppModule } from '../src/app.module';
 import { configureApp } from '../src/app.setup';
 import { PasswordService } from '../src/auth/password.service';
+import { CLOCK, type Clock } from '../src/common/clock';
 import { PrismaService } from '../src/prisma/prisma.service';
 
 export const TEST_DATABASE_URL = process.env.DATABASE_URL;
@@ -20,7 +21,18 @@ export type TestEnv = Partial<
   >
 >;
 
-export async function createTestApp(overrides: TestEnv = {}): Promise<INestApplication> {
+/** Fixed instant of the spec 002 e2e (research.md R3): 21 Nov in Bogotá, 22 Nov in Madrid. */
+export const FIXED_NOW = new Date('2026-11-22T02:30:00Z');
+
+export interface TestAppOptions {
+  /** Replaces the Clock provider with a fixed instant. */
+  now?: Date;
+}
+
+export async function createTestApp(
+  overrides: TestEnv = {},
+  options: TestAppOptions = {},
+): Promise<INestApplication> {
   if (!TEST_DATABASE_URL) throw new Error('DATABASE_URL must point to the test database');
   const env: TestEnv = {
     DATABASE_URL: TEST_DATABASE_URL,
@@ -36,14 +48,20 @@ export async function createTestApp(overrides: TestEnv = {}): Promise<INestAppli
     else process.env[key] = value;
   }
 
-  const moduleRef = await Test.createTestingModule({ imports: [AppModule.register()] }).compile();
+  let builder = Test.createTestingModule({ imports: [AppModule.register()] });
+  if (options.now) {
+    const fixed = options.now;
+    const clock: Clock = { now: () => new Date(fixed) };
+    builder = builder.overrideProvider(CLOCK).useValue(clock);
+  }
+  const moduleRef = await builder.compile();
   const app = moduleRef.createNestApplication({ logger: false });
   configureApp(app);
   await app.init();
   return app;
 }
 
-/** Deletes every user (and, by cascade, everything they own). */
+/** Deletes every user (and, by cascade, everything they own, including cards). */
 export async function resetDatabase(app: INestApplication): Promise<void> {
   await app.get(PrismaService).$executeRawUnsafe('TRUNCATE TABLE "users" CASCADE');
 }
@@ -94,3 +112,45 @@ export async function login(
 }
 
 export const bearer = (token: string) => ({ Authorization: `Bearer ${token}` });
+
+/** Valid card body (quickstart.md B2); tests override what they need. */
+export const VALID_CARD = {
+  name: 'Visa principal',
+  color: 'verde',
+  last4: '4821',
+  cutoffDay: 8,
+  dueDay: 25,
+  creditLimit: 5_000_000,
+  cycleBudget: 2_000_000,
+} as const;
+
+export interface CardBody {
+  id: string;
+  name: string;
+  color: string;
+  last4: string | null;
+  cutoffDay: number;
+  dueDay: number;
+  creditLimit: number;
+  cycleBudget: number;
+  availableCredit: number;
+  remindCutoffDays: number;
+  remindDueDays: number;
+  archivedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+/** Creates a card through the API (fails the test on non-201). */
+export async function createCard(
+  app: INestApplication,
+  token: string,
+  overrides: Record<string, unknown> = {},
+): Promise<CardBody> {
+  const response = await request(app.getHttpServer())
+    .post('/api/v1/cards')
+    .set(bearer(token))
+    .send({ ...VALID_CARD, ...overrides })
+    .expect(201);
+  return response.body as CardBody;
+}

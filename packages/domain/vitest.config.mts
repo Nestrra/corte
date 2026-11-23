@@ -1,6 +1,6 @@
 import { defineConfig } from 'vitest/config';
 
-// No minimum coverage threshold yet (spec 000, Assumptions): it is set with the first rules.
+// Coverage gate of spec 002 (FR-009): `test:cov` fails below 95%, and the CI job domain-test runs it.
 export default defineConfig({
   test: {
     include: ['src/**/*.test.ts'],
@@ -9,6 +9,7 @@ export default defineConfig({
       reporter: ['text', 'lcov'],
       include: ['src/**/*.ts'],
       exclude: ['src/**/*.test.ts'],
+      thresholds: { lines: 95, branches: 95, functions: 95, statements: 95 },
     },
   },
 });

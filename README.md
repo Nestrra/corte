@@ -130,6 +130,26 @@ Contrato completo en `specs/001-auth/contracts/auth.openapi.yaml`. Resumen:
   al reiniciar el proceso y no sirven con varias réplicas (pasarlos a un almacén compartido está
   en la lista de v2).
 
+### Tarjetas
+
+Contrato en `specs/002-cards/contracts/cards.openapi.yaml`. Todas las rutas exigen sesión y solo
+ven las tarjetas del usuario del token:
+
+| Método y ruta                    | Qué hace                                                               |
+| -------------------------------- | ---------------------------------------------------------------------- |
+| `GET /api/v1/cards`              | Tarjetas activas, en orden de creación (`?archived=true`: archivadas)  |
+| `POST /api/v1/cards`             | Crea una tarjeta (201)                                                 |
+| `GET /api/v1/cards/:id`          | Detalle con `cycle`: `today`, `nextCutoff`, `nextCutoffDue`, `nextDue` |
+| `PATCH /api/v1/cards/:id`        | Edición parcial; una archivada responde 409 `CARD_ARCHIVED`            |
+| `POST /api/v1/cards/:id/archive` | Archiva (idempotente); no hay borrado individual                       |
+| `POST /api/v1/cards/:id/restore` | Restaura (idempotente)                                                 |
+
+- Montos en pesos enteros (`BIGINT` en la base, `number` en el JSON). `availableCredit` es igual a
+  `creditLimit` hasta que lleguen las compras (spec 003).
+- "Hoy" se calcula en la zona horaria del usuario con el reloj del servidor (proveedor `Clock`,
+  que las e2e fijan en `2026-11-22T02:30:00Z`).
+- Una tarjeta de otro usuario, inexistente o con un id que no es UUID responde el mismo 404.
+
 ### Restablecer la contraseña de un usuario (administrador)
 
 No hay recuperación por correo. Quien administra el servidor genera una contraseña temporal, que
@@ -160,7 +180,19 @@ El cliente de Prisma se genera automáticamente antes de `dev`, `build`, `typech
 `packages/domain` es la única fuente de los cálculos de negocio (fechas de corte, fechas límite,
 cuotas e intereses) para el API y la app. Es TypeScript puro, sin I/O: ESLint prohíbe importar
 módulos de Node, de base de datos, de React o de Expo dentro del paquete (constitución,
-principio I). En la spec 000 todavía no tiene reglas de negocio.
+principio I). Reglas actuales:
+
+- **Cuenta** (`account-rules`): nombre, email y contraseña (spec 001).
+- **Tarjetas** (`card-rules`): validación de nombre, últimos 4, días, montos, tope y recordatorios,
+  compartida por el API y los formularios de la app.
+- **Calendario** (`calendar`): fechas como strings `YYYY-MM-DD` con aritmética propia, sin `Date`
+  ni zonas horarias. "Hoy" entra como parámetro.
+- **Ciclos** (`cycles`): el corte de una fecha es el primer corte igual o posterior a ella; su
+  fecha límite es el primer día de pago posterior al corte; si el día no existe en el mes se usa el
+  último día. `nextCutoff` y `nextDueDate` dan el próximo corte y la próxima fecha límite.
+
+La cobertura mínima es 95% en líneas, ramas, funciones y sentencias (`vitest.config.mts`):
+`test:cov` falla por debajo y el job `domain-test` de la CI lo ejecuta.
 
 ```bash
 pnpm --filter @corte/domain test        # pruebas unitarias (Vitest)
@@ -171,9 +203,12 @@ pnpm --filter @corte/domain dev         # recompila en modo watch; el API lo ve 
 ## App móvil
 
 App Expo (SDK 58) en `apps/mobile`, con expo-router y TanStack Query. Corre en **Expo Go**. Tiene
-registro, inicio de sesión, perfil (zona horaria, cambio de contraseña, eliminar cuenta) y un
-inicio temporal. Las rutas viven en `src/app/(auth)` (sin sesión) y `src/app/(app)` (con sesión),
-protegidas con `Stack.Protected`. La sesión (`src/session`) guarda el refresh token en
+registro e inicio de sesión y, con sesión, una barra inferior con tres pestañas: **Inicio**
+(temporal), **Tarjetas** (carrusel, agregar, editar, archivar y restaurar, detalle con el próximo
+corte y su fecha límite) y **Perfil** (zona horaria, cambio de contraseña, eliminar cuenta). Las
+rutas viven en `src/app/(auth)` (sin sesión) y `src/app/(app)` (con sesión), protegidas con
+`Stack.Protected`; las pestañas están en `src/app/(app)/(tabs)` y las pantallas de tarjeta en
+`src/app/(app)/card`. La sesión (`src/session`) guarda el refresh token en
 `expo-secure-store` y el access token solo en memoria; `src/api/client.ts` lo renueva solo ante un 401. `pnpm --filter mobile start` compila antes `@corte/domain`, de donde salen las reglas de los
 formularios.
 
@@ -202,9 +237,14 @@ pnpm --filter mobile start       # Metro; luego "i" (iOS), "a" (Android) o escan
 pnpm --filter mobile start --clear   # si cambiaste .env o algo se ve desactualizado
 ```
 
-La app usa los tokens de `docs/design-system.md` (`apps/mobile/src/theme`) y los componentes base
-`Text`, `Button`, `TextField` y `Screen` (`apps/mobile/src/components`). No escribas colores, tamaños ni espaciados
-sueltos en los componentes (constitución, principio IX).
+La app usa los tokens de `docs/design-system.md` (`apps/mobile/src/theme`) y los componentes de
+`apps/mobile/src/components`: los base `Text`, `Button`, `TextField` y `Screen`, y los de
+tarjetas `TabBar` (barra inferior con íconos de `@expo/vector-icons`), `CreditCardView`
+(proporción 1,586:1 con el degradado de su color, `expo-linear-gradient`),
+`CardCarousel`, `ColorPicker` (radio group accesible) y `CardForm` (react-hook-form + zod con las
+reglas de `@corte/domain`). Los montos se muestran con `formatCop` (`$5.000.000`,
+`src/features/money.ts`). No escribas colores, tamaños ni espaciados sueltos en los componentes
+(constitución, principio IX).
 
 ## Imagen Docker
 

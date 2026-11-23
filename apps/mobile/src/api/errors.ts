@@ -11,6 +11,7 @@ export type ApiErrorCode =
   | 'SAME_PASSWORD'
   | 'RATE_LIMITED'
   | 'NOT_FOUND'
+  | 'CARD_ARCHIVED'
   | 'UNKNOWN';
 
 export interface FieldError {
@@ -57,6 +58,9 @@ const codeTexts: Partial<Record<ApiErrorCode, string>> = {
   EMAIL_TAKEN: 'Ya existe una cuenta con ese email',
   SAME_PASSWORD: 'La contraseña nueva debe ser distinta de la actual',
   RATE_LIMITED: 'Demasiados intentos. Espera unos minutos e inténtalo de nuevo.',
+  // specs/002-cards/contracts/errors.md
+  NOT_FOUND: 'No encontramos esa tarjeta',
+  CARD_ARCHIVED: 'Restaura la tarjeta para editarla',
 };
 
 /** Spanish text for any error thrown by the API client. */
@@ -81,6 +85,34 @@ const fieldTexts: Record<string, Record<string, string>> = {
   timezone: { INVALID_TIMEZONE: 'Zona horaria no válida' },
 };
 
+// Card fields (specs/002-cards/contracts/errors.md). Keyed by form field, so `name` of a card
+// gets its own texts through `cardFieldErrorText`.
+const dayTexts = { OUT_OF_RANGE: 'Elige un día del 1 al 31', REQUIRED: 'Elige un día del 1 al 31' };
+const reminderTexts = { OUT_OF_RANGE: 'Entre 0 y 15 días', REQUIRED: 'Entre 0 y 15 días' };
+const cardFieldTexts: Record<string, Record<string, string>> = {
+  name: { REQUIRED: 'Escribe un nombre', TOO_LONG: 'Máximo 40 caracteres' },
+  color: { INVALID: 'Elige un color', REQUIRED: 'Elige un color' },
+  last4: { INVALID_FORMAT: 'Deben ser 4 dígitos' },
+  cutoffDay: dayTexts,
+  dueDay: dayTexts,
+  creditLimit: {
+    OUT_OF_RANGE: 'Escribe un cupo mayor que 0',
+    REQUIRED: 'Escribe un cupo mayor que 0',
+  },
+  cycleBudget: {
+    OUT_OF_RANGE: 'Escribe un tope mayor que 0',
+    REQUIRED: 'Escribe un tope mayor que 0',
+    EXCEEDS_CREDIT_LIMIT: 'El tope no puede superar el cupo',
+  },
+  remindCutoffDays: reminderTexts,
+  remindDueDays: reminderTexts,
+};
+
+/** Spanish text for a card field error code (specs/002-cards/contracts/errors.md). */
+export function cardFieldErrorText(field: string, code: string): string {
+  return cardFieldTexts[field]?.[code] ?? 'Revisa este campo';
+}
+
 /** Spanish text for a field error code (contracts/errors.md → mensajes por campo). */
 export function fieldErrorText(field: string, code: string): string {
   return fieldTexts[field]?.[code] ?? 'Revisa este campo';
@@ -98,6 +130,7 @@ const KNOWN_CODES = new Set<string>([
   'SAME_PASSWORD',
   'RATE_LIMITED',
   'NOT_FOUND',
+  'CARD_ARCHIVED',
 ]);
 
 /** Builds an ApiError from any response body, tolerating unexpected shapes. */

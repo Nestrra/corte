@@ -33,6 +33,7 @@ El MVP cubre tarjetas, compras a cuotas, extractos, alertas y pagos recurrentes 
 - Compras en dólares, avances, pago mínimo e intereses por mora.
 - Login con Google o Apple, estadísticas y categorías avanzadas.
 - Importar extractos o leer notificaciones del banco.
+- Ajustar las fechas de corte y de pago por fines de semana y festivos de Colombia.
 
 ## Historias de usuario
 
@@ -131,8 +132,8 @@ Todo bajo `/api/v1`; salvo auth y health, pide JWT. Cada consulta filtra por el 
 ## Orden de specs
 
 1. **000 — Esqueleto** (cerrada): monorepo, CI, health check, tema y pantalla de conexión.
-2. **001 — Auth:** HU-01.
-3. **002 — Tarjetas y dominio de ciclos:** HU-02.
+2. **001 — Auth** (cerrada): HU-01.
+3. **002 — Tarjetas y dominio de ciclos** (cerrada): HU-02.
 4. **003 — Compras, cuotas y extractos:** HU-03 y HU-04.
 5. **004 — Simulador e inicio:** HU-05 y HU-08.
 6. **005 — Alertas y recordatorios:** HU-06.
