@@ -218,7 +218,7 @@ API, y la navegación con pestañas de la app. Todas las historias dependen de e
 - [X] T049 [P] Update `docs/mvp-spec.md` → "Orden de specs" to write "(cerrada)" after 002, as for spec 000, and note in `docs/design-system.md` → TabBar that the center button and Pagos arrive in later specs (no token changes)
 - [X] T050 Run `pnpm lint`, `pnpm typecheck`, `pnpm format:check`, `pnpm --filter @corte/domain test:cov`, `pnpm --filter api test` and `pnpm --filter api test:e2e`; fix any failure
 - [X] T051 Build the API image (`docker build -f apps/api/Dockerfile -t corte-api .`) and the `migrate` target; check the image stays < 300 MB and the `cards` migration applies with the `migrate` target on a fresh database
-- [ ] T052 Validate quickstart.md B1–B7 and B9 with curl and the test commands; B8 (app on iOS simulator and Android emulator, including `$5.000.000` on Android, plus a check of AA contrast and ≥ 44 touch areas on the new screens: `caption` text on the card, carousel dots and inactive tabs; SC-007) is validated manually by the user
+- [x] T052 Validate quickstart.md B1–B7 and B9 with curl and the test commands; B8 (app on iOS simulator and Android emulator, including `$5.000.000` on Android, plus a check of AA contrast and ≥ 44 touch areas on the new screens: `caption` text on the card, carousel dots and inactive tabs; SC-007) is validated manually by the user
 
 ---
 
@@ -237,7 +237,7 @@ diseño; research.md R12). Pruebas primero en dominio y API.
 - [X] T060 [P] Update `apps/mobile/src/components/ColorPicker.tsx` (gradient circles, check in the color's `text`, accessible names Negro, Morado, Amarillo, Naranja, Verde, Marrón; FR-025) and the swatch of `apps/mobile/src/app/(app)/card/archived.tsx`
 - [X] T061 [P] Update spec.md (FR-021, FR-025, FR-027, SC-007, "Ajustes de diseño"), plan.md, data-model.md, research.md R12, contracts/cards.openapi.yaml, contracts/screens.md, quickstart.md and `docs/design-system.md`
 - [X] T062 Run `pnpm lint`, `pnpm typecheck`, `pnpm format:check`, `pnpm --filter @corte/domain test:cov`, `pnpm --filter api test`, `pnpm --filter api test:e2e` and `pnpm --filter mobile exec expo export --platform ios --platform android`; fix any failure
-- [ ] T063 Validate quickstart.md B8.10 (sizes, snap and gradients on iOS and Android, dark text on amarillo, migrated colors) manually; done by the user together with T052
+- [x] T063 Validate quickstart.md B8.10 (sizes, snap and gradients on iOS and Android, dark text on amarillo, migrated colors) manually; done by the user together with T052
 
 ---
 
