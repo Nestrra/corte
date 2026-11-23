@@ -79,7 +79,7 @@ Borrar un usuario borra sus tarjetas y, en cascada, compras, cuotas y extractos 
   `statements_payment_pair` (`(paid_at IS NULL) = (paid_amount IS NULL)`),
   `statements_paid_amount_non_negative`.
 - **Derivados**: `total` = `SUM(principal + interest)` de sus cuotas; `hasInterest`;
-  `installmentCount`; `status` (abajo).
+  `installmentsInStatement` (cuántas cuotas tiene); `status` (abajo).
 
 ### Estado (derivado, `statementStatus` del dominio)
 

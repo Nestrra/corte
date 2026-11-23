@@ -179,7 +179,7 @@ components:
         - status
         - total
         - hasInterest
-        - installmentCount
+        - installmentsInStatement
         - paidAt
         - paidAmount
       properties:
@@ -195,7 +195,10 @@ components:
         hasInterest:
           type: boolean
           description: true si alguna cuota tiene interés (la app marca el total como estimado)
-        installmentCount: { type: integer, minimum: 0 }
+        installmentsInStatement:
+          type: integer
+          minimum: 0
+          description: Cuántas cuotas tiene este extracto
         paidAt:
           type: [string, 'null']
           pattern: '^\d{4}-\d{2}-\d{2}$'
@@ -208,13 +211,16 @@ components:
       type: object
       additionalProperties: false
       required:
-        [purchaseId, concept, purchaseDate, number, installmentCount, principal, interest]
+        [purchaseId, concept, purchaseDate, number, purchaseInstallmentCount, principal, interest]
       properties:
         purchaseId: { type: string, format: uuid }
         concept: { type: string }
         purchaseDate: { $ref: '#/components/schemas/IsoDate' }
         number: { type: integer, minimum: 1 }
-        installmentCount: { type: integer, minimum: 1, description: n de "k de n" }
+        purchaseInstallmentCount:
+          type: integer
+          minimum: 1
+          description: Número de cuotas de la compra (la n de "k de n")
         principal: { type: integer, minimum: 0 }
         interest: { type: integer, minimum: 0 }
     StatementDetail:

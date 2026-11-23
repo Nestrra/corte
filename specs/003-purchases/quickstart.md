@@ -38,7 +38,10 @@ $4.765.548 a 60 → 59 × $79.425 y la última $79.473; $1.200.000 a 12 al 24% E
 $21.705, $19.896, $18.088 … $1.809; corte 8 / pago 25 desde el 9 de noviembre de 2026 a 3 cuotas
 → cortes 2026-12-08, 2027-01-08, 2027-02-08 con límites 25; corte 31 desde el 15 de enero de 2027
 → 31 ene, 28 feb, 31 mar; propiedades para n = 1..72 (suma de abonos = valor; interés 0 con 1
-cuota, sin intereses, tasa nula o 0); `rescheduleInstallments` y `statementStatus` con sus bordes.
+cuota, sin intereses, tasa nula o 0); `rescheduleInstallments` y `statementStatus` con sus bordes; y los 6 casos reales del extracto de
+Davivienda (research.md R12, SC-003): cada cuota indicada cae en el corte 2026-10-08 con su
+abono (por ejemplo, $3.090.000 a 30 desde el 2026-06-13 → cuota 4, $103.000). La compra de
+$520.000 a 35 da saldo $460.572 frente a $460.571 del banco: diferencia aceptada de $1.
 
 ## B2. Tasa de la tarjeta (historia 8, FR-006)
 
@@ -76,7 +79,7 @@ curl -s $API/statements/<id> -H "$AUTH"
 
 **Esperado**: un extracto por corte usado, sin duplicados; cada uno con `total` = suma de abonos e
 intereses de sus cuotas y `hasInterest`. El del 2026-12-08 está `open`. El detalle lista cada
-cuota con `concept`, `number` e `installmentCount` ("1 de 12"). Orden: no pagados por corte
+cuota con `concept`, `number` y `purchaseInstallmentCount` ("1 de 12"). Orden: no pagados por corte
 ascendente, luego pagados por corte descendente.
 
 ## B5. Compras con fecha pasada y extractos pagados (FR-030, FR-031)

@@ -130,6 +130,7 @@ apps/api/
 │   ├── cards/                   # + annualRate en esquemas y mapper; totalDebt, availableCredit,
 │   │                            #   cycleBudgetUsage; PATCH con reprogramación
 │   ├── ledger/
+│   │   ├── ledger.module.ts
 │   │   ├── ledger.service.ts    # lockCard, upsert de extractos, FR-030, limpieza, reprogramación,
 │   │   │                        #   totales por tarjeta (usado por cards, purchases y statements)
 │   │   └── ledger.service.spec.ts

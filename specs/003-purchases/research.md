@@ -104,6 +104,10 @@ Fase 0 de [plan.md](./plan.md). Las decisiones de stack y de modelo vienen del u
 - **Limpieza (FR-022)**: al final de cada operación se borran los extractos de la tarjeta sin
   cuotas y con `paid_at IS NULL`. Los pagados vacíos se conservan (muestran `total` 0 y su
   `paidAmount`).
+- **Orden obligatorio**: la limpieza va siempre **después** de escribir las cuotas nuevas, nunca
+  antes. Si fuera antes, un extracto pasado cuyo pago el usuario deshizo quedaría vacío al borrar
+  las cuotas de la compra editada, se borraría y FR-030 lo volvería a crear como pagado. Con este
+  orden, `writePlan` lo encuentra y lo reutiliza sin cambiar su estado.
 
 ## R6. Editar y borrar compras (FR-014)
 
@@ -112,7 +116,7 @@ Fase 0 de [plan.md](./plan.md). Las decisiones de stack y de modelo vienen del u
   - Si cambia `amount`, `purchaseDate`, `installmentCount` o `noInterest`, se borran sus cuotas y
     se regenera el plan completo con `buildInstallmentPlan`, los días actuales de la tarjeta y la
     `annual_rate` guardada en la compra (FR-007; nunca la de la tarjeta). Se aplica R5 (extractos
-    bajo demanda, FR-030 y limpieza).
+    bajo demanda, FR-030 y limpieza al final, después de escribir el plan).
   - Borrar: se borran la compra y sus cuotas (cascada) y luego se limpia (R5).
   - Tarjeta archivada: registrar, editar o borrar → 409 `CARD_ARCHIVED`.
 - **Consecuencia aceptada**: si las fechas de la tarjeta cambiaron después de registrar la compra,
@@ -137,11 +141,15 @@ Fase 0 de [plan.md](./plan.md). Las decisiones de stack y de modelo vienen del u
   su fecha límite nueva. Así quedan consecutivas, nunca en un corte pasado y nunca chocan con un
   extracto cerrado (todos los nuevos cortes son ≥ hoy).
 - **En el API**: dentro de la transacción de `PATCH /cards/:id` (solo si cambian `cutoffDay` o
-  `dueDay`): se leen las cuotas de extractos abiertos (`cutoff_date ≥ today`), se calculan los
-  destinos, se crean o reutilizan extractos (los nuevos tienen corte ≥ hoy, así que nunca aplica
-  FR-030), se mueven las cuotas (`statement_id`), se actualiza la `due_date` de los abiertos que se
-  reutilizan y se limpia (R5). Los cerrados no se leen ni se escriben (SC-007). Los extractos
-  abiertos nunca están pagados (FR-019), así que no hay pagos que perder.
+  `dueDay`): se leen las cuotas de extractos abiertos y no pagados (`cutoff_date ≥ today` y
+  `paid_at IS NULL`), se calculan los destinos, se crean o reutilizan extractos (los nuevos tienen
+  corte ≥ hoy, así que nunca aplica FR-030), se mueven las cuotas (`statement_id`), se actualiza la
+  `due_date` de los abiertos que se reutilizan y se limpia (R5). Los cerrados no se leen ni se
+  escriben (SC-007).
+- **Extractos pagados con corte ≥ hoy**: FR-019 impide pagar uno abierto, pero un cambio de zona
+  horaria hacia una con un día menos (por ejemplo de Pacific/Kiritimati a America/Bogota) puede
+  dejar un extracto pagado ayer con corte igual a "hoy". El filtro `paid_at IS NULL` lo deja fuera
+  de la reprogramación: sus cuotas y su pago no cambian.
 - **Pruebas**: el escenario de la historia 7 (corte 8/pago 25 → 15/2 el 23 de noviembre), cuotas
   parcialmente cerradas, hoy igual al día de corte, y corte 31 → 30.
 
@@ -229,6 +237,26 @@ Fase 0 de [plan.md](./plan.md). Las decisiones de stack y de modelo vienen del u
   suma de abonos es el valor, ningún abono es negativo, y el interés es 0 con n = 1, sin intereses,
   tasa nula o 0; los cortes del plan son estrictamente crecientes y consecutivos.
   `rescheduleInstallments` y `statementStatus` con sus bordes (hoy = corte, hoy = fecha límite).
+- **Extracto real de Davivienda (SC-003)**: tarjeta con corte 8 y pago 25; para cada compra se
+  comprueba que la cuota indicada cae en el extracto de corte 2026-10-08 (pago 2026-10-25) y su
+  abono. Los intereses no se comparan porque son estimados (el banco liquida por días).
+
+  | Compra | Valor | Cuotas | Cuota en oct | Abono |
+  | --- | --- | --- | --- | --- |
+  | 2026-06-13 | 3.090.000 | 30 | 4 | 103.000 (saldo tras la cuota: 2.678.000) |
+  | 2026-06-11 | 4.765.548 | 60 | 4 | 79.425 |
+  | 2026-05-22 | 2.215.000 | 36 | 5 | 61.527 |
+  | 2026-07-01 | 520.000 | 35 | 4 | 14.857 |
+  | 2026-02-07 | 360.000 | 12 | 9 | 30.000 |
+  | 2026-09-28 | 60.000 | 6, sin intereses | 1 | 10.000, interés 0 |
+
+  **Diferencia aceptada de $1**: en la compra de $520.000 a 35 cuotas el banco reporta un saldo
+  de capital de $460.571 tras la cuota 4 y Corte calcula $460.572. Corte trunca cada abono
+  (520.000 / 35 = 14.857,14 → 14.857), así que tras 4 cuotas ha abonado 59.428; el banco lleva el
+  abono con decimales (4 × 14.857,14 = 59.428,57) y su saldo redondeado queda $1 por debajo. El
+  abono mostrado y la suma total de abonos (exacta, con el residuo en la última cuota) coinciden;
+  la diferencia es menor que un abono, no se acumula más allá de $1 por compra y desaparece en la
+  última cuota. Se acepta y no se cambia la regla de FR-001.
 - **API** (Jest e2e contra PostgreSQL, reloj fijo `2026-11-22T02:30:00Z` → hoy 21 de noviembre en
   Bogotá): `purchases.e2e-spec.ts`, `statements.e2e-spec.ts`, `card-reschedule.e2e-spec.ts` y
   `purchases-isolation.e2e-spec.ts` (las 9 operaciones con dos usuarios, más `POST
