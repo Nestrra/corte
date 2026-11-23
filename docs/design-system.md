@@ -107,7 +107,7 @@ Plus Jakarta Sans (600, 700) para títulos y montos; Inter (400, 500, 600) para 
   Se construye por partes: la spec 002 trae Inicio, Tarjetas y Perfil; la spec 004, el botón
   central (`layout.tabCenterButton`, ícono `add` en `onPrimary`, 6,29; etiqueta accesible
   "Registrar compra"), que abre el registro con la tarjeta al frente del inicio; Pagos llega en la
-  spec 006, sin cambiar los tokens.
+  spec 005, sin cambiar los tokens.
 
 ## Pantalla de inicio
 

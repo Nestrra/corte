@@ -136,8 +136,8 @@ Todo bajo `/api/v1`; salvo auth y health, pide JWT. Cada consulta filtra por el 
 3. **002 — Tarjetas y dominio de ciclos** (cerrada): HU-02.
 4. **003 — Compras, cuotas y extractos** (cerrada): HU-03 y HU-04.
 5. **004 — Simulador e inicio** (cerrada): HU-05 y HU-08.
-6. **005 — Alertas y recordatorios:** HU-06.
-7. **006 — Pagos recurrentes:** HU-07.
+6. **005 — Pagos recurrentes:** HU-07 y los recurrentes del mes de HU-08.
+7. **006 — Alertas y recordatorios:** HU-06.
 
 La infraestructura del homelab (stacks, túnel, secretos, respaldos, deploy) va fuera de Spec Kit.
 
