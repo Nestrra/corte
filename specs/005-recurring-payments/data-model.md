@@ -91,7 +91,7 @@ para ocurrencias de pagos eliminados.
 ## RecurringPaymentView (derivado; `GET /recurring`, `GET /recurring/:id`)
 
 Campos del pago (`id`, `name`, `amount`, `frequency`, `anchorDate`, `status`) más `nextDueDate`:
-`nextDueDate(schedule, hoy, periodos pagados)` o null si está pausado. "Mis pagos" ordena activos
+`nextRecurringDueDate(schedule, hoy, periodos pagados)` o null si está pausado. "Mis pagos" ordena activos
 antes que pausados y luego por nombre.
 
 ## Validación (cuerpos)
@@ -102,7 +102,7 @@ antes que pausados y luego por nombre.
 | Crear | `amount` | `REQUIRED`, `OUT_OF_RANGE` |
 | Crear | `frequency` | `REQUIRED`, `INVALID` |
 | Crear | `firstDueDate` | `REQUIRED`, `INVALID`, `TOO_OLD`, `TOO_FAR` |
-| Editar | cualquiera de los anteriores (al menos uno) | los mismos; `nextDueDate`: `INVALID`, `IN_PAST`, `TOO_FAR`, `BEFORE_LAST_DUE` (con cambio de frecuencia, debe ser posterior al último vencimiento pagado o vencido); `frequency` sin `nextDueDate`: `nextDueDate: REQUIRED` |
+| Editar | cualquiera de los anteriores (al menos uno) | los mismos; `nextDueDate`: `INVALID`, `IN_PAST`, `TOO_FAR`, `BEFORE_LAST_DUE` (con cambio de frecuencia, debe caer en un mes posterior al del último vencimiento pagado o vencido); `frequency` sin `nextDueDate`: `nextDueDate: REQUIRED` |
 | Pagar | `amount` (opcional) | `OUT_OF_RANGE` |
 | Mes | `month` (query) | `INVALID`, `OUT_OF_RANGE` |
 

@@ -8,6 +8,7 @@ import { validateEnv } from './config/env.schema';
 import { HealthModule } from './health/health.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { PurchasesModule } from './purchases/purchases.module';
+import { RecurringModule } from './recurring/recurring.module';
 import { StatementsModule } from './statements/statements.module';
 import { SummaryModule } from './summary/summary.module';
 import { UsersModule } from './users/users.module';
@@ -34,6 +35,7 @@ export class AppModule {
         UsersModule,
         CardsModule,
         PurchasesModule,
+        RecurringModule,
         StatementsModule,
         SummaryModule,
       ],

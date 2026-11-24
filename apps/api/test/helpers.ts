@@ -1,5 +1,5 @@
 /**
- * Shared helpers for the e2e suites (specs 001–004). Each suite boots its own app, so the in-memory
+ * Shared helpers for the e2e suites (specs 001–005). Each suite boots its own app, so the in-memory
  * rate-limit storage starts empty (research.md R4).
  */
 import type { INestApplication } from '@nestjs/common';
@@ -64,7 +64,10 @@ export async function createTestApp(
   return app;
 }
 
-/** Deletes every user (and, by cascade, cards, purchases, installments and statements). */
+/**
+ * Deletes every user (and, by cascade, cards, purchases, installments, statements, recurring
+ * payments and their occurrences).
+ */
 export async function resetDatabase(app: INestApplication): Promise<void> {
   await app.get(PrismaService).$executeRawUnsafe('TRUNCATE TABLE "users" CASCADE');
 }
@@ -280,4 +283,84 @@ export async function countLedgerRows(
     statements,
     availableCredit: (card.body as CardBody).availableCredit,
   };
+}
+
+/** Valid recurring payment body (spec 005 quickstart.md B3); tests override what they need. */
+export const VALID_RECURRING = {
+  name: 'Arriendo',
+  amount: 1_200_000,
+  frequency: 'monthly',
+  firstDueDate: '2026-11-01',
+} as const;
+
+export interface RecurringBody {
+  id: string;
+  name: string;
+  amount: number;
+  frequency: 'monthly' | 'annual';
+  anchorDate: string;
+  status: 'active' | 'paused';
+  nextDueDate: string | null;
+}
+
+export interface OccurrenceBody {
+  id: string;
+  recurringPaymentId: string;
+  name: string;
+  frequency: 'monthly' | 'annual';
+  dueDate: string;
+  expectedAmount: number;
+  paidAmount: number | null;
+  paidAt: string | null;
+  status: 'pending' | 'overdue' | 'paid';
+  paymentDeleted: boolean;
+}
+
+export interface MonthViewBody {
+  month: string;
+  today: string;
+  bounds: { first: string; last: string };
+  hasPayments: boolean;
+  totals: { total: number; paid: number; remaining: number };
+  items: OccurrenceBody[];
+}
+
+/** Creates a recurring payment through the API (fails the test on non-201). */
+export async function createRecurring(
+  app: INestApplication,
+  token: string,
+  overrides: Record<string, unknown> = {},
+): Promise<RecurringBody> {
+  const response = await request(app.getHttpServer())
+    .post('/api/v1/recurring')
+    .set(bearer(token))
+    .send({ ...VALID_RECURRING, ...overrides })
+    .expect(201);
+  return response.body as RecurringBody;
+}
+
+/** GET /recurring/occurrences?month= (fails the test on non-200). */
+export async function monthView(
+  app: INestApplication,
+  token: string,
+  month: string,
+): Promise<MonthViewBody> {
+  const response = await request(app.getHttpServer())
+    .get('/api/v1/recurring/occurrences')
+    .query({ month })
+    .set(bearer(token))
+    .expect(200);
+  return response.body as MonthViewBody;
+}
+
+/** The occurrence of a payment by its name in a month view (fails the test when missing). */
+export function occurrenceByName(view: MonthViewBody, name: string): OccurrenceBody {
+  const occurrence = view.items.find((item) => item.name === name);
+  if (!occurrence) throw new Error(`No occurrence of ${name} in ${view.month}`);
+  return occurrence;
+}
+
+/** Due dates of a payment in a month view, by name. */
+export function dueDatesOf(view: MonthViewBody, name: string): string[] {
+  return view.items.filter((item) => item.name === name).map((item) => item.dueDate);
 }

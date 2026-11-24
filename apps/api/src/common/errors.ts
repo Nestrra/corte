@@ -14,7 +14,8 @@ export type ErrorCode =
   | 'RATE_LIMITED'
   | 'NOT_FOUND'
   | 'CARD_ARCHIVED'
-  | 'STATEMENT_OPEN';
+  | 'STATEMENT_OPEN'
+  | 'RECURRING_DELETED';
 
 export interface FieldError {
   field: string;
@@ -85,5 +86,11 @@ export const AppErrors = {
       HttpStatus.CONFLICT,
       'STATEMENT_OPEN',
       'The statement has not been cut yet; it can be paid after its cutoff date',
+    ),
+  recurringDeleted: () =>
+    new AppException(
+      HttpStatus.CONFLICT,
+      'RECURRING_DELETED',
+      'The recurring payment was deleted; its paid history cannot be undone',
     ),
 };

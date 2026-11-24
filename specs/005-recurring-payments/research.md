@@ -43,7 +43,7 @@ specs 001 a 004 en `main` (`fb887fe`). Las decisiones del usuario se marcan **(u
   summarizeMonth(items, today) → { totals: { total, paid, remaining }, items (ordenados) }
       // paid = Σ paidAmount de las pagadas; remaining = Σ expectedAmount de las no pagadas;
       // total = paid + remaining; orden: overdue, pending, paid; dentro por dueDate y nombre
-  nextDueDate(schedule, today, paidPeriods) → IsoDate | null
+  nextRecurringDueDate(schedule, today, paidPeriods) → IsoDate | null   // nextDueDate ya existe en cycles.ts
       // primer vencimiento ≥ max(today, startsOn) cuyo periodo no está pagado; null si pausado
   monthBounds(today, earliestDueDate | null) → { first: 'YYYY-MM', last: 'YYYY-MM' }
       // first = mes del vencimiento más antiguo (o el actual, si es posterior o no hay);
@@ -117,8 +117,8 @@ specs 001 a 004 en `main` (`fb887fe`). Las decisiones del usuario se marcan **(u
     monto; si llega `nextDueDate`, `anchor_date = starts_on = nextDueDate` (y la frecuencia
     nueva, si llega). Las futuras se regeneran al mirarlas, con los datos nuevos; un periodo que
     ya tiene una ocurrencia (pagada, o vencida del mes actual) no recibe otra por la clave única.
-    Cambiar la frecuencia exige `nextDueDate` y que sea posterior al último vencimiento existente
-    del pago, pagado o vencido (`nextDueDate: BEFORE_LAST_DUE`): los periodos de una y otra
+    Cambiar la frecuencia exige `nextDueDate` y que caiga en un mes posterior al del último
+    vencimiento existente del pago, pagado o vencido (`nextDueDate: BEFORE_LAST_DUE`): los periodos de una y otra
     frecuencia no se comparan (`2026-11` y `2026`), así que sin esta regla un mes podría quedar con
     una ocurrencia vencida del calendario viejo y otra del nuevo.
   - **Pausar**: `paused_on = hoy` y se borran las ocurrencias no pagadas con `due_date` posterior

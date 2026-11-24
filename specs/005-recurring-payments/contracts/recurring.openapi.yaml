@@ -63,7 +63,8 @@ components:
           $ref: '#/components/schemas/IsoDate'
           description: >
             Entre hoy y hoy + 12 meses (IN_PAST, TOO_FAR); nuevo ancla del calendario. Con cambio
-            de frecuencia debe ser posterior al último vencimiento pagado o vencido (BEFORE_LAST_DUE).
+            de frecuencia debe caer en un mes posterior al del último vencimiento pagado o vencido
+            (BEFORE_LAST_DUE).
     RecurringPayment:
       type: object
       required: [id, name, amount, frequency, anchorDate, status, nextDueDate]

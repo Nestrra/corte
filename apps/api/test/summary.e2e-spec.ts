@@ -1,5 +1,6 @@
 /**
- * Spec 004 — GET /api/v1/summary (US2; FR-014 – FR-017, FR-022; data-model.md → HomeSummary).
+ * Spec 004 — GET /api/v1/summary (US2; FR-014 – FR-017, FR-022; data-model.md → HomeSummary),
+ * plus the month's recurring payments of spec 005 (US2; FR-014, FR-015; research.md R9).
  * Clock fixed at HOME_NOW: today is 2026-11-23 in America/Bogota. Card: cutoff 8, due 25,
  * budget 2.000.000, 24% EA.
  */
@@ -9,9 +10,12 @@ import {
   bearer,
   createCard,
   createPurchase,
+  createRecurring,
   createTestApp,
   HOME_NOW,
   login,
+  monthView,
+  occurrenceByName,
   resetDatabase,
   signUp,
   type CardBody,
@@ -45,7 +49,7 @@ describe('Home summary (e2e)', () => {
   it('gives today and no cards to a user without cards (HomeSummary.today)', async () => {
     const other = await signUp(app, 'beto@ejemplo.com');
     const response = await http().get('/api/v1/summary').set(bearer(other.accessToken)).expect(200);
-    expect(response.body).toEqual({ today: '2026-11-23', cards: [] });
+    expect(response.body).toMatchObject({ today: '2026-11-23', cards: [] });
   });
 
   it('lists only active cards, in the order of GET /cards (HomeSummary.cards[])', async () => {
@@ -182,5 +186,68 @@ describe('Home summary (e2e)', () => {
 
   it('requires a session (401)', async () => {
     await http().get('/api/v1/summary').expect(401);
+  });
+
+  describe('recurring payments of the month (spec 005)', () => {
+    it('is the month view of the current month (quickstart B8)', async () => {
+      await createRecurring(app, token, {
+        name: 'Arriendo',
+        amount: 1_200_000,
+        firstDueDate: '2026-11-01',
+      });
+      await createRecurring(app, token, {
+        name: 'Internet',
+        amount: 95_000,
+        firstDueDate: '2026-11-05',
+      });
+      await createRecurring(app, token, {
+        name: 'Gimnasio',
+        amount: 120_000,
+        firstDueDate: '2026-11-10',
+      });
+      await createRecurring(app, token, {
+        name: 'Celular',
+        amount: 65_000,
+        firstDueDate: '2026-11-28',
+      });
+      // The summary creates the month's occurrences itself.
+      const first = (await summary()).recurring;
+      for (const name of ['Arriendo', 'Internet']) {
+        await http()
+          .post(`/api/v1/occurrences/${occurrenceByName(first, name).id}/payment`)
+          .set(bearer(token))
+          .expect(200);
+      }
+
+      const body = await summary();
+      expect(body.recurring).toEqual(await monthView(app, token, '2026-11'));
+      expect(body.recurring.totals).toEqual({
+        total: 1_480_000,
+        paid: 1_295_000,
+        remaining: 185_000,
+      });
+      expect(body.recurring.items.map((item: { name: string }) => item.name)).toEqual([
+        'Gimnasio',
+        'Celular',
+        'Arriendo',
+        'Internet',
+      ]);
+      expect(body.cards).toHaveLength(1);
+    });
+
+    it('comes also without cards, and says when there are no payments', async () => {
+      const other = await signUp(app, 'carla@ejemplo.com');
+      const empty = await http().get('/api/v1/summary').set(bearer(other.accessToken)).expect(200);
+      expect(empty.body.recurring).toMatchObject({
+        month: '2026-11',
+        hasPayments: false,
+        items: [],
+      });
+
+      await createRecurring(app, other.accessToken, { firstDueDate: '2027-01-15' });
+      const later = await http().get('/api/v1/summary').set(bearer(other.accessToken)).expect(200);
+      expect(later.body).toMatchObject({ cards: [], recurring: { hasPayments: true, items: [] } });
+      expect(later.body.recurring.totals).toEqual({ total: 0, paid: 0, remaining: 0 });
+    });
   });
 });
