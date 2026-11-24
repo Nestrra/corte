@@ -212,7 +212,7 @@ vencimiento igual o posterior a hoy.
 - [X] T039 [P] Update `docs/mvp-spec.md`: rule 4 of "Pagos recurrentes" aligned with FR-007 (eliminar borra las ocurrencias no pagadas, también las vencidas, y conserva las pagadas) and a note that `GET /summary` may now create the current month's occurrences; API table with `GET /recurring/:id`, `GET /occurrences/:id`, `?month=YYYY-MM` and the summary's `recurring`, linking `specs/005-recurring-payments/contracts/recurring.openapi.yaml`; and `README.md` with a short "Pagos recurrentes" section
 - [X] T040 Design review of the new screens against `docs/design-system.md` and contracts/screens.md (tokens only, no hand-written values, touch areas ≥ 44, tabular amounts, states with text, AA contrast; with $9.999.999.999 nothing is cut or overflows in StatTile, RecurringRow and the pay sheet); fix what is found
 - [X] T041 Run quickstart.md B1–B9 (curl and test commands), `pnpm lint && pnpm format:check && pnpm typecheck`, `pnpm --filter @corte/domain test:cov`, `pnpm --filter api test && pnpm --filter api test:e2e` and `pnpm --filter mobile exec expo export` for iOS and Android; B10 (app on iOS and Android) is validated manually by the user
-- [ ] T042 After B10 passes, mark spec 005 as "(cerrada)" in "Orden de specs" of `docs/mvp-spec.md`
+- [X] T042 After B10 passes, mark spec 005 as "(cerrada)" in "Orden de specs" of `docs/mvp-spec.md`
 
 ---
 
