@@ -349,6 +349,51 @@ es un check con nombre fijo:
 | `domain-test`    | Pruebas del dominio con cobertura                                      |
 | `api-e2e`        | Pruebas unitarias y e2e del API contra un PostgreSQL 17 real (service) |
 | `docker-build`   | Construcción de la imagen del API sin publicarla y control de tamaño   |
+| `publish-images` | Solo en push a `main`: publica las imágenes en GHCR (ver abajo)        |
+
+### Imágenes publicadas (GHCR)
+
+En cada push a `main`, cuando pasan los cuatro checks, el job `publish-images` construye y publica
+en GitHub Container Registry, con `GIT_SHA` como build arg:
+
+| Imagen                          | Target del Dockerfile | Uso                            |
+| ------------------------------- | --------------------- | ------------------------------ |
+| `ghcr.io/nestrra/corte-api`     | `runtime` (final)     | El API                         |
+| `ghcr.io/nestrra/corte-migrate` | `migrate`             | Job que aplica las migraciones |
+
+Cada imagen lleva dos etiquetas: el SHA completo del commit (inmutable, para desplegar una versión
+exacta) y `main` (apunta siempre al último commit publicado). El job usa el `GITHUB_TOKEN` del
+workflow con permiso `packages: write`; no hace falta ningún secreto. No se marca como check
+requerido: en los PR aparece como omitido.
+
+```bash
+docker pull ghcr.io/nestrra/corte-api:main
+docker pull ghcr.io/nestrra/corte-migrate:<sha-completo>
+```
+
+#### Hacer público el paquete
+
+GHCR crea cada paquete como **privado** la primera vez que se publica. Para poder hacer
+`docker pull` sin autenticarse (por ejemplo, desde el servidor), el dueño del repositorio debe
+cambiar la visibilidad de cada paquete una sola vez, después de la primera publicación:
+
+1. En GitHub, ir al perfil (o a la organización) → pestaña **Packages** → `corte-api`.
+2. **Package settings** (barra lateral derecha).
+3. En **Danger Zone** → **Change visibility** → **Public**, y confirmar escribiendo el nombre del
+   paquete.
+4. Repetir con `corte-migrate`.
+
+Un paquete público no se puede volver a hacer privado. Si prefieres dejarlo privado, el servidor
+debe iniciar sesión antes de descargar, con un personal access token (classic) con el permiso
+`read:packages`:
+
+```bash
+echo "$GHCR_TOKEN" | docker login ghcr.io -u <usuario-github> --password-stdin
+```
+
+En **Package settings** también conviene revisar que el paquete esté vinculado al repositorio
+(`Manage Actions access` debe listar `corte` con rol _Write_); el job lo vincula con la etiqueta
+`org.opencontainers.image.source`.
 
 ### Protección de la rama `main`
 
