@@ -117,11 +117,15 @@ specs 001 a 004 en `main` (`fb887fe`). Las decisiones del usuario se marcan **(u
     monto; si llega `nextDueDate`, `anchor_date = starts_on = nextDueDate` (y la frecuencia
     nueva, si llega). Las futuras se regeneran al mirarlas, con los datos nuevos; un periodo que
     ya tiene una ocurrencia (pagada, o vencida del mes actual) no recibe otra por la clave única.
-    Cambiar la frecuencia exige `nextDueDate` y que sea posterior al último vencimiento pagado del
-    pago (`nextDueDate: BEFORE_LAST_PAID`), para no repetir un mes ya pagado con el calendario
-    nuevo.
-  - **Pausar**: `paused_on = hoy`. `duePeriods` sigue generando hasta el periodo de la pausa
-    (incluido) y nada después: la ocurrencia del periodo actual se conserva aunque aún no venza.
+    Cambiar la frecuencia exige `nextDueDate` y que sea posterior al último vencimiento existente
+    del pago, pagado o vencido (`nextDueDate: BEFORE_LAST_DUE`): los periodos de una y otra
+    frecuencia no se comparan (`2026-11` y `2026`), así que sin esta regla un mes podría quedar con
+    una ocurrencia vencida del calendario viejo y otra del nuevo.
+  - **Pausar**: `paused_on = hoy` y se borran las ocurrencias no pagadas con `due_date` posterior
+    al fin del periodo actual (las que ya se habían materializado al mirar meses futuros; se
+    compara por fecha, no por el texto del periodo). `duePeriods` sigue generando hasta el periodo
+    de la pausa (incluido) y nada después: la ocurrencia del periodo actual se conserva aunque aún
+    no venza (decisión 3 de la spec), y las futuras ya pagadas también.
   - **Reanudar**: `starts_on = nextDueOnOrAfter(ancla, hoy)`, `paused_on = null`. Los periodos
     entre la pausa y ese vencimiento quedan sin ocurrencia y no aparece nada Vencido por reanudar
     (decisión del usuario en la spec, FR-006).

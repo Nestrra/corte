@@ -42,7 +42,8 @@ occurrence/[id]/pay              hoja "Marcar pagado" (presentation: formSheet)
 
 - **StatTile**: etiqueta (`textSecondary`), monto (`amount`, tabular, se ajusta al ancho) y línea
   secundaria opcional. En MonthOverview: "Total del mes" y "Pagado" lado a lado; debajo,
-  "Faltan $185.000" (o "Todo pagado" si es 0 y hay pagos).
+  "Faltan $185.000"; "Todo pagado" solo cuando el mes tiene ocurrencias y lo que falta es 0; sin
+  ocurrencias en el mes, "Sin pagos este mes".
 - **RecurringRow** (ListRow del diseño): nombre y fecha corta a la izquierda; monto y StatusChip a
   la derecha. Fila tocable ≥ 44. Etiqueta accesible: "Gimnasio, 10 de noviembre, $120.000,
   vencido".

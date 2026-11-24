@@ -21,7 +21,8 @@ pesos enteros (`BIGINT`); fechas de negocio `DATE` en la zona del usuario (princ
 | `createdAt` / `updatedAt` | `created_at` / `updated_at` | `TIMESTAMPTZ` | — |
 
 Índice: `(user_id, deleted_at)`. CHECKs: `amount BETWEEN 1 AND 9999999999`,
-`char_length(name) BETWEEN 1 AND 40`, `starts_on >= first_due_date`.
+`char_length(name) BETWEEN 1 AND 40`. No hay CHECK entre `starts_on` y `first_due_date`: editar
+puede adelantar el próximo vencimiento dentro del mismo mes (spec US5-4: 28 → 25 de noviembre).
 
 **Estado expuesto** (`status`): `paused` si `pausedOn` tiene valor; `active` si no.
 
@@ -33,7 +34,7 @@ pesos enteros (`BIGINT`); fechas de negocio `DATE` en la zona del usuario (princ
               ▼
    ┌────── active ◄────────┐
    │          │            │ reanudar: startsOn = nextDueOnOrAfter(ancla, hoy); pausedOn = null
-   │          │ pausar: pausedOn = hoy
+   │          │ pausar: pausedOn = hoy; borra las no pagadas posteriores al fin del periodo actual
    │          ▼            │
    │       paused ─────────┘
    │          │
@@ -101,9 +102,9 @@ antes que pausados y luego por nombre.
 | Crear | `amount` | `REQUIRED`, `OUT_OF_RANGE` |
 | Crear | `frequency` | `REQUIRED`, `INVALID` |
 | Crear | `firstDueDate` | `REQUIRED`, `INVALID`, `TOO_OLD`, `TOO_FAR` |
-| Editar | cualquiera de los anteriores (al menos uno) | los mismos; `nextDueDate`: `INVALID`, `IN_PAST`, `TOO_FAR`, `BEFORE_LAST_PAID`; `frequency` sin `nextDueDate`: `nextDueDate: REQUIRED` |
+| Editar | cualquiera de los anteriores (al menos uno) | los mismos; `nextDueDate`: `INVALID`, `IN_PAST`, `TOO_FAR`, `BEFORE_LAST_DUE` (con cambio de frecuencia, debe ser posterior al último vencimiento pagado o vencido); `frequency` sin `nextDueDate`: `nextDueDate: REQUIRED` |
 | Pagar | `amount` (opcional) | `OUT_OF_RANGE` |
 | Mes | `month` (query) | `INVALID`, `OUT_OF_RANGE` |
 
-`TOO_OLD`, `TOO_FAR`, `IN_PAST`, `BEFORE_LAST_PAID` y `OUT_OF_RANGE` del mes dependen de "hoy" o de
+`TOO_OLD`, `TOO_FAR`, `IN_PAST`, `BEFORE_LAST_DUE` y `OUT_OF_RANGE` del mes dependen de "hoy" o de
 la base y se comprueban en el servicio, como `IN_FUTURE` en la spec 003.
