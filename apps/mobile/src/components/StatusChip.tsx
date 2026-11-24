@@ -1,5 +1,5 @@
 import type { OccurrenceStatus, StatementStatus } from '@corte/domain';
-import { StyleSheet, View } from 'react-native';
+import { StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
 import { colors, radius, spacing, type ColorToken } from '../theme';
 import { Text } from './Text';
 
@@ -33,7 +33,14 @@ export function statusLabel(status: ChipStatus): string {
   return variants[status].label;
 }
 
-export function StatusChip({ status }: { status: ChipStatus }) {
+export function StatusChip({
+  status,
+  style,
+}: {
+  status: ChipStatus;
+  /** Layout overrides from the parent, e.g. `alignSelf` to right-align it in a row. */
+  style?: StyleProp<ViewStyle>;
+}) {
   const variant = variants[status];
   return (
     <View
@@ -42,6 +49,7 @@ export function StatusChip({ status }: { status: ChipStatus }) {
       style={[
         styles.chip,
         { backgroundColor: colors[variant.background], borderColor: colors[variant.border] },
+        style,
       ]}
     >
       <Text variant="caption" color={variant.text}>

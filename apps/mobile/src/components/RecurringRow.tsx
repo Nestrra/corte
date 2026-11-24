@@ -59,7 +59,7 @@ export function RecurringRow({
         <Text variant="bodyStrong" numberOfLines={1} adjustsFontSizeToFit style={styles.tabular}>
           {amount}
         </Text>
-        <StatusChip status={occurrence.status} />
+        <StatusChip status={occurrence.status} style={styles.chip} />
       </View>
     </Pressable>
   );
@@ -79,5 +79,7 @@ const styles = StyleSheet.create({
   left: { flex: 1, gap: spacing.xs },
   right: { flexShrink: 1, alignItems: 'flex-end', gap: spacing.xs },
   tabular: { fontVariant: ['tabular-nums'] },
+  /** Right-aligned under the amount, so chips line up whatever the amount's width. */
+  chip: { alignSelf: 'flex-end' },
   pressed: { opacity: interaction.pressedOpacity },
 });
