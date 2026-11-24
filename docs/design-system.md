@@ -95,26 +95,31 @@ Plus Jakarta Sans (600, 700) para títulos y montos; Inter (400, 500, 600) para 
 - **SimulationPanel** (spec 004): "Si la registras": primera cuota, tope del ciclo antes → después con su barra, cupo disponible después, intereses estimados y el plan (InstallmentRow con StatusChip). Avisos de tope y cupo superados en `danger` sobre `dangerSoft`. Mientras recalcula muestra los últimos valores atenuados con `interaction.staleOpacity` y "Actualizando…", sin spinner; la atenuación solo se aplica a cifras, fechas y barra (`text`, `textSecondary`, `primaryStrong`: 5,17 el peor par a 0,85), nunca a avisos ni StatusChip.
 - **CardPicker** (spec 004): fila con la tarjeta elegida ("Visa ·· 1234") y "Cambiar", que despliega las tarjetas activas como opciones de radio. Filas ≥ 44.
 - **EmptyCards** (spec 004): "Agrega tu primera tarjeta", texto y botón "Agregar tarjeta"; en el inicio y en "Registrar compra" sin tarjetas.
-- **StatTile**: etiqueta, monto y línea secundaria (Total del mes, Pagado).
-- **ListRow**: nombre y fecha a la izquierda; monto y StatusChip a la derecha.
+- **StatTile** (spec 005): panel `surface` con etiqueta (`textSecondary`), monto (`amount`, tabular, se achica para caber en una línea) y línea secundaria opcional; se lee como una frase ("Total del mes, $1.480.000"). En el mes van dos lado a lado: Total del mes y Pagado.
+- **ListRow**: nombre y fecha a la izquierda; monto y StatusChip a la derecha, ambos alineados al borde derecho (el chip debajo del monto, para que los chips queden en columna sin importar el ancho del monto). En pagos recurrentes (spec 005, RecurringRow) la fecha es corta ("10 nov"), el monto es el pagado si la ocurrencia está pagada o el esperado si no, y se lee "Gimnasio, 10 de noviembre, $120.000, vencido". Fila ≥ 44.
+- **MonthOverview** (spec 005): los pagos de un mes: StatTiles de total y pagado, "Faltan $185.000" (o "Todo pagado" en `success` sobre `successSoft`, 5,40, cuando el mes tiene pagos y no falta nada) y la lista de ListRow en el orden del API (vencidos, pendientes, pagados); sin pagos en el mes, "Sin pagos este mes". La usan el inicio y la pestaña Pagos.
+- **MonthNavigator** (spec 005): botones "Mes anterior" y "Mes siguiente" de 44 × 44 (`chevron-back` / `chevron-forward` en `primaryStrong`; `textTertiary` y deshabilitados en los límites) y el mes ("noviembre de 2026") como encabezado en una región `polite`.
+- **RecurringSection** (spec 005): SectionHeader "Pagos de <mes>" + "Nuevo" y MonthOverview; sin pagos recurrentes, "Agrega tus pagos fijos" con su texto.
 - **StatusChip**: Pagado (`success`), Pendiente (`warning`), Vencido (`danger`). Los extractos
   (spec 003) agregan Abierto (neutral: `textSecondary` sobre `surface`, borde `border`) y Por pagar
   (`warning`); el estado siempre va escrito. Contraste del texto sobre su fondo: Abierto 7,69;
-  Por pagar 5,20; Vencido 6,05; Pagado 5,40.
-- **SectionHeader**: título de sección y botón secundario con ícono + ("Agregar", "Nuevo").
+  Por pagar y Pendiente 5,20; Vencido 6,05; Pagado 5,40. En "Mis pagos" el estado del pago va
+  como texto: "Activo" (`textSecondary`) o "Pausado" (`warning` sobre `surface`, 5,43).
+- **SectionHeader**: título de sección y botón secundario con ícono + ("Agregar", "Nuevo"), de alto 44, con etiqueta accesible que dice qué agrega ("Agregar tarjeta", "Nuevo pago recurrente").
 - **Button**: primario (`primary`, texto blanco) y secundario (`primarySoft`, texto `primaryStrong`), alto 44.
 - **TabBar**: Inicio, Tarjetas, botón central "Registrar compra" (56 px, `primary`), Pagos, Perfil.
   Se construye por partes: la spec 002 trae Inicio, Tarjetas y Perfil; la spec 004, el botón
   central (`layout.tabCenterButton`, ícono `add` en `onPrimary`, 6,29; etiqueta accesible
-  "Registrar compra"), que abre el registro con la tarjeta al frente del inicio; Pagos llega en la
-  spec 006, sin cambiar los tokens.
+  "Registrar compra"), que abre el registro con la tarjeta al frente del inicio; la spec 005, Pagos
+  (ícono `calendar` / `calendar-outline`), sin cambiar los tokens.
+- **Hoja "Marcar pagado"** (spec 005): hoja nativa (`formSheet`) con "Monto pagado" prellenado con el esperado y editable, "Confirmar pago" y "Cancelar"; se cierra también con el gesto.
 
 ## Pantalla de inicio
 
 1. Saludo y botón de notificaciones.
 2. "Mis tarjetas" + botón Agregar, carrusel de tarjetas.
 3. CycleSummary de la tarjeta al frente.
-4. "Pagos de <mes>" + botón Nuevo, StatTiles de total y pagado, lista de pagos recurrentes ordenada: vencidos, pendientes, pagados.
+4. "Pagos de <mes>" + botón Nuevo, StatTiles de total y pagado, lo que falta y la lista de pagos recurrentes ordenada: vencidos, pendientes, pagados (RecurringSection, spec 005). Aparece también sin tarjetas, debajo de EmptyCards.
 5. TabBar fija.
 
 ## Tokens (para `apps/mobile/src/theme`)

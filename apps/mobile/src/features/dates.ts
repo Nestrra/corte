@@ -1,6 +1,7 @@
 import { daysBetween, parseIsoDate, type IsoDate } from '@corte/domain';
 
-const MONTHS = [
+/** Month names, January first. */
+export const MONTH_NAMES = [
   'enero',
   'febrero',
   'marzo',
@@ -21,7 +22,7 @@ const MONTHS = [
  */
 export function formatLongDate(date: IsoDate): string {
   const { year, month, day } = parseIsoDate(date);
-  return `${day} de ${MONTHS[month - 1]} de ${year}`;
+  return `${day} de ${MONTH_NAMES[month - 1]} de ${year}`;
 }
 
 /** Days from `today` to `date`: 0 → "Hoy", 1 → "Mañana", N → "faltan N días". */

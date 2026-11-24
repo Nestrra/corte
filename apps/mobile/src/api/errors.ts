@@ -13,6 +13,7 @@ export type ApiErrorCode =
   | 'NOT_FOUND'
   | 'CARD_ARCHIVED'
   | 'STATEMENT_OPEN'
+  | 'RECURRING_DELETED'
   | 'UNKNOWN';
 
 export interface FieldError {
@@ -64,6 +65,8 @@ const codeTexts: Partial<Record<ApiErrorCode, string>> = {
   CARD_ARCHIVED: 'Restaura la tarjeta para editarla',
   // specs/003-purchases/contracts/errors.md
   STATEMENT_OPEN: 'Este extracto aún no corta; podrás pagarlo después del corte',
+  // specs/005-recurring-payments/contracts/recurring.openapi.yaml
+  RECURRING_DELETED: 'Este pago fue eliminado; lo pagado no se puede deshacer',
 };
 
 // specs/003-purchases/contracts/errors.md: the same codes read differently on purchase and
@@ -71,6 +74,7 @@ const codeTexts: Partial<Record<ApiErrorCode, string>> = {
 export const PURCHASE_NOT_FOUND_TEXT = 'No encontramos esa compra';
 export const STATEMENT_NOT_FOUND_TEXT = 'No encontramos ese extracto';
 export const CARD_ARCHIVED_PURCHASES_TEXT = 'Restaura la tarjeta para cambiar sus compras';
+export const RECURRING_NOT_FOUND_TEXT = 'No encontramos ese pago';
 
 /** Spanish text for any error thrown by the API client. */
 export function errorText(error: unknown): string {
@@ -140,6 +144,35 @@ const purchaseFieldTexts: Record<string, Record<string, string>> = {
   },
 };
 
+// Recurring payment fields (specs/005-recurring-payments/data-model.md → Validación).
+const recurringAmountTexts = {
+  OUT_OF_RANGE: 'Escribe un monto mayor que 0',
+  REQUIRED: 'Escribe un monto mayor que 0',
+};
+const recurringFieldTexts: Record<string, Record<string, string>> = {
+  name: { REQUIRED: 'Escribe un nombre', TOO_LONG: 'Máximo 40 caracteres' },
+  amount: recurringAmountTexts,
+  frequency: { REQUIRED: 'Elige la frecuencia', INVALID: 'Elige la frecuencia' },
+  firstDueDate: {
+    REQUIRED: 'Elige la fecha del primer vencimiento',
+    INVALID: 'Elige una fecha válida',
+    TOO_OLD: 'La fecha no puede ser anterior a este mes',
+    TOO_FAR: 'La fecha no puede ser de más de 12 meses',
+  },
+  nextDueDate: {
+    REQUIRED: 'Elige la fecha del próximo vencimiento',
+    INVALID: 'Elige una fecha válida',
+    IN_PAST: 'La fecha no puede ser anterior a hoy',
+    TOO_FAR: 'La fecha no puede ser de más de 12 meses',
+    BEFORE_LAST_DUE: 'Al cambiar la frecuencia, elige una fecha posterior al último vencimiento',
+  },
+};
+
+/** Spanish text for a recurring payment field error code (spec 005). */
+export function recurringFieldErrorText(field: string, code: string): string {
+  return recurringFieldTexts[field]?.[code] ?? 'Revisa este campo';
+}
+
 /** Spanish text for a purchase field error code (specs/003-purchases/contracts/errors.md). */
 export function purchaseFieldErrorText(field: string, code: string): string {
   return purchaseFieldTexts[field]?.[code] ?? 'Revisa este campo';
@@ -169,6 +202,7 @@ const KNOWN_CODES = new Set<string>([
   'NOT_FOUND',
   'CARD_ARCHIVED',
   'STATEMENT_OPEN',
+  'RECURRING_DELETED',
 ]);
 
 /** Builds an ApiError from any response body, tolerating unexpected shapes. */

@@ -82,7 +82,7 @@ Toda la lógica de fechas y montos vive en `packages/domain` (constitución, pri
 1. Son un módulo aparte y no suman al total de ninguna tarjeta.
 2. Frecuencias del MVP: mensual y anual.
 3. Cada periodo genera una ocurrencia con estado Pendiente. Al marcarla pagada se puede registrar el monto real.
-4. Pausar detiene la creación de ocurrencias nuevas. Eliminar borra el pago y sus ocurrencias futuras, pero conserva el historial pagado.
+4. Pausar detiene la creación de ocurrencias nuevas (se conserva la del periodo actual). Eliminar borra el pago y sus ocurrencias no pagadas, también las vencidas, pero conserva el historial pagado (spec 005 FR-007).
 5. Una ocurrencia pendiente con fecha pasada se muestra como vencida.
 
 Todas las fechas se calculan en la zona horaria del usuario (por defecto America/Bogota).
@@ -101,8 +101,8 @@ Cada spec define su parte en su `data-model.md`; esta tabla es la visión de con
 | `purchases` | id, card_id, amount, concept, purchase_date, installment_count, no_interest, annual_rate | `annual_rate` es la tasa de la tarjeta al registrar (nula si no tiene). |
 | `installments` | id, purchase_id, statement_id, number, principal, interest | La suma de los principal da el valor de la compra. |
 | `alert_logs` | id, card_id, statement_id, kind, threshold, sent_at | Evita repetir un aviso en el mismo ciclo. |
-| `recurring_payments` | id, user_id, name, amount, frequency, due_day, due_month, remind_days, paused_at | `due_month` solo aplica a la frecuencia anual. |
-| `recurring_occurrences` | id, recurring_payment_id, due_date, status, paid_at, paid_amount | Estados: pending o paid. Vencida se deriva de la fecha. |
+| `recurring_payments` | id, user_id, name, amount, frequency, first_due_date, anchor_date, starts_on, paused_on, deleted_at | El día (y el mes, si es anual) sale de `anchor_date`; borrado lógico (spec 005). |
+| `recurring_occurrences` | id, recurring_payment_id, period, due_date, expected_amount, paid_at, paid_amount | Una por pago y periodo (`YYYY-MM` o `YYYY`); se crean al pedir un mes. Pendiente y vencida se derivan de la fecha. |
 
 ## API REST (orientativa)
 
@@ -122,12 +122,13 @@ Todo bajo `/api/v1`; salvo auth y health, pide JWT. Cada consulta filtra por el 
 | GET | `/cards/:id/statements` | Extractos de la tarjeta con su total y estado. |
 | GET | `/statements/:id` | Extracto con el detalle de cuotas. |
 | POST / DELETE | `/statements/:id/payment` | Marca el extracto como pagado o lo deshace. |
-| GET | `/summary` | Datos del inicio: por tarjeta activa, próximo pago, próximo corte y uso del tope (contrato en `specs/004-home-simulator/contracts/home.openapi.yaml`). |
-| GET / POST | `/recurring` | Lista o crea pagos recurrentes. |
-| PATCH / DELETE | `/recurring/:id` | Edita o elimina un pago recurrente. |
+| GET | `/summary` | Datos del inicio: por tarjeta activa, próximo pago, próximo corte y uso del tope (contrato en `specs/004-home-simulator/contracts/home.openapi.yaml`), y los pagos recurrentes del mes actual (`recurring`, spec 005). Puede crear las ocurrencias del mes actual. |
+| GET / POST | `/recurring` | Lista o crea pagos recurrentes (contrato en `specs/005-recurring-payments/contracts/recurring.openapi.yaml`). |
+| GET / PATCH / DELETE | `/recurring/:id` | Detalle, edición o eliminación de un pago recurrente. |
 | POST | `/recurring/:id/pause`, `/recurring/:id/resume` | Pausa o reanuda. |
-| GET | `/recurring/occurrences?from&to` | Ocurrencias en un rango de fechas. |
-| POST / DELETE | `/occurrences/:id/payment` | Marca la ocurrencia como pagada o lo deshace. |
+| GET | `/recurring/occurrences?month=YYYY-MM` | Pagos de un mes con total, pagado, lo que falta y la lista ordenada; crea las ocurrencias que falten. |
+| GET | `/occurrences/:id` | Detalle de una ocurrencia. |
+| POST / DELETE | `/occurrences/:id/payment` | Marca la ocurrencia como pagada (con monto real opcional) o lo deshace. |
 
 ## Orden de specs
 
@@ -136,8 +137,8 @@ Todo bajo `/api/v1`; salvo auth y health, pide JWT. Cada consulta filtra por el 
 3. **002 — Tarjetas y dominio de ciclos** (cerrada): HU-02.
 4. **003 — Compras, cuotas y extractos** (cerrada): HU-03 y HU-04.
 5. **004 — Simulador e inicio** (cerrada): HU-05 y HU-08.
-6. **005 — Alertas y recordatorios:** HU-06.
-7. **006 — Pagos recurrentes:** HU-07.
+6. **005 — Pagos recurrentes** (cerrada): HU-07 y los recurrentes del mes de HU-08.
+7. **006 — Alertas y recordatorios:** HU-06.
 
 La infraestructura del homelab (stacks, túnel, secretos, respaldos, deploy) va fuera de Spec Kit.
 

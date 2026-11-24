@@ -1,4 +1,4 @@
-// Prisma 7 schema (specs 001–003: data-model.md). The connection URL lives in prisma.config.ts.
+// Prisma 7 schema (specs 001–005: data-model.md). The connection URL lives in prisma.config.ts.
 
 generator client {
   provider     = "prisma-client"
@@ -12,18 +12,19 @@ datasource db {
 
 /// A person with an account. Deleting a user cascades to everything that belongs to them.
 model User {
-  id                 String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  name               String         @db.VarChar(80)
+  id                 String             @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name               String             @db.VarChar(80)
   /// Stored trimmed and lowercased (CHECK email = lower(email) added in the migration).
-  email              String         @unique @db.VarChar(254)
+  email              String             @unique @db.VarChar(254)
   /// argon2id hash in PHC format.
-  passwordHash       String         @map("password_hash")
-  timezone           String         @default("America/Bogota") @db.VarChar(64)
-  mustChangePassword Boolean        @default(false) @map("must_change_password")
-  createdAt          DateTime       @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt          DateTime       @updatedAt @map("updated_at") @db.Timestamptz(6)
+  passwordHash       String             @map("password_hash")
+  timezone           String             @default("America/Bogota") @db.VarChar(64)
+  mustChangePassword Boolean            @default(false) @map("must_change_password")
+  createdAt          DateTime           @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt          DateTime           @updatedAt @map("updated_at") @db.Timestamptz(6)
   refreshTokens      RefreshToken[]
   cards              Card[]
+  recurringPayments  RecurringPayment[]
 
   @@map("users")
 }
@@ -144,4 +145,63 @@ model Statement {
 
   @@unique([cardId, cutoffDate])
   @@map("statements")
+}
+
+/// Frequencies of the MVP (spec 005, data-model.md → RecurringPayment.frequency).
+enum RecurringFrequency {
+  monthly
+  annual
+
+  @@map("recurring_frequency")
+}
+
+/// A fixed expense that repeats (spec 005, data-model.md → RecurringPayment). Not related to any
+/// card. Ranges are also enforced by CHECK constraints added by hand in the migration.
+model RecurringPayment {
+  id           String                @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId       String                @map("user_id") @db.Uuid
+  name         String                @db.VarChar(40)
+  /// Expected amount, integer pesos (COP).
+  amount       BigInt
+  frequency    RecurringFrequency
+  /// First due date when created; never changes (navigation bounds).
+  firstDueDate DateTime              @map("first_due_date") @db.Date
+  /// Day (and month, if annual) of every due date.
+  anchorDate   DateTime              @map("anchor_date") @db.Date
+  /// No due date before this one generates an occurrence.
+  startsOn     DateTime              @map("starts_on") @db.Date
+  /// The user's "today" when paused; null while active.
+  pausedOn     DateTime?             @map("paused_on") @db.Date
+  /// Soft delete (research.md R6): paid occurrences keep their payment.
+  deletedAt    DateTime?             @map("deleted_at") @db.Timestamptz(6)
+  createdAt    DateTime              @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt    DateTime              @updatedAt @map("updated_at") @db.Timestamptz(6)
+  user         User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  occurrences  RecurringOccurrence[]
+
+  @@index([userId, deletedAt])
+  @@map("recurring_payments")
+}
+
+/// The due date of a recurring payment in one period (data-model.md → RecurringOccurrence),
+/// created on demand when a month is read (research.md R4). The status is derived.
+model RecurringOccurrence {
+  id                 String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  recurringPaymentId String           @map("recurring_payment_id") @db.Uuid
+  /// `YYYY-MM` (monthly) or `YYYY` (annual).
+  period             String           @db.VarChar(7)
+  dueDate            DateTime         @map("due_date") @db.Date
+  /// The payment's amount when the occurrence was created, integer pesos.
+  expectedAmount     BigInt           @map("expected_amount")
+  /// Business date (the user's "today" when marked paid); null while unpaid.
+  paidAt             DateTime?        @map("paid_at") @db.Date
+  /// Real amount paid, integer pesos.
+  paidAmount         BigInt?          @map("paid_amount")
+  createdAt          DateTime         @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt          DateTime         @updatedAt @map("updated_at") @db.Timestamptz(6)
+  recurringPayment   RecurringPayment @relation(fields: [recurringPaymentId], references: [id], onDelete: Cascade)
+
+  @@unique([recurringPaymentId, period])
+  @@index([recurringPaymentId, dueDate])
+  @@map("recurring_occurrences")
 }

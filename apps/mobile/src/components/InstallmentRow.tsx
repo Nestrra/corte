@@ -75,7 +75,7 @@ export function InstallmentRow({
             Cuota {position}
           </Text>
         </View>
-        {status ? <StatusChip status={status} /> : null}
+        {status ? <StatusChip status={status} style={styles.chip} /> : null}
       </View>
       <Amounts principal={principal} interest={interest} dimmed={dimmed} />
     </View>
@@ -96,5 +96,7 @@ const styles = StyleSheet.create({
   left: { flex: 1, gap: spacing.xs },
   right: { alignItems: 'flex-end', gap: spacing.xs },
   tabular: { fontVariant: ['tabular-nums'] },
+  /** Right-aligned under the amount, so chips line up whatever the amount's width. */
+  chip: { alignSelf: 'flex-end' },
   dimmed: { opacity: interaction.staleOpacity },
 });

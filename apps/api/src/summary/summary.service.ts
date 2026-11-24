@@ -12,6 +12,8 @@ import { CardsService } from '../cards/cards.service';
 import { fromDbDate, toDbDate } from '../common/iso-date';
 import { LedgerService } from '../ledger/ledger.service';
 import { PrismaService } from '../prisma/prisma.service';
+import type { MonthView } from '../recurring/recurring.mapper';
+import { RecurringService } from '../recurring/recurring.service';
 
 /** contracts/home.openapi.yaml → NextPayment. */
 export interface NextPaymentSummary {
@@ -36,13 +38,17 @@ export interface CardSummary {
 export interface Summary {
   today: IsoDate;
   cards: CardSummary[];
+  /** Spec 005 (research.md R9): the recurring payments of the current month. */
+  recurring: MonthView;
 }
 
 /**
- * The home screen in one call (spec 004 FR-014 – FR-017, research.md R4). Read-only, with a fixed
- * number of queries whatever the number of cards: today, active cards (+ debt), cut unpaid
- * statements, their totals and the totals of the open statements. Everything is filtered by the
- * user of the token (principle III); the rules come from @corte/domain.
+ * The home screen in one call (spec 004 FR-014 – FR-017, research.md R4), with a fixed number of
+ * queries whatever the number of cards or payments: today, active cards (+ debt), cut unpaid
+ * statements, their totals and the totals of the open statements, plus the month view of the
+ * recurring payments (spec 005 R9). The card part only reads; the recurring part may create the
+ * current month's occurrences (spec 005 R4). Everything is filtered by the user of the token
+ * (principle III); the rules come from @corte/domain.
  */
 @Injectable()
 export class SummaryService {
@@ -50,13 +56,21 @@ export class SummaryService {
     private readonly prisma: PrismaService,
     private readonly ledger: LedgerService,
     private readonly cards: CardsService,
+    private readonly recurring: RecurringService,
   ) {}
 
   async get(userId: string): Promise<Summary> {
-    const today = await this.ledger.todayFor(userId);
+    const [today, recurring] = await Promise.all([
+      this.ledger.todayFor(userId),
+      this.recurring.currentMonthView(userId),
+    ]);
+    return { today, cards: await this.cardSummaries(userId, today), recurring };
+  }
+
+  private async cardSummaries(userId: string, today: IsoDate): Promise<CardSummary[]> {
     // HomeSummary.cards[]: active cards only, in the order of GET /cards.
     const cards = await this.cards.list(userId, false);
-    if (cards.length === 0) return { today, cards: [] };
+    if (cards.length === 0) return [];
 
     const entries = cards.map((card) => ({ card, cycle: nextCutoff(today, card) }));
     const cardIds = cards.map((card) => card.id);
@@ -97,33 +111,30 @@ export class SummaryService {
       [...chosen.values()].flatMap((statement) => (statement ? [statement.id] : [])),
     );
 
-    return {
-      today,
-      cards: entries.map(({ card, cycle }) => {
-        const statement = chosen.get(card.id) ?? null;
-        const amount = toNumberAmount(openTotals.get(card.id) ?? 0n);
-        return {
-          card,
-          nextPayment: statement && {
-            statementId: statement.id,
-            cutoffDate: statement.cutoffDate,
-            dueDate: statement.dueDate,
-            amount: toNumberAmount(totals.get(statement.id)?.total ?? 0n),
-            status: statementStatus(statement, today) === 'overdue' ? 'overdue' : 'due',
-            daysLeft: daysBetween(today, statement.dueDate),
-          },
-          nextCutoff: {
-            cutoffDate: cycle.cutoffDate,
-            dueDate: cycle.dueDate,
-            daysLeft: daysBetween(today, cycle.cutoffDate),
-          },
-          cycleBudgetUsage: {
-            cutoffDate: cycle.cutoffDate,
-            amount,
-            percent: budgetUsagePercent(amount, card.cycleBudget),
-          },
-        };
-      }),
-    };
+    return entries.map(({ card, cycle }): CardSummary => {
+      const statement = chosen.get(card.id) ?? null;
+      const amount = toNumberAmount(openTotals.get(card.id) ?? 0n);
+      return {
+        card,
+        nextPayment: statement && {
+          statementId: statement.id,
+          cutoffDate: statement.cutoffDate,
+          dueDate: statement.dueDate,
+          amount: toNumberAmount(totals.get(statement.id)?.total ?? 0n),
+          status: statementStatus(statement, today) === 'overdue' ? 'overdue' : 'due',
+          daysLeft: daysBetween(today, statement.dueDate),
+        },
+        nextCutoff: {
+          cutoffDate: cycle.cutoffDate,
+          dueDate: cycle.dueDate,
+          daysLeft: daysBetween(today, cycle.cutoffDate),
+        },
+        cycleBudgetUsage: {
+          cutoffDate: cycle.cutoffDate,
+          amount,
+          percent: budgetUsagePercent(amount, card.cycleBudget),
+        },
+      };
+    });
   }
 }

@@ -1,5 +1,6 @@
 import type { IsoDate } from '@corte/domain';
 import type { Card } from './cards';
+import type { MonthView } from './recurring';
 import { apiFetch } from './client';
 
 /** `NextPayment` of specs/004-home-simulator/contracts/home.openapi.yaml. */
@@ -26,6 +27,8 @@ export interface CardSummary {
 export interface Summary {
   today: IsoDate;
   cards: CardSummary[];
+  /** Spec 005: the recurring payments of the current month, also without cards. */
+  recurring: MonthView;
 }
 
 /** Every mutation of purchases, payments and cards invalidates this key (research.md R11). */

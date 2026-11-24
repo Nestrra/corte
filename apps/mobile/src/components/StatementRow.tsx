@@ -53,7 +53,7 @@ export function StatementRow({
             estimado
           </Text>
         ) : null}
-        <StatusChip status={statement.status} />
+        <StatusChip status={statement.status} style={styles.chip} />
       </View>
     </Pressable>
   );
@@ -73,5 +73,7 @@ const styles = StyleSheet.create({
   left: { flex: 1, gap: spacing.xs },
   right: { alignItems: 'flex-end', gap: spacing.xs },
   tabular: { fontVariant: ['tabular-nums'] },
+  /** Right-aligned under the amount, so chips line up whatever the amount's width. */
+  chip: { alignSelf: 'flex-end' },
   pressed: { opacity: interaction.pressedOpacity },
 });

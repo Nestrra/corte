@@ -1,29 +1,46 @@
-import type { StatementStatus } from '@corte/domain';
-import { StyleSheet, View } from 'react-native';
+import type { OccurrenceStatus, StatementStatus } from '@corte/domain';
+import { StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
 import { colors, radius, spacing, type ColorToken } from '../theme';
 import { Text } from './Text';
 
+/** Statuses of statements (spec 003) and of recurring occurrences (spec 005). */
+export type ChipStatus = StatementStatus | OccurrenceStatus;
+
 /**
- * Statement status chip (docs/design-system.md → StatusChip; specs/003-purchases/contracts/
- * screens.md). The state is always written out, never conveyed by color alone (principle IX).
- * Contrast of the text on its background: Abierto 7.69, Por pagar 5.20, Vencido 6.05, Pagado
- * 5.40 (all ≥ 4.5:1, WCAG AA).
+ * Status chip of statements and recurring occurrences (docs/design-system.md → StatusChip;
+ * specs/003-purchases/contracts/screens.md, specs/005-recurring-payments/contracts/screens.md).
+ * The state is always written out, never conveyed by color alone (principle IX). Contrast of the
+ * text on its background: Abierto 7.69, Por pagar and Pendiente 5.20, Vencido 6.05, Pagado 5.40
+ * (all ≥ 4.5:1, WCAG AA).
  */
 const variants: Record<
-  StatementStatus,
+  ChipStatus,
   { label: string; text: ColorToken; background: ColorToken; border: ColorToken }
 > = {
   open: { label: 'Abierto', text: 'textSecondary', background: 'surface', border: 'border' },
   due: { label: 'Por pagar', text: 'warning', background: 'warningSoft', border: 'warningSoft' },
+  pending: {
+    label: 'Pendiente',
+    text: 'warning',
+    background: 'warningSoft',
+    border: 'warningSoft',
+  },
   overdue: { label: 'Vencido', text: 'danger', background: 'dangerSoft', border: 'dangerSoft' },
   paid: { label: 'Pagado', text: 'success', background: 'successSoft', border: 'successSoft' },
 };
 
-export function statusLabel(status: StatementStatus): string {
+export function statusLabel(status: ChipStatus): string {
   return variants[status].label;
 }
 
-export function StatusChip({ status }: { status: StatementStatus }) {
+export function StatusChip({
+  status,
+  style,
+}: {
+  status: ChipStatus;
+  /** Layout overrides from the parent, e.g. `alignSelf` to right-align it in a row. */
+  style?: StyleProp<ViewStyle>;
+}) {
   const variant = variants[status];
   return (
     <View
@@ -32,6 +49,7 @@ export function StatusChip({ status }: { status: StatementStatus }) {
       style={[
         styles.chip,
         { backgroundColor: colors[variant.background], borderColor: colors[variant.border] },
+        style,
       ]}
     >
       <Text variant="caption" color={variant.text}>

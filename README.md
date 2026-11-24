@@ -191,6 +191,26 @@ crean ni modifican nada.
 - En la app, el botón central "Registrar compra" abre el registro desde cualquier pestaña con la
   tarjeta al frente del inicio, y el formulario simula la compra mientras se escribe.
 
+### Pagos recurrentes
+
+Contrato en `specs/005-recurring-payments/contracts/recurring.openapi.yaml`. Los pagos recurrentes
+no suman a ninguna tarjeta.
+
+| Método y ruta                                     | Qué hace                                                            |
+| ------------------------------------------------- | ------------------------------------------------------------------- |
+| `GET / POST /api/v1/recurring`                    | Mis pagos (activos primero) / crear un pago mensual o anual         |
+| `GET / PATCH / DELETE /api/v1/recurring/:id`      | Detalle / editar (desde hoy; lo pagado no cambia) / eliminar        |
+| `POST /api/v1/recurring/:id/pause` y `/resume`    | Pausar (conserva el periodo actual) / reanudar desde el próximo día |
+| `GET /api/v1/recurring/occurrences?month=YYYY-MM` | Pagos del mes con total, pagado y lo que falta                      |
+| `GET /api/v1/occurrences/:id`                     | Detalle de una ocurrencia                                           |
+| `POST / DELETE /api/v1/occurrences/:id/payment`   | Marcar pagada (monto real opcional) / deshacer                      |
+
+- Los vencimientos se calculan en `@corte/domain` anclados al día original (31 ene → 28 feb →
+  31 mar). Las ocurrencias se crean al pedir un mes, sin cron; `GET /summary` trae las del mes
+  actual.
+- En la app: sección "Pagos de <mes>" en el inicio y pestaña Pagos con navegación por mes, "Mis
+  pagos", formularios y una hoja para marcar pagado con el monto prellenado.
+
 ### Restablecer la contraseña de un usuario (administrador)
 
 No hay recuperación por correo. Quien administra el servidor genera una contraseña temporal, que
