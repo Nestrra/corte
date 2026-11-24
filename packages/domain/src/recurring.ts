@@ -263,25 +263,30 @@ export function validateRecurringName(name: string): RecurringNameError | null {
   return validateCardName(name);
 }
 
-/** today + 12 months, clamped to the month end. */
-function latestDueDate(today: IsoDate): IsoDate {
+/** The latest first or next due date: today + 12 months, clamped to the month end. */
+export function latestRecurringDueDate(today: IsoDate): IsoDate {
   const { year, month, day } = parseIsoDate(today);
   const later = addMonths(year, month, RECURRING_MAX_MONTHS_AHEAD);
   return clampedDate(later.year, later.month, day);
 }
 
+/** The earliest first due date: the 1st of the current month. */
+export function earliestFirstDueDate(today: IsoDate): IsoDate {
+  return `${yearMonthOf(today)}-01`;
+}
+
 /** From the 1st of the current month to today + 12 months. */
 export function validateFirstDueDate(date: string, today: IsoDate): FirstDueDateError | null {
-  const latest = latestDueDate(today);
+  const latest = latestRecurringDueDate(today);
   if (!isValidIsoDate(date)) return 'INVALID';
-  if (date < `${yearMonthOf(today)}-01`) return 'TOO_OLD';
+  if (date < earliestFirstDueDate(today)) return 'TOO_OLD';
   if (date > latest) return 'TOO_FAR';
   return null;
 }
 
 /** From today to today + 12 months. */
 export function validateNextDueDate(date: string, today: IsoDate): NextDueDateError | null {
-  const latest = latestDueDate(today);
+  const latest = latestRecurringDueDate(today);
   if (!isValidIsoDate(date)) return 'INVALID';
   if (date < today) return 'IN_PAST';
   if (date > latest) return 'TOO_FAR';

@@ -1,48 +1,26 @@
-import Ionicons from '@expo/vector-icons/Ionicons';
 import { useQuery } from '@tanstack/react-query';
 import { router } from 'expo-router';
-import { ActivityIndicator, Pressable, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, StyleSheet, View } from 'react-native';
 import { getSummary, summaryKeys } from '../../../api/summary';
 import { CardCarousel } from '../../../components/CardCarousel';
 import { CycleSummary } from '../../../components/CycleSummary';
 import { EmptyCards } from '../../../components/EmptyCards';
 import { QueryError } from '../../../components/QueryError';
+import { RecurringSection } from '../../../components/RecurringSection';
 import { Screen } from '../../../components/Screen';
+import { SectionHeader } from '../../../components/SectionHeader';
 import { Text } from '../../../components/Text';
 import { useFrontCardStore } from '../../../features/front-card-store';
 import { useRefetchOnAppActive } from '../../../features/use-refetch-on-app-active';
 import { useRefetchOnFocus } from '../../../features/use-refetch-on-focus';
 import { useSessionStore } from '../../../session/session-store';
-import { colors, interaction, layout, radius, spacing } from '../../../theme';
-
-const ICON_SIZE = spacing.xl;
-
-/** SectionHeader of docs/design-system.md: section title and a secondary "+ Agregar" button. */
-function SectionHeader() {
-  return (
-    <View style={styles.sectionHeader}>
-      <Text variant="section" accessibilityRole="header">
-        Mis tarjetas
-      </Text>
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel="Agregar tarjeta"
-        onPress={() => router.push('/card/new')}
-        style={({ pressed }) => [styles.add, pressed && styles.pressed]}
-      >
-        <Ionicons name="add" size={ICON_SIZE} color={colors.primaryStrong} />
-        <Text variant="bodyStrong" color="primaryStrong">
-          Agregar
-        </Text>
-      </Pressable>
-    </View>
-  );
-}
+import { colors, spacing } from '../../../theme';
 
 /**
- * Inicio (spec 004 US2, US4, US5; docs/design-system.md → Pantalla de inicio): greeting, "Mis
- * tarjetas" with the carousel, and the summary of the card in front. The summary is fetched again
- * on focus and when the app comes back to the foreground, so days follow the new "today".
+ * Inicio (spec 004 US2, US4, US5; spec 005 US2; docs/design-system.md → Pantalla de inicio):
+ * greeting, "Mis tarjetas" with the carousel, the summary of the card in front, and "Pagos de
+ * <mes>". The summary is fetched again on focus and when the app comes back to the foreground, so
+ * days and statuses follow the new "today".
  */
 export default function HomeScreen() {
   const name = useSessionStore((state) => state.user?.name ?? '');
@@ -70,21 +48,31 @@ export default function HomeScreen() {
           onRetry={() => void summary.refetch()}
           retrying={summary.isFetching}
         />
-      ) : cards.length === 0 ? (
-        <EmptyCards />
       ) : (
         <>
-          <View style={styles.section}>
-            <SectionHeader />
-            <CardCarousel
-              cards={cards.map((item) => item.card)}
-              onPressCard={(card) =>
-                router.push({ pathname: '/card/[id]', params: { id: card.id } })
-              }
-              onActiveChange={(card) => setFrontCardId(card.id)}
-            />
-          </View>
-          {front ? <CycleSummary summary={front} /> : null}
+          {cards.length === 0 ? (
+            <EmptyCards />
+          ) : (
+            <>
+              <View style={styles.section}>
+                <SectionHeader
+                  title="Mis tarjetas"
+                  action="Agregar"
+                  actionLabel="Agregar tarjeta"
+                  onAction={() => router.push('/card/new')}
+                />
+                <CardCarousel
+                  cards={cards.map((item) => item.card)}
+                  onPressCard={(card) =>
+                    router.push({ pathname: '/card/[id]', params: { id: card.id } })
+                  }
+                  onActiveChange={(card) => setFrontCardId(card.id)}
+                />
+              </View>
+              {front ? <CycleSummary summary={front} /> : null}
+            </>
+          )}
+          <RecurringSection view={summary.data.recurring} />
         </>
       )}
     </Screen>
@@ -93,20 +81,4 @@ export default function HomeScreen() {
 
 const styles = StyleSheet.create({
   section: { gap: spacing.md },
-  sectionHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: spacing.md,
-  },
-  add: {
-    minHeight: layout.minTouchTarget,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.xs,
-    paddingHorizontal: spacing.md,
-    borderRadius: radius.control,
-    backgroundColor: colors.primarySoft,
-  },
-  pressed: { opacity: interaction.pressedOpacity },
 });

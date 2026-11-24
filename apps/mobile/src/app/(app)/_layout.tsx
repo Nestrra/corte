@@ -31,6 +31,22 @@ export default function AppLayout() {
         <Stack.Screen name="purchase/[id]/index" options={{ title: 'Compra' }} />
         <Stack.Screen name="purchase/[id]/edit" options={{ title: 'Editar compra' }} />
         <Stack.Screen name="statement/[id]" options={{ title: 'Extracto' }} />
+        <Stack.Screen name="recurring/index" options={{ title: 'Mis pagos' }} />
+        <Stack.Screen name="recurring/new" options={{ title: 'Nuevo pago' }} />
+        <Stack.Screen name="recurring/[id]/index" options={{ title: 'Pago' }} />
+        <Stack.Screen name="recurring/[id]/edit" options={{ title: 'Editar pago' }} />
+        <Stack.Screen name="occurrence/[id]/index" options={{ title: 'Pago del mes' }} />
+        {/* Native sheet (react-native-screens), no extra dependency (spec 005 research.md R10). */}
+        <Stack.Screen
+          name="occurrence/[id]/pay"
+          options={{
+            title: 'Marcar pagado',
+            presentation: 'formSheet',
+            sheetAllowedDetents: [0.5, 1],
+            sheetGrabberVisible: true,
+            contentStyle: { backgroundColor: colors.bg },
+          }}
+        />
         <Stack.Screen name="timezone" options={{ title: 'Zona horaria' }} />
         <Stack.Screen name="delete-account" options={{ title: 'Eliminar cuenta' }} />
       </Stack.Protected>

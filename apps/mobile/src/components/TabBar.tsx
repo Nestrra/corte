@@ -13,6 +13,7 @@ type IconName = ComponentProps<typeof Ionicons>['name'];
 const icons: Record<string, { active: IconName; inactive: IconName }> = {
   home: { active: 'home', inactive: 'home-outline' },
   cards: { active: 'card', inactive: 'card-outline' },
+  payments: { active: 'calendar', inactive: 'calendar-outline' },
   profile: { active: 'person', inactive: 'person-outline' },
 };
 
