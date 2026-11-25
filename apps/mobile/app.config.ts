@@ -1,3 +1,6 @@
+// This file runs in Node (Expo CLI, EAS), not in the app: it needs Node's types, which TypeScript 6
+// no longer includes by default.
+/// <reference types="node" />
 import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 
