@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  addDays,
   addMonths,
   clampedDate,
   compareIsoDates,
@@ -7,6 +8,7 @@ import {
   daysInMonth,
   isLeapYear,
   isValidIsoDate,
+  maxIsoDate,
   parseIsoDate,
   toIsoDate,
 } from './calendar';
@@ -110,6 +112,28 @@ describe('calendar (research.md R1)', () => {
       ['2026-12-08', '2026-11-21', -17],
     ])('daysBetween(%s, %s) → %d', (from, to, expected) => {
       expect(daysBetween(from, to)).toBe(expected);
+    });
+  });
+  describe('addDays / maxIsoDate (spec 006 research.md R1)', () => {
+    it.each([
+      ['2026-12-08', -2, '2026-12-06'],
+      ['2027-01-01', -2, '2026-12-30'],
+      ['2028-03-01', -1, '2028-02-29'],
+      ['2027-03-01', -1, '2027-02-28'],
+      ['2026-12-31', 1, '2027-01-01'],
+      ['2026-11-25', 0, '2026-11-25'],
+      ['2026-12-20', 1, '2026-12-21'],
+    ])('addDays(%s, %d) → %s', (date, days, expected) => {
+      expect(addDays(date, days)).toBe(expected);
+    });
+    it('rejects invalid dates and non-integer days', () => {
+      expect(() => addDays('2027-02-29', 1)).toThrow(RangeError);
+      expect(() => addDays('2026-12-08', 1.5)).toThrow(RangeError);
+    });
+    it('maxIsoDate returns the later date', () => {
+      expect(maxIsoDate('2026-12-19', '2026-12-21')).toBe('2026-12-21');
+      expect(maxIsoDate('2026-12-22', '2026-12-21')).toBe('2026-12-22');
+      expect(() => maxIsoDate('x', '2026-12-21')).toThrow(RangeError);
     });
   });
 });

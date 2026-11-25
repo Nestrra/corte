@@ -113,10 +113,15 @@ Plus Jakarta Sans (600, 700) para títulos y montos; Inter (400, 500, 600) para 
   "Registrar compra"), que abre el registro con la tarjeta al frente del inicio; la spec 005, Pagos
   (ícono `calendar` / `calendar-outline`), sin cambiar los tokens.
 - **Hoja "Marcar pagado"** (spec 005): hoja nativa (`formSheet`) con "Monto pagado" prellenado con el esperado y editable, "Confirmar pago" y "Cancelar"; se cierra también con el gesto.
+- **RecurringForm** (spec 006): además de nombre, monto, frecuencia y fecha, el campo "Recordar con anticipación" (días de 0 a 15, ayuda "Días antes del vencimiento. 0 = el mismo día"), igual que "Recordar corte" en CardForm. El detalle del pago muestra "Recordatorio: 2 días antes" o "El mismo día".
+- **BellButton** (spec 006): botón redondo de 44 × 44 (`surface` con borde `border`) con `notifications-outline` en `primaryStrong` (9,93 sobre `surface`), junto al saludo del inicio; etiqueta accesible "Notificaciones" y sin contador. Abre el historial.
+- **NotificationRow** (spec 006): ícono por tipo (`alert-circle-outline` en `warning` para la alerta de tope, 5,43; `cut-outline`, `card-outline` y `calendar-outline` en `primaryStrong`), título `bodyStrong` (hasta 2 líneas), texto `secondary` en `textSecondary` (hasta 3 líneas, cifras tabulares, 7,69) y la hora a la derecha en `caption` `textTertiary` (4,97): "Hoy, 7:00", "Ayer, 15:42" o "23 nov, 7:00", en la zona del usuario. Alto ≥ 44; se lee como una frase: "Visa principal, llevas el 95% del tope de este ciclo, hoy a las 7:00". Van en un ListPanel; el historial vacío dice "Sin notificaciones en los últimos 30 días" y el aviso "Esto ya no está disponible" va en `warning` sobre `warningSoft` (5,20).
+- **PermissionIntro** (spec 006): pantalla modal sin encabezado, una vez por dispositivo: círculo `primarySoft` con `notifications-outline` grande en `primary`, título `title` "Activa las notificaciones", texto `body` centrado y al pie los Button "Activar notificaciones" (primario) y "Ahora no" (secundario).
+- **NotificationStatusRow** (spec 006): primera fila de un panel de Perfil: "Notificaciones" a la izquierda y el estado escrito a la derecha: "Activadas" (`success`, 5,69 sobre `surface`), "Desactivadas" (`warning`, 5,43) con la acción "Abrir ajustes", "Sin activar" (`textSecondary`, 7,69) con "Activar", "No disponibles en este dispositivo" o "Activando…" (`textSecondary`). La acción es texto `bodyStrong` en `primaryStrong` (9,93) con área de 44. Debajo, con estado Activadas, el Button secundario "Enviar notificación de prueba", que tras un 429 queda deshabilitado con "Espera <s> s" y muestra el resultado debajo, sobre `bg`: `success` (5,31) o `danger` (6,13).
 
 ## Pantalla de inicio
 
-1. Saludo y botón de notificaciones.
+1. Saludo y BellButton a la derecha (spec 006), que abre el historial de notificaciones.
 2. "Mis tarjetas" + botón Agregar, carrusel de tarjetas.
 3. CycleSummary de la tarjeta al frente.
 4. "Pagos de <mes>" + botón Nuevo, StatTiles de total y pagado, lo que falta y la lista de pagos recurrentes ordenada: vencidos, pendientes, pagados (RecurringSection, spec 005). Aparece también sin tarjetas, debajo de EmptyCards.

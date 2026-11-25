@@ -88,6 +88,7 @@ describe('Recurring payments (e2e)', () => {
         anchorDate: '2026-12-05',
         status: 'active',
         nextDueDate: '2026-12-05',
+        remindDays: 2,
       });
     });
 
@@ -362,6 +363,43 @@ describe('Recurring payments (e2e)', () => {
         status: 'paused',
         nextDueDate: null,
       });
+    });
+  });
+
+  describe('reminder advance (spec 006 US4, FR-016)', () => {
+    const body = {
+      ...{ name: 'Celular', amount: 65_000, frequency: 'monthly' },
+      firstDueDate: '2026-12-28',
+    };
+    const create = (extra: object) =>
+      http()
+        .post('/api/v1/recurring')
+        .set(bearer(token))
+        .send({ ...body, ...extra });
+
+    it('defaults to 2 and stores 0 and 15', async () => {
+      expect((await create({}).expect(201)).body.remindDays).toBe(2);
+      expect((await create({ remindDays: 0 }).expect(201)).body.remindDays).toBe(0);
+      expect((await create({ remindDays: 15 }).expect(201)).body.remindDays).toBe(15);
+    });
+
+    it.each([16, -1, 1.5, '2'])('rejects %j with OUT_OF_RANGE', async (remindDays) => {
+      const response = await create({ remindDays }).expect(400);
+      expect(response.body.errors).toEqual([{ field: 'remindDays', code: 'OUT_OF_RANGE' }]);
+    });
+
+    it('PATCH changes it without touching the occurrences; list and detail include it', async () => {
+      const payment = await createRecurring(app, token, body);
+      await monthView(app, token, '2026-12');
+      const before = await occurrenceRows(payment.id);
+
+      const response = await patch(payment.id, { remindDays: 5 }).expect(200);
+      expect(response.body.remindDays).toBe(5);
+      expect(await occurrenceRows(payment.id)).toEqual(before);
+      expect((await get(payment.id).expect(200)).body.remindDays).toBe(5);
+      const list = await http().get('/api/v1/recurring').set(bearer(token)).expect(200);
+      expect(list.body[0].remindDays).toBe(5);
+      await patch(payment.id, { remindDays: 16 }).expect(400);
     });
   });
 

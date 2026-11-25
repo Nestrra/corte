@@ -54,6 +54,15 @@ export const envSchema = z
         .min(0, { error: 'must be an integer ≥ 0' })
         .default(0),
     ),
+    /** spec 006 research.md R7: false disables the cron (e2e, admin consoles). */
+    JOBS_ENABLED: optional(
+      z
+        .enum(['true', 'false'], { error: 'must be "true" or "false"' })
+        .default('true')
+        .transform((value) => value === 'true'),
+    ),
+    /** Optional Expo access token for enhanced push security; a secret, never logged (R17). */
+    EXPO_ACCESS_TOKEN: optional(z.string().trim().optional()),
   })
   .superRefine((env, ctx) => {
     if (env.SWAGGER_ENABLED && env.APP_ENV === 'production') {

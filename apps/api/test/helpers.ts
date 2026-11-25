@@ -8,15 +8,24 @@ import request from 'supertest';
 import { AppModule } from '../src/app.module';
 import { configureApp } from '../src/app.setup';
 import { PasswordService } from '../src/auth/password.service';
+import { BackgroundTasks } from '../src/common/background-tasks';
 import { CLOCK, type Clock } from '../src/common/clock';
+import { PUSH_CLIENT } from '../src/notifications/push-client';
 import { PrismaService } from '../src/prisma/prisma.service';
+import { FakePushClient } from './fake-push-client';
 
 export const TEST_DATABASE_URL = process.env.DATABASE_URL;
 export const TEST_JWT_SECRET = 'e2e-test-secret-with-at-least-32-chars!!';
 
 export type TestEnv = Partial<
   Record<
-    'DATABASE_URL' | 'APP_ENV' | 'GIT_SHA' | 'SWAGGER_ENABLED' | 'JWT_SECRET' | 'TRUST_PROXY',
+    | 'DATABASE_URL'
+    | 'APP_ENV'
+    | 'GIT_SHA'
+    | 'SWAGGER_ENABLED'
+    | 'JWT_SECRET'
+    | 'TRUST_PROXY'
+    | 'JOBS_ENABLED',
     string | undefined
   >
 >;
@@ -27,9 +36,37 @@ export const FIXED_NOW = new Date('2026-11-22T02:30:00Z');
 /** Fixed instant of the spec 004 e2e: 23 Nov 2026 in Bogotá (10:00 there). */
 export const HOME_NOW = new Date('2026-11-23T15:00:00Z');
 
+/** Fixed instant of the spec 006 e2e: 25 Nov 2026 in Bogotá (10:00 there). */
+export const ALERTS_NOW = new Date('2026-11-25T15:00:00Z');
+
+/** A clock the test moves (spec 006: reminder hours, receipts after 15 minutes). */
+export class MutableClock implements Clock {
+  private current: Date;
+
+  constructor(start: Date) {
+    this.current = new Date(start);
+  }
+
+  now(): Date {
+    return new Date(this.current);
+  }
+
+  set(instant: Date | string): void {
+    this.current = new Date(instant);
+  }
+
+  advance(ms: number): void {
+    this.current = new Date(this.current.getTime() + ms);
+  }
+}
+
 export interface TestAppOptions {
   /** Replaces the Clock provider with a fixed instant. */
   now?: Date;
+  /** Replaces the Clock provider with a clock the test moves. */
+  clock?: MutableClock;
+  /** Replaces PUSH_CLIENT (Expo) with a fake. Without it, a fresh fake is used: never the network. */
+  push?: FakePushClient;
 }
 
 export async function createTestApp(
@@ -44,6 +81,8 @@ export async function createTestApp(
     SWAGGER_ENABLED: 'false',
     JWT_SECRET: TEST_JWT_SECRET,
     TRUST_PROXY: '0',
+    // spec 006: the cron never fires in the e2e; suites call NotificationsJobs.runOnce().
+    JOBS_ENABLED: 'false',
     ...overrides,
   };
   for (const [key, value] of Object.entries(env)) {
@@ -52,11 +91,14 @@ export async function createTestApp(
   }
 
   let builder = Test.createTestingModule({ imports: [AppModule.register()] });
-  if (options.now) {
+  if (options.clock) {
+    builder = builder.overrideProvider(CLOCK).useValue(options.clock);
+  } else if (options.now) {
     const fixed = options.now;
     const clock: Clock = { now: () => new Date(fixed) };
     builder = builder.overrideProvider(CLOCK).useValue(clock);
   }
+  builder = builder.overrideProvider(PUSH_CLIENT).useValue(options.push ?? new FakePushClient());
   const moduleRef = await builder.compile();
   const app = moduleRef.createNestApplication({ logger: false });
   configureApp(app);
@@ -66,10 +108,12 @@ export async function createTestApp(
 
 /**
  * Deletes every user (and, by cascade, cards, purchases, installments, statements, recurring
- * payments and their occurrences).
+ * payments, their occurrences, devices, notifications and dispatches) and the push tickets, which
+ * have no user.
  */
 export async function resetDatabase(app: INestApplication): Promise<void> {
-  await app.get(PrismaService).$executeRawUnsafe('TRUNCATE TABLE "users" CASCADE');
+  await app.get(BackgroundTasks).drain();
+  await app.get(PrismaService).$executeRawUnsafe('TRUNCATE TABLE "users", "push_tickets" CASCADE');
 }
 
 export interface TestUserInput {
@@ -363,4 +407,26 @@ export function occurrenceByName(view: MonthViewBody, name: string): OccurrenceB
 /** Due dates of a payment in a month view, by name. */
 export function dueDatesOf(view: MonthViewBody, name: string): string[] {
   return view.items.filter((item) => item.name === name).map((item) => item.dueDate);
+}
+
+/** POST /devices with an Expo token (fails the test on non-204). */
+export async function registerDevice(
+  app: INestApplication,
+  accessToken: string,
+  pushToken: string,
+  platform: 'ios' | 'android' = 'ios',
+): Promise<void> {
+  await request(app.getHttpServer())
+    .post('/api/v1/devices')
+    .set(bearer(accessToken))
+    .send({ token: pushToken, platform })
+    .expect(204);
+}
+
+/** An Expo push token for the tests. */
+export const pushToken = (name: string) => `ExponentPushToken[${name}]`;
+
+/** Waits for the work that runs after the response (budget alerts). */
+export async function drainBackground(app: INestApplication): Promise<void> {
+  await app.get(BackgroundTasks).drain();
 }

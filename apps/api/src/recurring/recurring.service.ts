@@ -1,4 +1,5 @@
 import {
+  DEFAULT_RECURRING_REMIND_DAYS,
   duePeriods,
   monthBounds,
   monthRange,
@@ -95,6 +96,7 @@ export class RecurringService {
         firstDueDate,
         anchorDate: firstDueDate,
         startsOn: firstDueDate,
+        remindDays: input.remindDays ?? DEFAULT_RECURRING_REMIND_DAYS,
       },
     });
     return this.view(payment, today);
@@ -120,10 +122,18 @@ export class RecurringService {
         await this.checkFrequencyChange(tx, current, input.nextDueDate as IsoDate, today);
       }
 
-      await this.materializeThrough(tx, current, today);
-      await tx.recurringOccurrence.deleteMany({
-        where: { recurringPaymentId: current.id, paidAt: null, dueDate: { gte: toDbDate(today) } },
-      });
+      // Only the reminder advance: the occurrences stay as they are (spec 006 R12).
+      const onlyReminder = Object.keys(input).every((field) => field === 'remindDays');
+      if (!onlyReminder) {
+        await this.materializeThrough(tx, current, today);
+        await tx.recurringOccurrence.deleteMany({
+          where: {
+            recurringPaymentId: current.id,
+            paidAt: null,
+            dueDate: { gte: toDbDate(today) },
+          },
+        });
+      }
       const nextDueDate = input.nextDueDate === undefined ? undefined : toDbDate(input.nextDueDate);
       const payment = await tx.recurringPayment.update({
         where: { id: current.id },
@@ -133,6 +143,7 @@ export class RecurringService {
           frequency: input.frequency,
           anchorDate: nextDueDate,
           startsOn: nextDueDate,
+          remindDays: input.remindDays,
         },
       });
       return { payment, today };
@@ -334,6 +345,24 @@ export class RecurringService {
     if (last && yearMonthOf(nextDueDate) <= yearMonthOf(fromDbDate(last.dueDate))) {
       throw AppErrors.validation([{ field: 'nextDueDate', code: 'BEFORE_LAST_DUE' }]);
     }
+  }
+
+  /**
+   * Spec 006 (research.md R7): creates the occurrences of the user's payments with a due date
+   * between `from` and `until`, locking them like a month read, so the job can remind a month
+   * that nobody opened (FR-015).
+   */
+  async materializeForReminders(
+    tx: Db,
+    userId: string,
+    from: IsoDate,
+    until: IsoDate,
+  ): Promise<void> {
+    const payments = await this.lockUserPayments(tx, userId);
+    await this.insertOccurrences(
+      tx,
+      payments.map((payment) => ({ payment, dues: duePeriods(toSchedule(payment), from, until) })),
+    );
   }
 
   /** research.md R5: every due date up to the end of the current period, with the current rules. */

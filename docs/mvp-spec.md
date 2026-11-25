@@ -73,9 +73,9 @@ Toda la lógica de fechas y montos vive en `packages/domain` (constitución, pri
 
 1. Uso del tope = suma de las cuotas del extracto abierto ÷ tope del ciclo.
 2. Cupo disponible = cupo − capital pendiente de todas las cuotas no pagadas.
-3. Al registrar una compra, el API calcula el uso del tope y envía un push por cada umbral cruzado (70%, 90%, 100%), una sola vez por umbral y ciclo.
+3. Al registrar o editar una compra, el API calcula el uso del tope del ciclo abierto y, si cruza 70%, 90% o 100%, envía una sola alerta con el umbral más alto cruzado; todos los umbrales cruzados quedan avisados, así que cada uno se avisa una sola vez por ciclo (spec 006 research.md R2).
 4. Si una compra supera el cupo disponible, la app avisa pero deja guardarla.
-5. Un job diario a las 7:00 en la zona del usuario envía los recordatorios: N días antes del corte (por defecto 2) y antes de la fecha límite (por defecto 3), con el monto exacto.
+5. Desde las 7:00 en la zona del usuario, un job (cada 15 minutos) envía en un solo push del día los recordatorios: N días antes del corte (por defecto 2), antes de la fecha límite (por defecto 3) con el monto exacto si el extracto no está pagado, y antes de cada pago recurrente pendiente (por defecto 2). Ningún recordatorio se repite (spec 006).
 
 **Pagos recurrentes**
 
@@ -95,13 +95,15 @@ Cada spec define su parte en su `data-model.md`; esta tabla es la visión de con
 | --- | --- | --- |
 | `users` | id, name, email, password_hash, timezone, created_at | Hash con argon2. Al borrar la cuenta se borra todo en cascada. |
 | `refresh_tokens` | id, user_id, token_hash, expires_at, revoked_at | Rotación en cada refresh. |
-| `devices` | id, user_id, expo_push_token, platform | Un usuario puede tener varios dispositivos. |
+| `devices` | id, user_id, session_id, token, platform, last_seen_at, last_test_at | Un token por fila, ligado a la sesión; cerrar sesión o revocarla lo quita (spec 006). |
 | `cards` | id, user_id, name, color, last4, cutoff_day, due_day, credit_limit, cycle_budget, remind_cutoff_days, remind_due_days, archived_at | `color` es una clave de `cardColors`; `last4` es opcional. |
 | `statements` | id, card_id, cutoff_date, due_date, paid_at, paid_amount | Único por (card_id, cutoff_date). `paid_at` es DATE (fecha de negocio); el estado se deriva de las fechas. |
 | `purchases` | id, card_id, amount, concept, purchase_date, installment_count, no_interest, annual_rate | `annual_rate` es la tasa de la tarjeta al registrar (nula si no tiene). |
 | `installments` | id, purchase_id, statement_id, number, principal, interest | La suma de los principal da el valor de la compra. |
-| `alert_logs` | id, card_id, statement_id, kind, threshold, sent_at | Evita repetir un aviso en el mismo ciclo. |
-| `recurring_payments` | id, user_id, name, amount, frequency, first_due_date, anchor_date, starts_on, paused_on, deleted_at | El día (y el mes, si es anual) sale de `anchor_date`; borrado lógico (spec 005). |
+| `notifications` | id, user_id, kind, title, body, target_type, target_id, created_at | Historial de 30 días (spec 006). |
+| `notification_dispatches` | id, user_id, kind, reference_id, reference_date, threshold, notification_id | Clave única que impide repetir una alerta o un recordatorio; se borra a los 90 días. |
+| `push_tickets` | id, token, created_at | Tickets de Expo pendientes de revisar su receipt. |
+| `recurring_payments` | id, user_id, name, amount, frequency, first_due_date, anchor_date, starts_on, paused_on, deleted_at, remind_days | El día (y el mes, si es anual) sale de `anchor_date`; borrado lógico (spec 005). |
 | `recurring_occurrences` | id, recurring_payment_id, period, due_date, expected_amount, paid_at, paid_amount | Una por pago y periodo (`YYYY-MM` o `YYYY`); se crean al pedir un mes. Pendiente y vencida se derivan de la fecha. |
 
 ## API REST (orientativa)
@@ -113,7 +115,10 @@ Todo bajo `/api/v1`; salvo auth y health, pide JWT. Cada consulta filtra por el 
 | POST | `/auth/register`, `/auth/login` | Crea la cuenta o inicia sesión y devuelve access y refresh token. |
 | POST | `/auth/refresh`, `/auth/logout` | Rota el refresh token o lo revoca. |
 | GET / PATCH / DELETE | `/me` | Perfil, zona horaria y eliminación de la cuenta. |
-| POST / DELETE | `/devices`, `/devices/:id` | Registra o quita un token de push de Expo. |
+| POST | `/devices` | Registra el token de push de Expo de este dispositivo y lo liga a la sesión (contrato en `specs/006-alerts-reminders/contracts/notifications.openapi.yaml`). |
+| DELETE | `/devices/current` | Quita los dispositivos de la sesión actual. |
+| GET | `/notifications` | Historial de los últimos 30 días (máximo 200). |
+| POST | `/notifications/test` | Envía una notificación de prueba a los dispositivos de esta sesión (una cada 30 segundos). |
 | GET / POST | `/cards` | Lista o crea tarjetas. |
 | GET / PATCH / DELETE | `/cards/:id` | Detalle, edición (recalcula extractos abiertos) o archivado. |
 | POST | `/cards/:id/simulate` | Devuelve extracto, fecha de pago, plan de cuotas, intereses, % del tope y cupo después de la compra. No guarda nada (contrato en `specs/004-home-simulator/contracts/home.openapi.yaml`). |
@@ -138,7 +143,7 @@ Todo bajo `/api/v1`; salvo auth y health, pide JWT. Cada consulta filtra por el 
 4. **003 — Compras, cuotas y extractos** (cerrada): HU-03 y HU-04.
 5. **004 — Simulador e inicio** (cerrada): HU-05 y HU-08.
 6. **005 — Pagos recurrentes** (cerrada): HU-07 y los recurrentes del mes de HU-08.
-7. **006 — Alertas y recordatorios:** HU-06.
+7. **006 — Alertas y recordatorios** (cerrada): HU-06 y los recordatorios de pagos recurrentes.
 
 La infraestructura del homelab (stacks, túnel, secretos, respaldos, deploy) va fuera de Spec Kit.
 

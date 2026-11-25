@@ -53,3 +53,58 @@ export function formatShortDate(date: IsoDate): string {
   const { year, month, day } = parseIsoDate(date);
   return `${day} ${SHORT_MONTHS[month - 1]} ${year}`;
 }
+
+interface LocalDateTime {
+  date: IsoDate;
+  month: number;
+  day: number;
+  time: string;
+}
+
+/** Date and "H:MM" (24 h) of an instant in a time zone. */
+function localDateTime(instant: Date, timeZone: string): LocalDateTime {
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    hourCycle: 'h23',
+  }).formatToParts(instant);
+  const part = (type: Intl.DateTimeFormatPartTypes) =>
+    parts.find((item) => item.type === type)?.value ?? '00';
+  const month = Number(part('month'));
+  const day = Number(part('day'));
+  return {
+    date: `${part('year')}-${part('month')}-${part('day')}` as IsoDate,
+    month,
+    day,
+    time: `${Number(part('hour'))}:${part('minute')}`,
+  };
+}
+
+export interface MomentLabel {
+  /** "Hoy, 7:00", "Ayer, 15:42" or "23 nov, 7:00". */
+  text: string;
+  /** "hoy a las 7:00", "ayer a las 15:42" or "el 23 nov a las 7:00". */
+  spoken: string;
+}
+
+/**
+ * When a notification arrived, in the user's time zone (specs/006-alerts-reminders/contracts/
+ * screens.md → NotificationRow). `now` is the phone clock: only used to say "Hoy" or "Ayer".
+ */
+export function notificationMomentLabel(
+  createdAt: string,
+  timeZone: string,
+  now: Date = new Date(),
+): MomentLabel {
+  const moment = localDateTime(new Date(createdAt), timeZone);
+  const today = localDateTime(now, timeZone);
+  const days = daysBetween(moment.date, today.date);
+  if (days === 0) return { text: `Hoy, ${moment.time}`, spoken: `hoy a las ${moment.time}` };
+  if (days === 1) return { text: `Ayer, ${moment.time}`, spoken: `ayer a las ${moment.time}` };
+  const date = `${moment.day} ${SHORT_MONTHS[moment.month - 1]}`;
+  return { text: `${date}, ${moment.time}`, spoken: `el ${date} a las ${moment.time}` };
+}

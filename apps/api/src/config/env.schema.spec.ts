@@ -19,6 +19,7 @@ describe('validateEnv', () => {
       SWAGGER_ENABLED: false,
       JWT_SECRET: base.JWT_SECRET,
       TRUST_PROXY: 0,
+      JOBS_ENABLED: true,
     });
   });
 
@@ -162,6 +163,36 @@ describe('validateEnv', () => {
 
     it.each(['-1', '1.5', 'true', 'abc'])('rejects %s', (value) => {
       expect(() => validateEnv({ ...base, TRUST_PROXY: value })).toThrow(/TRUST_PROXY/);
+    });
+  });
+
+  describe('JOBS_ENABLED (spec 006)', () => {
+    it('defaults to true', () => {
+      expect(validateEnv({ ...base }).JOBS_ENABLED).toBe(true);
+      expect(validateEnv({ ...base, JOBS_ENABLED: '' }).JOBS_ENABLED).toBe(true);
+    });
+
+    it('accepts "false"', () => {
+      expect(validateEnv({ ...base, JOBS_ENABLED: 'false' }).JOBS_ENABLED).toBe(false);
+    });
+
+    it('rejects other values naming the variable without its value', () => {
+      let message = '';
+      try {
+        validateEnv({ ...base, JOBS_ENABLED: 'quizas' });
+      } catch (error) {
+        message = (error as Error).message;
+      }
+      expect(message).toMatch(/JOBS_ENABLED/);
+      expect(message).not.toContain('quizas');
+    });
+  });
+
+  describe('EXPO_ACCESS_TOKEN (spec 006)', () => {
+    it('is optional', () => {
+      expect(validateEnv({ ...base }).EXPO_ACCESS_TOKEN).toBeUndefined();
+      expect(validateEnv({ ...base, EXPO_ACCESS_TOKEN: '' }).EXPO_ACCESS_TOKEN).toBeUndefined();
+      expect(validateEnv({ ...base, EXPO_ACCESS_TOKEN: 'tok' }).EXPO_ACCESS_TOKEN).toBe('tok');
     });
   });
 

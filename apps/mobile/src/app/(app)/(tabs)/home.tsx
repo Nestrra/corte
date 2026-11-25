@@ -2,6 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import { router } from 'expo-router';
 import { ActivityIndicator, StyleSheet, View } from 'react-native';
 import { getSummary, summaryKeys } from '../../../api/summary';
+import { BellButton } from '../../../components/BellButton';
 import { CardCarousel } from '../../../components/CardCarousel';
 import { CycleSummary } from '../../../components/CycleSummary';
 import { EmptyCards } from '../../../components/EmptyCards';
@@ -18,8 +19,8 @@ import { colors, spacing } from '../../../theme';
 
 /**
  * Inicio (spec 004 US2, US4, US5; spec 005 US2; docs/design-system.md → Pantalla de inicio):
- * greeting, "Mis tarjetas" with the carousel, the summary of the card in front, and "Pagos de
- * <mes>". The summary is fetched again on focus and when the app comes back to the foreground, so
+ * greeting with the bell (spec 006), "Mis tarjetas" with the carousel, the summary of the card in
+ * front, and "Pagos de <mes>". The summary is fetched again on focus and when the app comes back to the foreground, so
  * days and statuses follow the new "today".
  */
 export default function HomeScreen() {
@@ -36,9 +37,12 @@ export default function HomeScreen() {
 
   return (
     <Screen edges={['top']}>
-      <Text variant="title" accessibilityRole="header">
-        Hola, {name}
-      </Text>
+      <View style={styles.greeting}>
+        <Text variant="title" accessibilityRole="header" style={styles.greetingText}>
+          Hola, {name}
+        </Text>
+        <BellButton onPress={() => router.push('/notifications')} />
+      </View>
 
       {summary.isPending ? (
         <ActivityIndicator color={colors.primary} accessibilityLabel="Cargando inicio" />
@@ -81,4 +85,6 @@ export default function HomeScreen() {
 
 const styles = StyleSheet.create({
   section: { gap: spacing.md },
+  greeting: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
+  greetingText: { flex: 1 },
 });

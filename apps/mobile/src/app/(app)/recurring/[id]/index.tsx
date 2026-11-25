@@ -34,6 +34,12 @@ function Field({ label, value }: { label: string; value: string }) {
   );
 }
 
+/** "2 días antes", "1 día antes" or "el mismo día" (spec 006). */
+function reminderText(days: number): string {
+  if (days === 0) return 'El mismo día';
+  return days === 1 ? '1 día antes' : `${days} días antes`;
+}
+
 /**
  * "Pago" (spec 005 US4 – US7; contracts/screens.md): a recurring payment with its next due date
  * and the actions edit, pause or resume, and delete (with confirmation; paid history is kept).
@@ -109,6 +115,7 @@ export default function RecurringScreen() {
         <Field label="Monto esperado" value={formatCop(payment.amount)} />
         <Field label="Frecuencia" value={frequencyText(payment)} />
         <Field label="Estado" value={paused ? 'Pausado' : 'Activo'} />
+        <Field label="Recordatorio" value={reminderText(payment.remindDays)} />
         {payment.nextDueDate !== null ? (
           <Field label="Próximo vencimiento" value={formatLongDate(payment.nextDueDate)} />
         ) : (

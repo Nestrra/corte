@@ -84,24 +84,33 @@ export class TokensService {
     return this.issue(current.userId, current.familyId);
   }
 
-  /** Revokes one session (logout, reuse). */
+  /** Revokes one session (logout, reuse) and its push destinations (spec 006 research.md R4). */
   async revokeFamily(sessionId: string): Promise<void> {
-    await this.prisma.refreshToken.updateMany({
-      where: { familyId: sessionId, revokedAt: null },
-      data: { revokedAt: new Date() },
-    });
+    await this.prisma.$transaction([
+      this.prisma.refreshToken.updateMany({
+        where: { familyId: sessionId, revokedAt: null },
+        data: { revokedAt: new Date() },
+      }),
+      this.prisma.device.deleteMany({ where: { sessionId } }),
+    ]);
   }
 
   /** Revokes every session of the user, optionally keeping one (voluntary password change). */
   async revokeAllForUser(userId: string, exceptSessionId?: string): Promise<void> {
-    await this.prisma.refreshToken.updateMany({
-      where: {
-        userId,
-        revokedAt: null,
-        ...(exceptSessionId ? { NOT: { familyId: exceptSessionId } } : {}),
-      },
-      data: { revokedAt: new Date() },
-    });
+    await this.prisma.$transaction([
+      this.prisma.refreshToken.updateMany({
+        where: {
+          userId,
+          revokedAt: null,
+          ...(exceptSessionId ? { NOT: { familyId: exceptSessionId } } : {}),
+        },
+        data: { revokedAt: new Date() },
+      }),
+      // Its devices go with the revoked sessions (spec 006 research.md R4).
+      this.prisma.device.deleteMany({
+        where: { userId, ...(exceptSessionId ? { NOT: { sessionId: exceptSessionId } } : {}) },
+      }),
+    ]);
   }
 
   /** The guard's per-request check: is this session still usable? (research.md R2). */

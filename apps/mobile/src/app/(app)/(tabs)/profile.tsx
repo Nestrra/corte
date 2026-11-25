@@ -5,9 +5,16 @@ import { Pressable, StyleSheet, View } from 'react-native';
 import { logout } from '../../../api/auth';
 import { getMe } from '../../../api/me';
 import { Button } from '../../../components/Button';
+import { NotificationStatusRow } from '../../../components/NotificationStatusRow';
 import { Screen } from '../../../components/Screen';
+import { TestNotificationButton } from '../../../components/TestNotificationButton';
 import { Text } from '../../../components/Text';
 import { timeZoneLabel } from '../../../features/timezones';
+import {
+  openNotificationSettings,
+  requestNotificationPermission,
+} from '../../../notifications/permission';
+import { syncDevice, useNotificationStatus } from '../../../notifications/registration';
 import { useSessionStore } from '../../../session/session-store';
 import { colors, interaction, layout, radius, spacing, type ColorToken } from '../../../theme';
 
@@ -44,6 +51,9 @@ export default function ProfileScreen() {
   const user = useSessionStore((state) => state.user);
   const setUser = useSessionStore((state) => state.setUser);
   const [loggingOut, setLoggingOut] = useState(false);
+  // Kept current by useDeviceRegistration (signed-in layout), also when the app comes back.
+  const notificationStatus = useNotificationStatus((state) => state.status);
+  const [activating, setActivating] = useState(false);
 
   // Refreshes the profile from the API; a revoked session sends the user to login (client.ts).
   const me = useQuery({ queryKey: ['me'], queryFn: getMe, retry: false });
@@ -52,6 +62,20 @@ export default function ProfileScreen() {
   }, [me.data, setUser]);
 
   if (user === null) return null;
+
+  const onNotificationAction = async () => {
+    if (notificationStatus === 'denied') {
+      await openNotificationSettings();
+      return;
+    }
+    setActivating(true);
+    try {
+      await requestNotificationPermission();
+      await syncDevice();
+    } finally {
+      setActivating(false);
+    }
+  };
 
   const onLogout = async () => {
     setLoggingOut(true);
@@ -66,6 +90,17 @@ export default function ProfileScreen() {
       <View style={styles.identity}>
         <Text variant="section">{user.name}</Text>
         <Text color="textSecondary">{user.email}</Text>
+      </View>
+
+      <View style={styles.notifications}>
+        <View style={styles.panel}>
+          <NotificationStatusRow
+            status={notificationStatus}
+            onAction={() => void onNotificationAction()}
+            busy={activating}
+          />
+        </View>
+        {notificationStatus === 'registered' ? <TestNotificationButton /> : null}
       </View>
 
       <View style={styles.panel}>
@@ -88,6 +123,7 @@ export default function ProfileScreen() {
 
 const styles = StyleSheet.create({
   identity: { gap: spacing.xs },
+  notifications: { gap: spacing.md },
   panel: {
     backgroundColor: colors.surface,
     borderRadius: radius.panel,

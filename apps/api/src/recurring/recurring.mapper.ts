@@ -23,6 +23,8 @@ export interface PublicRecurringPayment {
   status: 'active' | 'paused';
   /** Null while paused (data-model.md → RecurringPaymentView). */
   nextDueDate: IsoDate | null;
+  /** Days before each due date for its reminder (spec 006 FR-016). */
+  remindDays: number;
 }
 
 /** contracts/recurring.openapi.yaml → Occurrence. */
@@ -74,6 +76,7 @@ export function toPublicRecurringPayment(
     anchorDate: fromDbDate(payment.anchorDate),
     status: payment.pausedOn === null ? 'active' : 'paused',
     nextDueDate: nextRecurringDueDate(toSchedule(payment), today, paidPeriods),
+    remindDays: payment.remindDays,
   };
 }
 

@@ -21,6 +21,8 @@ export interface RecurringPayment {
   status: 'active' | 'paused';
   /** Null while paused. */
   nextDueDate: IsoDate | null;
+  /** Days before each due date the reminder arrives, 0 to 15 (spec 006). */
+  remindDays: number;
 }
 
 /** `Occurrence` of contracts/recurring.openapi.yaml: one due date of a payment. */
@@ -56,6 +58,7 @@ export interface CreateRecurringPayment {
   amount: number;
   frequency: RecurringFrequency;
   firstDueDate: IsoDate;
+  remindDays: number;
 }
 
 /** At least one field; changing `frequency` requires `nextDueDate`. */
@@ -64,6 +67,7 @@ export interface UpdateRecurringPayment {
   amount?: number;
   frequency?: RecurringFrequency;
   nextDueDate?: IsoDate;
+  remindDays?: number;
 }
 
 /** Every key lives under ['recurring'], so one invalidation refreshes them all (research.md R11). */

@@ -15,7 +15,10 @@ export type ErrorCode =
   | 'NOT_FOUND'
   | 'CARD_ARCHIVED'
   | 'STATEMENT_OPEN'
-  | 'RECURRING_DELETED';
+  | 'RECURRING_DELETED'
+  | 'DEVICE_NOT_REGISTERED'
+  | 'TEST_RATE_LIMITED'
+  | 'PUSH_FAILED';
 
 export interface FieldError {
   field: string;
@@ -27,6 +30,8 @@ export interface ErrorBody {
   code: ErrorCode;
   message: string;
   errors?: FieldError[];
+  /** Seconds until the action can be retried (TEST_RATE_LIMITED). */
+  retryAfterSeconds?: number;
 }
 
 /** An HTTP error whose body follows contracts/errors.md. */
@@ -36,8 +41,15 @@ export class AppException extends HttpException {
     readonly code: ErrorCode,
     message: string,
     readonly errors?: FieldError[],
+    extra: Pick<ErrorBody, 'retryAfterSeconds'> = {},
   ) {
-    const body: ErrorBody = { statusCode: status, code, message, ...(errors ? { errors } : {}) };
+    const body: ErrorBody = {
+      statusCode: status,
+      code,
+      message,
+      ...(errors ? { errors } : {}),
+      ...extra,
+    };
     super(body, status);
   }
 }
@@ -92,5 +104,25 @@ export const AppErrors = {
       HttpStatus.CONFLICT,
       'RECURRING_DELETED',
       'The recurring payment was deleted; its paid history cannot be undone',
+    ),
+  deviceNotRegistered: () =>
+    new AppException(
+      HttpStatus.CONFLICT,
+      'DEVICE_NOT_REGISTERED',
+      'This session has no device registered for notifications',
+    ),
+  testRateLimited: (retryAfterSeconds: number) =>
+    new AppException(
+      HttpStatus.TOO_MANY_REQUESTS,
+      'TEST_RATE_LIMITED',
+      'Wait before sending another test notification',
+      undefined,
+      { retryAfterSeconds },
+    ),
+  pushFailed: () =>
+    new AppException(
+      HttpStatus.BAD_GATEWAY,
+      'PUSH_FAILED',
+      'The push service rejected the message',
     ),
 };

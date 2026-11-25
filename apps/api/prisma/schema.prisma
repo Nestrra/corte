@@ -12,19 +12,22 @@ datasource db {
 
 /// A person with an account. Deleting a user cascades to everything that belongs to them.
 model User {
-  id                 String             @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  name               String             @db.VarChar(80)
+  id                 String                 @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name               String                 @db.VarChar(80)
   /// Stored trimmed and lowercased (CHECK email = lower(email) added in the migration).
-  email              String             @unique @db.VarChar(254)
+  email              String                 @unique @db.VarChar(254)
   /// argon2id hash in PHC format.
-  passwordHash       String             @map("password_hash")
-  timezone           String             @default("America/Bogota") @db.VarChar(64)
-  mustChangePassword Boolean            @default(false) @map("must_change_password")
-  createdAt          DateTime           @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt          DateTime           @updatedAt @map("updated_at") @db.Timestamptz(6)
+  passwordHash       String                 @map("password_hash")
+  timezone           String                 @default("America/Bogota") @db.VarChar(64)
+  mustChangePassword Boolean                @default(false) @map("must_change_password")
+  createdAt          DateTime               @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt          DateTime               @updatedAt @map("updated_at") @db.Timestamptz(6)
   refreshTokens      RefreshToken[]
   cards              Card[]
   recurringPayments  RecurringPayment[]
+  devices            Device[]
+  notifications      Notification[]
+  dispatches         NotificationDispatch[]
 
   @@map("users")
 }
@@ -172,6 +175,8 @@ model RecurringPayment {
   startsOn     DateTime              @map("starts_on") @db.Date
   /// The user's "today" when paused; null while active.
   pausedOn     DateTime?             @map("paused_on") @db.Date
+  /// Days before each due date for its reminder, 0–15 (spec 006 FR-016; CHECK in the migration).
+  remindDays   Int                   @default(2) @map("remind_days") @db.SmallInt
   /// Soft delete (research.md R6): paid occurrences keep their payment.
   deletedAt    DateTime?             @map("deleted_at") @db.Timestamptz(6)
   createdAt    DateTime              @default(now()) @map("created_at") @db.Timestamptz(6)
@@ -204,4 +209,94 @@ model RecurringOccurrence {
   @@unique([recurringPaymentId, period])
   @@index([recurringPaymentId, dueDate])
   @@map("recurring_occurrences")
+}
+
+/// spec 006 data-model.md → Device.platform.
+enum DevicePlatform {
+  ios
+  android
+
+  @@map("device_platform")
+}
+
+/// spec 006 data-model.md → NotificationDispatch.kind. `daily_digest` only in dispatches (CHECK).
+enum NotificationKind {
+  budget_alert
+  cutoff_reminder
+  payment_reminder
+  recurring_reminder
+  daily_digest
+
+  @@map("notification_kind")
+}
+
+/// A push destination of a user in one session (spec 006 data-model.md → Device). It only
+/// receives while its session (refresh-token family) is active.
+model Device {
+  id         String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId     String         @map("user_id") @db.Uuid
+  /// `sid` of the JWT = refresh_tokens.family_id. No FK: sessions have no table.
+  sessionId  String         @map("session_id") @db.Uuid
+  /// Expo push token; the upsert by token moves it to another user or session.
+  token      String         @unique @db.VarChar(255)
+  platform   DevicePlatform
+  lastSeenAt DateTime       @map("last_seen_at") @db.Timestamptz(6)
+  lastTestAt DateTime?      @map("last_test_at") @db.Timestamptz(6)
+  createdAt  DateTime       @default(now()) @map("created_at") @db.Timestamptz(6)
+  user       User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([sessionId])
+  @@map("devices")
+}
+
+/// An entry of the notifications history (spec 006 data-model.md → Notification), kept 30 days.
+model Notification {
+  id         String                 @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId     String                 @map("user_id") @db.Uuid
+  kind       NotificationKind
+  title      String                 @db.VarChar(80)
+  body       String                 @db.VarChar(300)
+  /// card | statement | occurrence (CHECK).
+  targetType String                 @map("target_type") @db.VarChar(16)
+  /// No FK: what was notified may be archived or deleted (FR-022).
+  targetId   String                 @map("target_id") @db.Uuid
+  createdAt  DateTime               @default(now()) @map("created_at") @db.Timestamptz(6)
+  user       User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  dispatches NotificationDispatch[]
+
+  @@index([userId, createdAt(sort: Desc)])
+  @@map("notifications")
+}
+
+/// The key that prevents repeating a notice (spec 006 data-model.md → NotificationDispatch). The
+/// UNIQUE NULLS NOT DISTINCT key is added by hand in the migration.
+model NotificationDispatch {
+  id             String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId         String           @map("user_id") @db.Uuid
+  kind           NotificationKind
+  referenceId    String           @map("reference_id") @db.Uuid
+  referenceDate  DateTime         @map("reference_date") @db.Date
+  /// 70, 90 or 100 only for budget_alert (CHECK).
+  threshold      Int?             @db.SmallInt
+  notificationId String?          @map("notification_id") @db.Uuid
+  createdAt      DateTime         @default(now()) @map("created_at") @db.Timestamptz(6)
+  user           User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  notification   Notification?    @relation(fields: [notificationId], references: [id], onDelete: SetNull)
+
+  /// Created in the migration as UNIQUE NULLS NOT DISTINCT (threshold is null except budget_alert).
+  @@unique([userId, kind, referenceId, referenceDate, threshold], map: "notification_dispatches_key")
+  @@index([createdAt])
+  @@map("notification_dispatches")
+}
+
+/// An Expo ticket waiting for its receipt (spec 006 data-model.md → PushTicket).
+model PushTicket {
+  id        String   @id @db.VarChar(64)
+  /// No FK: the device may no longer exist.
+  token     String   @db.VarChar(255)
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@index([createdAt])
+  @@map("push_tickets")
 }

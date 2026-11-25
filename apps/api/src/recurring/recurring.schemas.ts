@@ -5,6 +5,7 @@ import {
   RECURRING_FREQUENCIES,
   validateAmount,
   validateRecurringName,
+  validateReminderDays,
 } from '@corte/domain';
 import { z } from 'zod';
 import { checkedNumber, checkedString, typeError } from '../common/zod-fields';
@@ -16,6 +17,8 @@ import { checkedNumber, checkedString, typeError } from '../common/zod-fields';
 const name = checkedString(validateRecurringName, normalizeRecurringName);
 const amount = checkedNumber(validateAmount);
 const frequency = z.enum(RECURRING_FREQUENCIES, typeError('INVALID'));
+/** spec 006 FR-016 (data-model.md → RecurringPayment.remindDays): 0–15, default 2. */
+const remindDays = checkedNumber(validateReminderDays);
 const isoDate = z.string(typeError('INVALID')).refine(isValidIsoDate, { error: 'INVALID' });
 
 export const createRecurringSchema = z.strictObject({
@@ -23,6 +26,7 @@ export const createRecurringSchema = z.strictObject({
   amount,
   frequency,
   firstDueDate: isoDate,
+  remindDays: remindDays.optional(),
 });
 export type CreateRecurringInput = z.output<typeof createRecurringSchema>;
 
@@ -33,6 +37,7 @@ export const updateRecurringSchema = z
     amount: amount.optional(),
     frequency: frequency.optional(),
     nextDueDate: isoDate.optional(),
+    remindDays: remindDays.optional(),
   })
   .superRefine((value, ctx) => {
     if (Object.keys(value).length === 0) ctx.addIssue({ code: 'custom', message: 'REQUIRED' });

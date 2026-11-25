@@ -18,7 +18,7 @@ const EAS_PROJECT_ID = 'bdb6af21-da0d-4fae-ae2c-453cd9402ed9';
 const config: ExpoConfig = {
   name: 'Corte',
   slug: 'corte',
-  version: '0.0.0',
+  version: '0.1.0',
   runtimeVersion: { policy: 'appVersion' },
   updates: { url: `https://u.expo.dev/${EAS_PROJECT_ID}` },
   extra: { eas: { projectId: EAS_PROJECT_ID } },
@@ -64,7 +64,16 @@ const config: ExpoConfig = {
     'expo-status-bar',
     'expo-secure-store',
     '@react-native-community/datetimepicker',
-    'expo-notifications',
+    [
+      'expo-notifications',
+      {
+        // Status bar icon on Android: white silhouette; without it Android draws a white square.
+        icon: './assets/android-icon-monochrome.png',
+        // `primary` token of docs/design-system.md. This file runs in Node and cannot import
+        // src/theme, so the value is written here.
+        color: '#4F46E5',
+      },
+    ],
   ],
 };
 
