@@ -205,7 +205,8 @@ mobile start --clear`:
 3. **Prueba** (historia 8): en Perfil toca "Enviar notificación de prueba". Llega "Corte / Las
    notificaciones funcionan." en menos de un minuto; un segundo toque espera 30 s.
 4. **Alerta de tope** (historia 2): con una tarjeta de tope $2.000.000 y $1.300.000 en el ciclo,
-   registra $600.000. Llega la alerta del 95%; al tocarla se abre el detalle de la tarjeta.
+   registra $600.000. Llega la alerta del 95% en menos de 1 minuto desde que tocas "Guardar"
+   (mídelo con el reloj: SC-005). Al tocarla se abre el detalle de la tarjeta.
 5. **Historial** (historia 7): toca la campana del inicio. Está la alerta con "Hoy, HH:MM";
    tocarla abre la tarjeta. Archiva la tarjeta y toca de nuevo: "Esto ya no está disponible".
 6. **App cerrada** (historia 6, escenario 5): cierra la app por completo, envía una prueba desde

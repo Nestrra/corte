@@ -145,7 +145,14 @@ Fase 0 de [plan.md](./plan.md). Parte de:
   en el propio teléfono, así que tenerlo equivale a tener el dispositivo: el upsert no permite
   que otro usuario lea nada de A, y quitar o probar dispositivos solo actúa sobre la sesión del
   JWT (historia 10).
+
+  **Excepción al principio III**: reasignar la fila de A a B modifica un registro de A. Se acepta
+  como excepción justificada (plan.md → Complexity Tracking): el token es del teléfono, B no
+  obtiene nada de A (204 sin cuerpo) y los demás dispositivos y datos de A no cambian. T052 lo
+  prueba.
 - **Alternatives considered**:
+  - Rechazar con 409 si el token es de otro usuario con sesión activa: deja sin push a B en un
+    teléfono heredado o reinstalado mientras la sesión vieja de A siga viva.
   - Crear una tabla `sessions` para poder usar una FK con cascada: es un refactor de la spec
     001 fuera de alcance.
   - Que la app borre su token al cerrar sesión: no cubre las sesiones revocadas ni el cierre
@@ -231,7 +238,9 @@ Fase 0 de [plan.md](./plan.md). Parte de:
   4. **Errores**: cada paso y cada usuario atrapan sus errores y los registran; uno que falla
      no detiene a los demás.
 
-  El cron solo se registra si `JOBS_ENABLED=true` (por defecto `true`). Las e2e lo ponen en
+  `NotificationsJobs` se registra siempre. Lo condicional es `ScheduleModule.forRoot()`, que solo
+  se importa si `JOBS_ENABLED=true` (por defecto `true`): sin él, `@Cron` no programa nada. Las
+  e2e lo ponen en
   `false` y llaman `runOnce()` directamente con un reloj mutable. El API debe correr como **una
   sola instancia**: los candados en memoria y los límites de intentos de la spec 001 ya lo
   exigen. Se documenta en el README.

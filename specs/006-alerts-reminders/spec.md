@@ -433,7 +433,9 @@ montos y nombres de tarjetas.
 - **FR-003**: Perfil MUST mostrar el estado de las notificaciones de este dispositivo como texto
   ("Activadas", "Desactivadas", "Sin activar" o "No disponibles en este dispositivo") con su
   acción: "Activar" (pide el permiso) o "Abrir ajustes" (abre los ajustes del sistema de la app).
-  El estado MUST actualizarse al volver a la app.
+  Mientras el permiso está concedido pero el servidor todavía no confirmó el registro (por ejemplo,
+  sin conexión), MUST mostrar el estado transitorio "Activando…". El estado MUST actualizarse al
+  volver a la app.
 - **FR-004**: Con permiso concedido y sesión iniciada, el dispositivo MUST registrarse como destino
   del usuario, y MUST mantener al día su identificador de push cada vez que la app abre.
 - **FR-005**: Un dispositivo MUST ser destino de un solo usuario a la vez y solo mientras tenga una

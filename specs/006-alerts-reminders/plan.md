@@ -120,7 +120,7 @@ App en development builds de EAS para iOS y Android: los push remotos no funcion
 | --- | --- | --- |
 | I. Dominio puro | Umbrales cruzados, fechas de recordatorio (con el ajuste al día siguiente al corte), qué recordatorios tocan hoy, agrupado, textos y montos en `packages/domain/src/notifications.ts`, sin reloj ni I/O: "hoy" y la hora local entran como parámetros. El API reúne datos, guarda claves y envía; la app solo muestra. | ✅ |
 | II. Pruebas primero | Pruebas del dominio con los criterios de la spec (65 → 95 → alerta del 90; corte 8 − 2 = 6; extracto pagado sin recordatorio) y los bordes (N = 0, día 31 en febrero, cambio de año) antes de implementar. E2e de cada endpoint y del job contra PostgreSQL real. | ✅ |
-| III. Aislamiento | Dispositivos ligados a `sub` y `sid` del token; historial por `user_id`; la prueba y `DELETE /devices/current` solo actúan sobre la sesión del token; los avisos se generan con datos de un solo usuario y se envían solo a sus dispositivos activos; el push no lleva el `userId` y los destinos ajenos responden 404. `notifications-isolation.e2e-spec.ts` con dos usuarios. | ✅ |
+| III. Aislamiento | Dispositivos ligados a `sub` y `sid` del token; historial por `user_id`; la prueba y `DELETE /devices/current` solo actúan sobre la sesión del token; los avisos se generan con datos de un solo usuario y se envían solo a sus dispositivos activos; el push no lleva el `userId` y los destinos ajenos responden 404. `notifications-isolation.e2e-spec.ts` con dos usuarios. **Excepción justificada** (Complexity Tracking): `POST /devices` con un token que ya era de otro usuario reasigna esa fila. | ✅ con excepción |
 | IV. Dinero y fechas | Montos `BIGINT` leídos del ledger y formateados como enteros; `reference_date` como `DATE`; "hoy" y la hora local en la zona del usuario. Las alertas usan el "A pagar" con intereses estimados de la spec 003, sin presentar intereses nuevos. | ✅ |
 | V. Seguridad | Todas las rutas nuevas con el guard global y la contraseña temporal. `EXPO_ACCESS_TOKEN` solo del entorno. Los tokens de push no se registran en logs. La prueba tiene límite de intentos (1 cada 30 s). Revocar sesiones quita sus destinos. | ✅ |
 | VI. Simplicidad | Solo lo de la spec: sin preferencias por tipo, horario configurable, correo, SMS, contador de no leídas ni cola persistente (v2). Job dentro del API, sin worker aparte. Dos dependencias justificadas (R16). | ✅ |
@@ -128,13 +128,16 @@ App en development builds de EAS para iOS y Android: los push remotos no funcion
 | VIII. Convenciones | Tablas, columnas, enums (`budget_alert`, `cutoff_reminder`…), rutas y códigos (`DEVICE_NOT_REGISTERED`, `TEST_RATE_LIMITED`, `PUSH_FAILED`) en inglés; textos de los push y de la app en español. | ✅ |
 | IX. Sistema de diseño | NotificationRow, BellButton, PermissionIntro y NotificationStatusRow con tokens existentes; estados escritos ("Activadas", "Desactivadas", "Sin activar"); pares de contraste ya medidos (`warning` sobre `surface` 5,43); áreas de 44 o más; lectura accesible de cada fila. Los componentes nuevos se documentan en `docs/design-system.md`. | ✅ |
 
-**Resultado (pre-Phase 0)**: PASA sin violaciones.
+**Resultado (pre-Phase 0)**: PASA. Después de `/speckit-analyze` queda una excepción justificada
+al principio III (Complexity Tracking).
 **Re-evaluación (post-Phase 1)**: PASA.
 - El contrato ([contracts/notifications.openapi.yaml](./contracts/notifications.openapi.yaml)) no
   recibe ids de usuario ni de sesión.
 - El modelo guarda las fechas de referencia en `DATE` y la idempotencia en una clave única de la
   base.
 - Hay dos dependencias nuevas, pedidas por el usuario y justificadas en R16.
+- La reasignación de un token entre usuarios es una excepción al principio III, justificada en
+  Complexity Tracking y cubierta por una prueba (T052). Salió de `/speckit-analyze` (C1).
 - El requisito de una sola instancia ya existía (límites de intentos de la spec 001) y se
   documenta en el README.
 
@@ -249,4 +252,6 @@ specs/000-project-skeleton/contracts/environment.md   # + variables nuevas
 
 ## Complexity Tracking
 
-Sin violaciones de la constitución; no se requiere justificación.
+| Violation | Why Needed | Simpler Alternative Rejected Because |
+|-----------|------------|-------------------------------------|
+| Principio III: `POST /devices` reasigna al usuario B la fila de un token de push que era del usuario A (research.md R4) | El token de Expo identifica el teléfono, no un dato de A. Solo se obtiene en el propio dispositivo, así que quien lo envía tiene el teléfono en la mano. Es el cambio de usuario en el mismo teléfono (spec historia 9, escenario 4) y también cubre una sesión de A que expiró sin cerrarse. B no lee nada de A: la respuesta es 204 sin cuerpo y los demás dispositivos y datos de A no cambian. Lo prueba T052 | Rechazar con 409 si el token es de otro usuario con sesión activa deja sin push a B en un teléfono reinstalado o heredado cuando la sesión vieja de A sigue viva en el servidor, y B no tiene forma de liberarlo. Crear una fila nueva por usuario sin reasignar enviaría los avisos de A y de B al mismo teléfono, una fuga peor |

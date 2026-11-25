@@ -45,7 +45,7 @@ Si el recurso responde 404, se abre `notifications` con el aviso "Esto ya no est
 | `denied` | Desactivadas | `warning` sobre `surface` (5,43) | "Abrir ajustes" → ajustes del sistema |
 | `undetermined` | Sin activar | `textSecondary` | "Activar" → permiso del sistema |
 | `unavailable` | No disponibles en este dispositivo | `textSecondary` | — |
-| `granted` sin confirmar (sin conexión) | Activando… | `textSecondary` | Se reintenta al volver a la app |
+| `granted` sin confirmar (sin conexión o falla de red al pedir el token) | Activando… | `textSecondary` | Se reintenta al abrir la app o volver a ella. Es un estado transitorio (spec FR-003) |
 
 ### Prueba
 
