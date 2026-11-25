@@ -376,9 +376,10 @@ montos y nombres de tarjetas.
 1. **Given** dos usuarios A y B con dispositivos registrados, **When** se genera cualquier alerta
    o recordatorio de A, **Then** solo llega a dispositivos de A y solo aparece en el historial de A.
 2. **Given** el historial, **When** B lo pide, **Then** solo ve sus propias notificaciones.
-3. **Given** un dispositivo registrado por A, **When** B intenta registrarlo, quitarlo o enviarle
-   una prueba sin tener la sesión en ese dispositivo, **Then** no afecta a A y no se revela nada de
-   A.
+3. **Given** un dispositivo registrado por A, **When** B intenta quitarlo o enviarle una prueba
+   sin tener la sesión en ese dispositivo, **Then** no afecta a A y no se revela nada de A.
+   (Registrar un dispositivo requiere su identificador de push, que solo existe en el propio
+   teléfono: registrarlo con otra cuenta es el cambio de usuario de la historia 9, escenario 4.)
 4. **Given** una notificación de A, **When** B intenta abrir su destino, **Then** recibe la misma
    respuesta que para algo inexistente.
 
@@ -393,8 +394,9 @@ montos y nombres de tarjetas.
 - **Tope cambiado en la tarjeta**: editar el tope (spec 002) no genera alertas por sí solo; la
   próxima compra o edición compara contra el tope nuevo, y los umbrales ya avisados en el ciclo
   siguen avisados.
-- **Compra que pasa a otra tarjeta o cuyo cambio afecta dos extractos**: se evalúa el ciclo abierto
-  de la tarjeta de la compra después del cambio; quitar cuotas de un ciclo no genera alertas.
+- **Edición que mueve cuotas fuera del ciclo abierto** (por ejemplo, cambiar la fecha de la
+  compra): se evalúa el ciclo abierto de la tarjeta antes y después del cambio; si el uso baja, no
+  hay alerta. Una compra no cambia de tarjeta al editarla (spec 003).
 - **Cambio de fechas de una tarjeta** (spec 002): si cambia la fecha del próximo corte, ese corte
   es otro y puede tener su propio recordatorio; el ya enviado no se repite para la misma fecha.
 - **Corte o fecha límite en un día que no existe en el mes**: se usa el último día del mes (spec

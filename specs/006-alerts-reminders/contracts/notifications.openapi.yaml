@@ -1,0 +1,182 @@
+openapi: 3.1.0
+info:
+  title: Corte API — Alertas y recordatorios
+  version: 0.6.0
+  description: >
+    Spec 006. Todo bajo /api/v1 y con `Authorization: Bearer <accessToken>`. Los dispositivos se
+    asocian al usuario y a la sesión del token (`sub` y `sid`); el cliente nunca envía ids de
+    usuario ni de sesión (principio III). Con la contraseña temporal pendiente, todo responde 403
+    PASSWORD_CHANGE_REQUIRED (spec 001). Errores: specs/003-purchases/contracts/errors.md más
+    DEVICE_NOT_REGISTERED, TEST_RATE_LIMITED, PUSH_FAILED y los códigos de campo de este
+    archivo. Las alertas de tope y los recordatorios no tienen endpoint: los generan el registro
+    y la edición de compras (después de responder) y el job cada 15 minutos (research.md R3 y
+    R7).
+servers:
+  - url: http://localhost:3000/api/v1
+security:
+  - bearer: []
+components:
+  securitySchemes:
+    bearer:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    RegisterDevice:
+      type: object
+      additionalProperties: false
+      required: [token, platform]
+      properties:
+        token:
+          type: string
+          maxLength: 255
+          description: Token de Expo (`ExponentPushToken[...]`); otro formato → INVALID_PUSH_TOKEN
+          example: 'ExponentPushToken[xxxxxxxxxxxxxxxxxxxxxx]'
+        platform:
+          type: string
+          enum: [ios, android]
+    NotificationKind:
+      type: string
+      enum: [budget_alert, cutoff_reminder, payment_reminder, recurring_reminder]
+    NotificationTarget:
+      type: object
+      required: [type, id]
+      properties:
+        type: { type: string, enum: [card, statement, occurrence] }
+        id: { type: string, format: uuid }
+    Notification:
+      type: object
+      required: [id, kind, title, body, createdAt, target]
+      properties:
+        id: { type: string, format: uuid }
+        kind: { $ref: '#/components/schemas/NotificationKind' }
+        title: { type: string, example: Visa principal }
+        body: { type: string, example: Llevas el 95% del tope de este ciclo. }
+        createdAt:
+          type: string
+          format: date-time
+          description: Instante en UTC; la app lo muestra en la zona del usuario ("Hoy, 7:00")
+        target: { $ref: '#/components/schemas/NotificationTarget' }
+    NotificationList:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          maxItems: 200
+          description: Últimos 30 días, del más reciente al más antiguo
+          items: { $ref: '#/components/schemas/Notification' }
+    TestResult:
+      type: object
+      required: [sent]
+      properties:
+        sent: { type: integer, minimum: 1, description: Dispositivos de esta sesión a los que se envió }
+    Error:
+      type: object
+      required: [code, message]
+      properties:
+        code: { type: string }
+        message: { type: string }
+        fields: { type: object, additionalProperties: { type: string } }
+        retryAfterSeconds: { type: integer, minimum: 1 }
+  responses:
+    Validation:
+      description: 400 VALIDATION_ERROR con `fields`
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+    Unauthorized:
+      description: 401 TOKEN_EXPIRED o SESSION_REVOKED (spec 001)
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+paths:
+  /devices:
+    post:
+      summary: Registra este dispositivo como destino de push del usuario y la sesión del token
+      description: >
+        Upsert por `token`. Si el token ya pertenecía a otra sesión u otro usuario, pasa a este
+        (cambio de usuario en el teléfono, historia 9 escenario 4). Actualiza `lastSeenAt`. La app
+        lo llama al iniciar sesión, al abrir o volver al frente y al cambiar el token.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/RegisterDevice' }
+      responses:
+        '204': { description: Registrado }
+        '400':
+          description: 'VALIDATION_ERROR; fields.token: INVALID_PUSH_TOKEN, fields.platform: INVALID'
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+  /devices/current:
+    delete:
+      summary: Quita los dispositivos de la sesión del token
+      description: >
+        La app lo llama cuando ve el permiso del sistema revocado. Idempotente. Cerrar sesión,
+        revocar sesiones y borrar la cuenta ya los quitan en el servidor (research.md R4).
+      responses:
+        '204': { description: Quitados (o no había) }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+  /notifications:
+    get:
+      summary: Historial de notificaciones de los últimos 30 días
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/NotificationList' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+  /notifications/test:
+    post:
+      summary: Envía una notificación de prueba a los dispositivos de esta sesión
+      description: >
+        "Corte" / "Las notificaciones funcionan." No queda en el historial. Como máximo una cada
+        30 segundos por dispositivo.
+      responses:
+        '202':
+          description: Enviada
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/TestResult' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '409':
+          description: DEVICE_NOT_REGISTERED — esta sesión no tiene dispositivo registrado
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+        '429':
+          description: TEST_RATE_LIMITED con `retryAfterSeconds`
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+        '502':
+          description: PUSH_FAILED — Expo rechazó el envío
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+  /recurring:
+    post:
+      summary: '(spec 005) Crear pago recurrente — se agrega `remindDays`'
+      description: >
+        Igual que en specs/005-recurring-payments/contracts/recurring.openapi.yaml, más
+        `remindDays` (entero 0–15, opcional, por defecto 2; fields.remindDays: OUT_OF_RANGE).
+        `RecurringPayment` incluye `remindDays` en todas las respuestas.
+      responses:
+        '201': { description: Creado (con remindDays) }
+        '400': { $ref: '#/components/responses/Validation' }
+  /recurring/{id}:
+    patch:
+      summary: '(spec 005) Editar pago recurrente — se agrega `remindDays`'
+      description: >
+        `remindDays` opcional (0–15). Cambiarlo no toca las ocurrencias; aplica a los
+        recordatorios que aún no se enviaron.
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        '200': { description: Editado (con remindDays) }
+        '400': { $ref: '#/components/responses/Validation' }
+        '404': { description: NOT_FOUND (spec 005) }
