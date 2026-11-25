@@ -31,6 +31,7 @@ Monorepo pnpm: `packages/domain` (TS puro, sin I/O, Vitest, cobertura ≥ 95 %),
 - EAS configurado (proyecto `@nestrra/corte`, perfiles development/preview/production en `apps/mobile/eas.json`).
 - iOS declara cifrado exento (`ITSAppUsesNonExemptEncryption: false`).
 - Credenciales de push preparadas en el código (`googleServicesFile` desde la variable de archivo `GOOGLE_SERVICES_JSON` de EAS; `google-services.json` en `.gitignore`). Pasos en el README, "Credenciales de push": la variable, la clave FCM V1 y la llave APNs se cargan en EAS a mano.
+- Runtime version con política `appVersion` (`fingerprint` fallaba en EAS por el archivo secreto de `GOOGLE_SERVICES_JSON`).
 - Siguiente: cargar las credenciales de push en EAS y hacer el primer development build de Android, luego spec 006 (alertas y recordatorios push), luego producción.
 
 ## Notas prácticas
@@ -38,4 +39,5 @@ Monorepo pnpm: `packages/domain` (TS puro, sin I/O, Vitest, cobertura ≥ 95 %),
 - Local: `pnpm db:up`, `pnpm --filter api dev`, `pnpm --filter mobile start --clear` (con dev client instalado; `--go` para Expo Go).
 - `apps/mobile/.env`: `http://localhost:3000` para iOS, `http://10.0.2.2:3000` para el emulador Android; reiniciar Metro con `--clear` al cambiarlo.
 - Restablecer contraseña: `pnpm --filter api admin:reset-password <email>` (local, con el API arrancado) o `docker exec <contenedor> node dist/cli/reset-password.js <email>`.
+- Runtime version = `version` de `apps/mobile/app.config.ts` (política `appVersion`). Todo cambio nativo (plugins, paquetes con código nativo, permisos, config nativa) exige subir `version` y hacer un build nuevo de EAS; si no, un `eas update` puede llegar a builds sin ese código nativo. Detalle en el README, "Versión de runtime".
 - Intereses de cuotas: estimado simple con tasa EA de la tarjeta; el interés por días es v2.
