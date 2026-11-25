@@ -1,10 +1,7 @@
 import type { ExpoConfig } from 'expo/config';
 
-/**
- * EAS project id, printed by `npx eas-cli init` (README → "Builds con EAS"). Until it is set,
- * builds work but do not receive EAS Update (OTA) updates.
- */
-const EAS_PROJECT_ID: string = '';
+/** EAS project id (README → "Builds con EAS"); also the EAS Update URL's last segment. */
+const EAS_PROJECT_ID = 'bdb6af21-da0d-4fae-ae2c-453cd9402ed9';
 
 /**
  * Expo app config. The API URL is not set here: it comes from EXPO_PUBLIC_API_URL, from `.env` in
@@ -20,12 +17,8 @@ const config: ExpoConfig = {
   slug: 'corte',
   version: '0.0.0',
   runtimeVersion: { policy: 'fingerprint' },
-  ...(EAS_PROJECT_ID
-    ? {
-        updates: { url: `https://u.expo.dev/${EAS_PROJECT_ID}` },
-        extra: { eas: { projectId: EAS_PROJECT_ID } },
-      }
-    : {}),
+  updates: { url: `https://u.expo.dev/${EAS_PROJECT_ID}` },
+  extra: { eas: { projectId: EAS_PROJECT_ID } },
   orientation: 'portrait',
   icon: './assets/icon.png',
   userInterfaceStyle: 'light',

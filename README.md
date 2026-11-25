@@ -327,19 +327,17 @@ local (que está en `.gitignore` y no se sube a EAS):
 La versión de compilación (build number de iOS, versionCode de Android) la lleva EAS
 (`appVersionSource: remote`) y el perfil `production` la incrementa en cada build.
 
-**Primera vez** (una sola vez, desde `apps/mobile`):
+El proyecto ya está vinculado a EAS: su id está en la constante `EAS_PROJECT_ID` de
+`apps/mobile/app.config.ts`, de donde salen `extra.eas.projectId` y la URL de EAS Update
+(`https://u.expo.dev/<projectId>`).
+
+**Primera vez en tu máquina** (desde `apps/mobile`):
 
 ```bash
 cd apps/mobile
-npx eas-cli login                # cuenta de Expo
-npx eas-cli init                 # crea el proyecto en EAS e imprime su projectId
+npx eas-cli login                # cuenta de Expo con acceso al proyecto
 npx eas-cli device:create        # registra tus iPhone para la distribución interna (ad hoc)
 ```
-
-Como la config es `app.config.ts`, `eas init` no puede escribir el `projectId`: cópialo en la
-constante `EAS_PROJECT_ID` al inicio de `apps/mobile/app.config.ts` y haz commit. De ella salen
-`extra.eas.projectId` y la URL de EAS Update (`https://u.expo.dev/<projectId>`). Mientras esté
-vacía, los builds funcionan pero no reciben actualizaciones OTA.
 
 **Builds** (desde `apps/mobile`; se compilan en los servidores de EAS):
 
@@ -375,7 +373,7 @@ un build con un lado nativo distinto. Si cambias algo nativo (agregas o actualiz
 código nativo, cambias un plugin, el bundle id, los íconos…), el fingerprint cambia y hace falta un
 **build nuevo**. `eas update` calcula el fingerprint del proyecto local y lo publica con él.
 
-**Publicar en staging** (desde `apps/mobile`, con `EAS_PROJECT_ID` configurado y builds `preview`
+**Publicar en staging** (desde `apps/mobile`, con builds `preview`
 instalados):
 
 ```bash
