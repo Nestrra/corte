@@ -1,4 +1,8 @@
-import { Stack } from 'expo-router';
+import { router, Stack } from 'expo-router';
+import { useEffect } from 'react';
+import { notificationsIntroSeen } from '../../notifications/intro-flag';
+import { useDeviceRegistration } from '../../notifications/registration';
+import { useNotifications } from '../../notifications/use-notifications';
 import { useSessionStore } from '../../session/session-store';
 import { colors, typography } from '../../theme';
 
@@ -6,6 +10,21 @@ export const unstable_settings = { anchor: '(tabs)' };
 
 export default function AppLayout() {
   const mustChangePassword = useSessionStore((state) => state.user?.mustChangePassword ?? false);
+  useDeviceRegistration();
+  useNotifications();
+
+  // After sign-in, registration or a restored session: explain notifications once per device
+  // (spec 006 US1-1, US1-4, US1-8). A pending password change goes first.
+  useEffect(() => {
+    if (mustChangePassword) return;
+    let active = true;
+    void notificationsIntroSeen().then((seen) => {
+      if (active && !seen) router.push('/notifications-intro');
+    });
+    return () => {
+      active = false;
+    };
+  }, [mustChangePassword]);
 
   return (
     <Stack
@@ -48,6 +67,11 @@ export default function AppLayout() {
           }}
         />
         <Stack.Screen name="timezone" options={{ title: 'Zona horaria' }} />
+        <Stack.Screen name="notifications" options={{ title: 'Notificaciones' }} />
+        <Stack.Screen
+          name="notifications-intro"
+          options={{ presentation: 'modal', headerShown: false, gestureEnabled: false }}
+        />
         <Stack.Screen name="delete-account" options={{ title: 'Eliminar cuenta' }} />
       </Stack.Protected>
       <Stack.Screen

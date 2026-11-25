@@ -14,12 +14,17 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { NETWORK_ERROR_TEXT } from '../api/errors';
 import { Button } from '../components/Button';
 import { Text } from '../components/Text';
+import {
+  configureForegroundNotifications,
+  discardLaunchResponse,
+} from '../notifications/use-notifications';
 import { bootstrapSession } from '../session/bootstrap';
 import { useSessionStore } from '../session/session-store';
 import { colors, layout, spacing } from '../theme';
 
 // Keep the splash screen until fonts are ready and the stored session has been checked.
 void SplashScreen.preventAutoHideAsync();
+configureForegroundNotifications();
 
 /** A stored session exists but the API did not answer (contracts/screens.md → offline). */
 function OfflineScreen() {
@@ -70,6 +75,11 @@ export default function RootLayout() {
   useEffect(() => {
     if (ready) SplashScreen.hide();
   }, [ready]);
+
+  // A push that opened the app without a session is not opened after a later sign-in.
+  useEffect(() => {
+    if (status === 'signedOut') discardLaunchResponse();
+  }, [status]);
 
   if (!ready) return null;
 

@@ -103,15 +103,17 @@ curl -i http://localhost:3000/api/v1/health
 
 ### Variables de entorno
 
-| Variable          | Obligatoria | Descripción                                                                                                                                                                                  |
-| ----------------- | ----------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `DATABASE_URL`    | Sí          | Conexión a PostgreSQL (`postgresql://` o `postgres://`)                                                                                                                                      |
-| `APP_ENV`         | Sí          | `development`, `test`, `staging` o `production`                                                                                                                                              |
-| `JWT_SECRET`      | Sí          | Firma de los access tokens; mínimo 32 caracteres. En producción se rechaza el valor de `.env.example`; genera uno con `openssl rand -base64 48`                                              |
-| `PORT`            | No          | Puerto HTTP (por defecto 3000)                                                                                                                                                               |
-| `GIT_SHA`         | No          | Versión reportada por el health check (por defecto `unknown`)                                                                                                                                |
-| `SWAGGER_ENABLED` | No          | `true` para servir `/api/docs` (prohibido en producción)                                                                                                                                     |
-| `TRUST_PROXY`     | No          | Saltos de proxy de confianza para la IP del cliente (por defecto 0). Ponlo en 1 si el API está detrás de un túnel o proxy inverso; si no, todos los clientes comparten el límite de intentos |
+| Variable            | Obligatoria | Descripción                                                                                                                                                                                  |
+| ------------------- | ----------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `DATABASE_URL`      | Sí          | Conexión a PostgreSQL (`postgresql://` o `postgres://`)                                                                                                                                      |
+| `APP_ENV`           | Sí          | `development`, `test`, `staging` o `production`                                                                                                                                              |
+| `JWT_SECRET`        | Sí          | Firma de los access tokens; mínimo 32 caracteres. En producción se rechaza el valor de `.env.example`; genera uno con `openssl rand -base64 48`                                              |
+| `PORT`              | No          | Puerto HTTP (por defecto 3000)                                                                                                                                                               |
+| `GIT_SHA`           | No          | Versión reportada por el health check (por defecto `unknown`)                                                                                                                                |
+| `SWAGGER_ENABLED`   | No          | `true` para servir `/api/docs` (prohibido en producción)                                                                                                                                     |
+| `TRUST_PROXY`       | No          | Saltos de proxy de confianza para la IP del cliente (por defecto 0). Ponlo en 1 si el API está detrás de un túnel o proxy inverso; si no, todos los clientes comparten el límite de intentos |
+| `JOBS_ENABLED`      | No          | `false` para no programar el job de notificaciones (por defecto `true`; las e2e lo apagan)                                                                                                   |
+| `EXPO_ACCESS_TOKEN` | No          | Token de acceso de Expo, solo si activas la seguridad reforzada de push en Expo. Secreto                                                                                                     |
 
 Detalle en `specs/000-project-skeleton/contracts/environment.md` y
 `specs/001-auth/contracts/environment.md`.
@@ -210,6 +212,38 @@ no suman a ninguna tarjeta.
   actual.
 - En la app: sección "Pagos de <mes>" en el inicio y pestaña Pagos con navegación por mes, "Mis
   pagos", formularios y una hoja para marcar pagado con el monto prellenado.
+
+### Alertas y recordatorios
+
+Contrato en `specs/006-alerts-reminders/contracts/notifications.openapi.yaml` y textos en
+`push-messages.md` de la misma carpeta.
+
+| Método y ruta                     | Qué hace                                                                  |
+| --------------------------------- | ------------------------------------------------------------------------- |
+| `POST /api/v1/devices`            | Registra el token de Expo de este dispositivo y lo liga a la sesión (204) |
+| `DELETE /api/v1/devices/current`  | Quita los dispositivos de la sesión actual (204)                          |
+| `GET /api/v1/notifications`       | Historial de los últimos 30 días, máximo 200                              |
+| `POST /api/v1/notifications/test` | Push de prueba a esta sesión: 409 sin dispositivo, 429 antes de 30 s      |
+
+- **Alertas de tope**: al registrar o editar una compra se calculan dentro de la transacción y se
+  envían después del commit; si Expo falla, la compra responde igual.
+- **Job cada 15 minutos** (`@nestjs/schedule`): envía los recordatorios del día desde las 7:00 en
+  la zona de cada usuario, en un solo push; revisa los receipts de Expo de más de 15 minutos
+  (borra los dispositivos `DeviceNotRegistered` y los tickets de más de 24 h); y limpia el
+  historial de más de 30 días, las claves de envío de más de 90 y los dispositivos cuya sesión ya
+  no está activa.
+- **Una sola instancia del API**: el job y la espera de 30 s de la prueba viven en memoria y la
+  clave única de envíos evita duplicados, pero con varias réplicas el job correría en todas. Si
+  algún día hay más de una, deja `JOBS_ENABLED=true` solo en una.
+- `JOBS_ENABLED=false` apaga el job (las e2e lo llaman con `runOnce()`); `EXPO_ACCESS_TOKEN` solo
+  hace falta con la seguridad reforzada de push de Expo.
+- Cerrar sesión, revocarla, cambiar o restablecer la contraseña y eliminar la cuenta quitan los
+  dispositivos de esa sesión o de todas.
+- **App**: tras iniciar sesión explica las notificaciones una vez por dispositivo y pide el
+  permiso; Perfil muestra el estado y el botón de prueba; la campana del inicio abre el historial
+  y tocar una notificación abre su pantalla. **Los push remotos necesitan un development build**
+  (no funcionan en Expo Go) con la versión 0.1.0 o mayor, y las credenciales de push cargadas en
+  EAS (ver "Credenciales de push").
 
 ### Restablecer la contraseña de un usuario (administrador)
 

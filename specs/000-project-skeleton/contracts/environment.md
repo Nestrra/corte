@@ -12,6 +12,8 @@ variables. Ningún valor real se versiona; los `.env.example` solo traen valores
 | `PORT` | No | `3000` | entero 1–65535 | `3000` |
 | `GIT_SHA` | No | `unknown` | opcional; si está vacío o ausente, la versión es `unknown` | (vacío en local) |
 | `SWAGGER_ENABLED` | No | `false` | `true` \| `false`; prohibido `true` si `APP_ENV=production` | `true` |
+| `JOBS_ENABLED` | No | `true` | `true` \| `false`; programa el job de notificaciones (spec 006). Las e2e lo ponen en `false` | (vacío en local) |
+| `EXPO_ACCESS_TOKEN` | No | — | opcional; solo si la cuenta de Expo tiene activada la seguridad reforzada de push. Secreto | (vacío en local) |
 
 - Si la validación falla, el proceso termina con código ≠ 0 y un mensaje que lista cada variable
   inválida (sin imprimir sus valores, para no filtrar secretos).

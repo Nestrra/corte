@@ -157,11 +157,11 @@ la app.
   - the same token posted by user B → the row now belongs to B and B's session (data-model.md → `Device.token` unique, research.md R4);
   - DELETE `/devices/current` → 204 and the session's devices gone, a second call → 204.
 - [x] T018 Implement `apps/api/src/notifications/devices.service.ts`, `devices.controller.ts` (POST `/devices` with `@HttpCode(204)` and upsert by token; DELETE `/devices/current`) and `notifications.schemas.ts` (zod: `token` with `Expo.isExpoPushToken` → `INVALID_PUSH_TOKEN`, max 255 per data-model.md → `Device.token`; `platform` per data-model.md → `Device.platform`); make T017 pass
-- [ ] T019 [P] Add `apps/mobile/src/api/notifications.ts`:
+- [x] T019 [P] Add `apps/mobile/src/api/notifications.ts`:
   - the types of contracts/notifications.openapi.yaml (`Notification`, `NotificationKind`, `NotificationTarget`);
   - `registerDevice`, `unregisterCurrentDevice`, `getNotifications`, `sendTestNotification`;
   - `notificationKeys` (`all: ['notifications']`, `history()`).
-- [ ] T020 [P] Create `apps/mobile/src/notifications/permission.ts` (research.md R13):
+- [x] T020 [P] Create `apps/mobile/src/notifications/permission.ts` (research.md R13):
   - `getNotificationStatus()` → `granted | denied | undetermined`;
   - `requestNotificationPermission()`, which first creates the Android channel `default` (`AndroidImportance.HIGH`);
   - `openNotificationSettings()` with `Linking.openSettings()`.
@@ -178,24 +178,24 @@ la app.
 
 **Independent Test**: quickstart.md B2; en la app, B9.1 y B9.2.
 
-- [ ] T021 [US1] Create `apps/mobile/src/notifications/registration.ts` (research.md R13):
+- [x] T021 [US1] Create `apps/mobile/src/notifications/registration.ts` (research.md R13):
   - `syncDevice()`: with permission granted and a session, get the token with `getExpoPushTokenAsync({ projectId: Constants.expoConfig?.extra?.eas?.projectId })` and call `registerDevice`, with `platform` from `Platform.OS`;
   - if getting the token fails, tell the two cases apart: a network or server error keeps the status "Activando…" (pending) and retries on the next open or foreground; only an error saying the device cannot receive push (no push support, as on a simulator) sets `unavailable`;
   - when the permission is `denied` and a device was registered, call `unregisterCurrentDevice`;
   - `useDeviceRegistration()`: runs `syncDevice` after sign-in, on app open and when the app returns to the foreground (reuse `use-refetch-on-app-active`), and on `addPushTokenListener`;
   - expose the status (`granted`, registered or pending, `denied`, `undetermined`, `unavailable`) through a small Zustand store `notification-status`.
-- [ ] T022 [P] [US1] Implement `apps/mobile/src/components/PermissionIntro.tsx` and the route `apps/mobile/src/app/(app)/notifications-intro.tsx` per contracts/screens.md:
+- [x] T022 [P] [US1] Implement `apps/mobile/src/components/PermissionIntro.tsx` and the route `apps/mobile/src/app/(app)/notifications-intro.tsx` per contracts/screens.md:
   - title "Activa las notificaciones" and its text;
   - "Activar notificaciones" → `requestNotificationPermission`, then `syncDevice`, then mark the flag, then `router.replace('/(tabs)/home')`;
   - "Ahora no" → mark the flag and go home.
-- [ ] T023 [US1] In `apps/mobile/src/app/(app)/_layout.tsx`:
+- [x] T023 [US1] In `apps/mobile/src/app/(app)/_layout.tsx`:
   - register `notifications-intro` (`presentation: 'modal'`, no header, gesture disabled);
   - after sign-in, registration or session restore, redirect once to it while `notificationsIntroSeen` is false (spec US1-1, US1-4, US1-8);
   - mount `useDeviceRegistration()`.
-- [ ] T024 [US1] Add `apps/mobile/src/components/NotificationStatusRow.tsx` and render it in `apps/mobile/src/app/(app)/(tabs)/profile.tsx` with the states and actions of contracts/screens.md → Estado en Perfil:
+- [x] T024 [US1] Add `apps/mobile/src/components/NotificationStatusRow.tsx` and render it in `apps/mobile/src/app/(app)/(tabs)/profile.tsx` with the states and actions of contracts/screens.md → Estado en Perfil:
   - "Activadas", "Desactivadas" + "Abrir ajustes", "Sin activar" + "Activar", "No disponibles en este dispositivo", "Activando…";
   - re-read the status when the app returns to the foreground (spec US1-5 to US1-7).
-- [ ] T025 [US1] Configure the `expo-notifications` plugin in `apps/mobile/app.config.ts` (`icon: './assets/android-icon-monochrome.png'`, `color: '#4F46E5'` written in the file with a comment naming the `primary` token of `docs/design-system.md`; `app.config.ts` runs in Node and must not import `src/theme`, and this is native config, not a component, so principle IX does not apply) and bump `version` to `0.1.0` (research.md R14, README → "Versión de runtime"); confirm with `npx expo config --type prebuild` that the plugin options are there
+- [x] T025 [US1] Configure the `expo-notifications` plugin in `apps/mobile/app.config.ts` (`icon: './assets/android-icon-monochrome.png'`, `color: '#4F46E5'` written in the file with a comment naming the `primary` token of `docs/design-system.md`; `app.config.ts` runs in Node and must not import `src/theme`, and this is native config, not a component, so principle IX does not apply) and bump `version` to `0.1.0` (research.md R14, README → "Versión de runtime"); confirm with `npx expo config --type prebuild` that the plugin options are there
 
 **Checkpoint**: US1 complete: the device registers after the explanation and Profile shows the state (validated on a development build).
 
@@ -365,7 +365,7 @@ activas.
 
 - [x] T040 [US4] Add `remindDays` to `apps/api/src/recurring/recurring.schemas.ts` (optional, `validateReminderDays`), `recurring.service.ts` (create and update) and `recurring.mapper.ts` (`RecurringPayment.remindDays`, data-model.md → `RecurringPayment.remindDays`); make T038 pass
 - [x] T041 [US4] Expose `materializeThrough` for the job, or add `RecurringService.materializeForReminders(tx, userId, until)` that locks the user's payments and inserts the occurrences up to `until` with `duePeriods`. In `reminders.service.ts`, materialize up to today + `REMINDER_DAYS_MAX`, read the unpaid occurrences of non-deleted payments with their payment's `remind_days`, and pass them to `remindersFor`. Import `RecurringModule` in `notifications.module.ts`; make T039 pass
-- [ ] T042 [P] [US4] Add `remindDays` to `apps/mobile/src/api/recurring.ts` and `apps/mobile/src/features/recurring-schema.ts` (`validateReminderDays`, default 2), the field "Recordar con anticipación" in `apps/mobile/src/components/RecurringForm.tsx` (as "Recordar corte" in `CardForm.tsx`, help "0 = el mismo día"), and "Recordatorio: N días antes" / "el mismo día" in `apps/mobile/src/app/(app)/recurring/[id]/index.tsx`; edit sends it only when changed
+- [x] T042 [P] [US4] Add `remindDays` to `apps/mobile/src/api/recurring.ts` and `apps/mobile/src/features/recurring-schema.ts` (`validateReminderDays`, default 2), the field "Recordar con anticipación" in `apps/mobile/src/components/RecurringForm.tsx` (as "Recordar corte" in `CardForm.tsx`, help "0 = el mismo día"), and "Recordatorio: N días antes" / "el mismo día" in `apps/mobile/src/app/(app)/recurring/[id]/index.tsx`; edit sends it only when changed
 
 **Checkpoint**: US4 complete.
 
@@ -388,8 +388,8 @@ activas.
 ### Implementation for User Story 7
 
 - [x] T044 [US7] Create `apps/api/src/notifications/notifications.service.ts` (`history(userId)`) and `notifications.controller.ts` (GET `/notifications`); add the cleanup step to `notifications.jobs.ts`; make T043 pass
-- [ ] T045 [P] [US7] Implement `apps/mobile/src/components/NotificationRow.tsx` per contracts/screens.md (icon by kind, title, text up to 3 lines, date "Hoy, 7:00" / "Ayer, 15:42" / "23 nov, 7:00" with a new helper in `apps/mobile/src/features/dates.ts`, ≥ 44, accessible label as one sentence) and `apps/mobile/src/components/BellButton.tsx` (44 × 44, `notifications-outline` in `primaryStrong`, label "Notificaciones")
-- [ ] T046 [US7] Create `apps/mobile/src/app/(app)/notifications.tsx`:
+- [x] T045 [P] [US7] Implement `apps/mobile/src/components/NotificationRow.tsx` per contracts/screens.md (icon by kind, title, text up to 3 lines, date "Hoy, 7:00" / "Ayer, 15:42" / "23 nov, 7:00" with a new helper in `apps/mobile/src/features/dates.ts`, ≥ 44, accessible label as one sentence) and `apps/mobile/src/components/BellButton.tsx` (44 × 44, `notifications-outline` in `primaryStrong`, label "Notificaciones")
+- [x] T046 [US7] Create `apps/mobile/src/app/(app)/notifications.tsx`:
   - list of NotificationRow with pull to refresh and the empty text "Sin notificaciones en los últimos 30 días";
   - the `warningSoft` banner "Esto ya no está disponible" when opened with `?unavailable=1`;
   - `useRefetchOnFocus`.
@@ -406,13 +406,13 @@ activas.
 
 **Independent Test**: en la app, B9.4, B9.5 y B9.6.
 
-- [ ] T047 [US6] Create `apps/mobile/src/notifications/navigation.ts` (research.md R10):
+- [x] T047 [US6] Create `apps/mobile/src/notifications/navigation.ts` (research.md R10):
   - `openTarget(target)` maps `card`, `statement`, `occurrence` and `history` to their routes;
   - before navigating, fetch the resource with the existing API functions; on `NOT_FOUND` go to `/notifications?unavailable=1`;
   - without a session do nothing (the login guard applies).
 
   Use it from `NotificationRow` taps in `notifications.tsx`.
-- [ ] T048 [US6] Create `apps/mobile/src/notifications/use-notifications.ts` and mount it in `apps/mobile/src/app/_layout.tsx`:
+- [x] T048 [US6] Create `apps/mobile/src/notifications/use-notifications.ts` and mount it in `apps/mobile/src/app/_layout.tsx`:
   - `setNotificationHandler` shows banner and sound in the foreground;
   - `addNotificationReceivedListener` invalidates `notificationKeys.all`;
   - `addNotificationResponseReceivedListener` and `getLastNotificationResponseAsync` (cold start, handled once after the session is restored) call `openTarget(response.notification.request.content.data.target)`.
@@ -439,7 +439,7 @@ activas.
 ### Implementation for User Story 8
 
 - [x] T050 [US8] Implement `test(user)` in `notifications.service.ts` and POST `/notifications/test` (`@HttpCode(202)`) in `notifications.controller.ts` (research.md R11: session tokens, `last_test_at` with the `Clock`, `TEST_PUSH_CONTENT`, no history); make T049 pass
-- [ ] T051 [US8] Add the button "Enviar notificación de prueba" to `apps/mobile/src/app/(app)/(tabs)/profile.tsx`:
+- [x] T051 [US8] Add the button "Enviar notificación de prueba" to `apps/mobile/src/app/(app)/(tabs)/profile.tsx`:
   - only with status "Activadas";
   - messages for 202, 409, 429 (disabled with "Espera <s> s" counting down) and 502 or network errors, per contracts/screens.md → Prueba.
 
@@ -469,12 +469,12 @@ activas.
 
 ## Phase 13: Polish & Cross-Cutting Concerns
 
-- [ ] T053 [P] Update `docs/design-system.md`:
+- [x] T053 [P] Update `docs/design-system.md`:
   - NotificationRow, BellButton, PermissionIntro and NotificationStatusRow;
   - the "Recordar con anticipación" field of RecurringForm;
   - the bell in "Pantalla de inicio" point 1;
   - check that every color pair used is in the measured list (AA).
-- [ ] T054 [P] Update `docs/mvp-spec.md` (rule 3 of "Cupo, tope y alertas": al registrar o editar una compra, una sola alerta con el umbral más alto cruzado, y todos los umbrales cruzados quedan avisados una vez por ciclo, per research.md R2; data model: `devices`, `notifications`, `notification_dispatches` and `push_tickets` replace `alert_logs`; API table: `/devices`, `/devices/current`, `/notifications` and `/notifications/test`, linking contracts/notifications.openapi.yaml), `README.md` and `specs/000-project-skeleton/contracts/environment.md`. The README gets a section "Alertas y recordatorios" with:
+- [x] T054 [P] Update `docs/mvp-spec.md` (rule 3 of "Cupo, tope y alertas": al registrar o editar una compra, una sola alerta con el umbral más alto cruzado, y todos los umbrales cruzados quedan avisados una vez por ciclo, per research.md R2; data model: `devices`, `notifications`, `notification_dispatches` and `push_tickets` replace `alert_logs`; API table: `/devices`, `/devices/current`, `/notifications` and `/notifications/test`, linking contracts/notifications.openapi.yaml), `README.md` and `specs/000-project-skeleton/contracts/environment.md`. The README gets a section "Alertas y recordatorios" with:
   - `JOBS_ENABLED` and `EXPO_ACCESS_TOKEN`;
   - the single API instance requirement;
   - the 15-minute job, receipts and cleanup;

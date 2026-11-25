@@ -29,8 +29,15 @@ export class ApiError extends Error {
   readonly status: number;
   readonly code: ApiErrorCode;
   readonly fieldErrors: FieldError[];
+  /** Seconds to wait before retrying (`TEST_RATE_LIMITED`, spec 006). */
+  readonly retryAfterSeconds: number | null;
 
-  constructor(status: number, code: ApiErrorCode, fieldErrors: FieldError[] = []) {
+  constructor(
+    status: number,
+    code: ApiErrorCode,
+    fieldErrors: FieldError[] = [],
+    retryAfterSeconds: number | null = null,
+  ) {
     super(`API error ${status} ${code}`);
     // Keeps `instanceof` working when classes extending Error are transpiled.
     Object.setPrototypeOf(this, ApiError.prototype);
@@ -38,6 +45,7 @@ export class ApiError extends Error {
     this.status = status;
     this.code = code;
     this.fieldErrors = fieldErrors;
+    this.retryAfterSeconds = retryAfterSeconds;
   }
 }
 
@@ -108,7 +116,10 @@ const fieldTexts: Record<string, Record<string, string>> = {
 // Card fields (specs/002-cards/contracts/errors.md). Keyed by form field, so `name` of a card
 // gets its own texts through `cardFieldErrorText`.
 const dayTexts = { OUT_OF_RANGE: 'Elige un día del 1 al 31', REQUIRED: 'Elige un día del 1 al 31' };
-const reminderTexts = { OUT_OF_RANGE: 'Entre 0 y 15 días', REQUIRED: 'Entre 0 y 15 días' };
+const reminderTexts = {
+  OUT_OF_RANGE: 'Entre 0 y 15 días',
+  REQUIRED: 'Entre 0 y 15 días',
+};
 const cardFieldTexts: Record<string, Record<string, string>> = {
   name: { REQUIRED: 'Escribe un nombre', TOO_LONG: 'Máximo 40 caracteres' },
   color: { INVALID: 'Elige un color', REQUIRED: 'Elige un color' },
@@ -160,6 +171,8 @@ const recurringFieldTexts: Record<string, Record<string, string>> = {
   name: { REQUIRED: 'Escribe un nombre', TOO_LONG: 'Máximo 40 caracteres' },
   amount: recurringAmountTexts,
   frequency: { REQUIRED: 'Elige la frecuencia', INVALID: 'Elige la frecuencia' },
+  // spec 006 (data-model.md → RecurringPayment.remindDays)
+  remindDays: reminderTexts,
   firstDueDate: {
     REQUIRED: 'Elige la fecha del primer vencimiento',
     INVALID: 'Elige una fecha válida',
@@ -231,5 +244,11 @@ export function toApiError(status: number, body: unknown): ApiError {
           typeof (item as FieldError).code === 'string',
       )
     : [];
-  return new ApiError(status, code, fieldErrors);
+  const retryAfter = record.retryAfterSeconds;
+  return new ApiError(
+    status,
+    code,
+    fieldErrors,
+    typeof retryAfter === 'number' && retryAfter > 0 ? Math.ceil(retryAfter) : null,
+  );
 }

@@ -177,6 +177,22 @@ export function RecurringForm({
             />
           )}
         />
+        <Controller
+          control={control}
+          name="remindDays"
+          render={({ field: { onChange, onBlur, value }, fieldState: { error } }) => (
+            <TextField
+              label="Recordar con anticipación"
+              hint="Días antes del vencimiento. 0 = el mismo día"
+              value={value}
+              onChangeText={onChange}
+              onBlur={onBlur}
+              error={error?.message}
+              keyboardType="number-pad"
+              maxLength={2}
+            />
+          )}
+        />
         {note ? (
           <View style={styles.note}>
             <Text variant="secondary" color="primaryStrong">
