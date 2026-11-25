@@ -25,14 +25,15 @@ Monorepo pnpm: `packages/domain` (TS puro, sin I/O, Vitest, cobertura ≥ 95 %),
 
 ## Estado (actualizar al cerrar cada paso)
 
-- Specs cerradas: 000 esqueleto, 001 auth, 002 tarjetas, 003 compras/cuotas/extractos, 004 inicio y simulador, 005 pagos recurrentes.
+- Specs cerradas: 000 esqueleto, 001 auth, 002 tarjetas, 003 compras/cuotas/extractos, 004 inicio y simulador, 005 pagos recurrentes, 006 alertas y recordatorios.
 - CI publica `ghcr.io/nestrra/corte-api` y `corte-migrate` (públicas) en cada push a `main`.
 - Staging desplegado en el homelab: `https://corte-api-staging.nrcintelligence.io` (stack en el servidor `~/stacks/corte-staging`, se actualiza con `./deploy.sh`). Producción todavía no.
 - EAS configurado (proyecto `@nestrra/corte`, perfiles development/preview/production en `apps/mobile/eas.json`).
 - iOS declara cifrado exento (`ITSAppUsesNonExemptEncryption: false`).
-- Credenciales de push preparadas en el código (`googleServicesFile` desde la variable de archivo `GOOGLE_SERVICES_JSON` de EAS; `google-services.json` en `.gitignore`). Pasos en el README, "Credenciales de push": la variable, la clave FCM V1 y la llave APNs se cargan en EAS a mano.
+- Credenciales de push cargadas en EAS (`googleServicesFile` desde la variable de archivo `GOOGLE_SERVICES_JSON`; `google-services.json` en `.gitignore`; clave FCM V1 y llave APNs). Pasos en el README, "Credenciales de push".
+- Push (spec 006): app en `version` 0.1.0 con development builds de iOS y Android validados (B9). El API corre el job de notificaciones cada 15 minutos y debe ser una sola instancia (`JOBS_ENABLED`, README → "Alertas y recordatorios").
 - Runtime version con política `appVersion` (`fingerprint` fallaba en EAS por el archivo secreto de `GOOGLE_SERVICES_JSON`).
-- Siguiente: cargar las credenciales de push en EAS y hacer el primer development build de Android, luego spec 006 (alertas y recordatorios push), luego producción.
+- Siguiente: mergear el PR de la spec 006, desplegarla en staging y luego producción.
 
 ## Notas prácticas
 

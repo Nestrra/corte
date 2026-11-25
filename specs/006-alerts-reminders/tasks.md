@@ -479,9 +479,9 @@ activas.
   - the single API instance requirement;
   - the 15-minute job, receipts and cleanup;
   - that push needs a development build.
-- [ ] T055 Design review of the new screens against `docs/design-system.md` and contracts/screens.md (tokens only, touch areas ≥ 44, states written, AA contrast, long texts with $9.999.999.999 not cut in NotificationRow); fix what is found
-- [ ] T056 Run quickstart.md B1–B8 (curl and test commands), `pnpm lint && pnpm format:check && pnpm typecheck`, `pnpm --filter @corte/domain test:cov`, `pnpm --filter api test && pnpm --filter api test:e2e` and `pnpm --filter mobile exec expo export` for iOS and Android; B9 (development build on iOS and Android) is validated manually by the user
-- [ ] T057 After B9 passes, mark spec 006 as "(cerrada)" in "Orden de specs" of `docs/mvp-spec.md` and update "Estado" in `CLAUDE.md`
+- [x] T055 Design review of the new screens against `docs/design-system.md` and contracts/screens.md (tokens only, touch areas ≥ 44, states written, AA contrast, long texts with $9.999.999.999 not cut in NotificationRow); fix what is found
+- [x] T056 Run quickstart.md B1–B8 (curl and test commands), `pnpm lint && pnpm format:check && pnpm typecheck`, `pnpm --filter @corte/domain test:cov`, `pnpm --filter api test && pnpm --filter api test:e2e` and `pnpm --filter mobile exec expo export` for iOS and Android; B9 (development build on iOS and Android) is validated manually by the user
+- [x] T057 After B9 passes, mark spec 006 as "(cerrada)" in "Orden de specs" of `docs/mvp-spec.md` and update "Estado" in `CLAUDE.md`
 
 ---
 
