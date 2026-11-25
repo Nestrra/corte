@@ -209,9 +209,11 @@ mobile start --clear`:
    (mídelo con el reloj: SC-005). Al tocarla se abre el detalle de la tarjeta.
 5. **Historial** (historia 7): toca la campana del inicio. Está la alerta con "Hoy, HH:MM";
    tocarla abre la tarjeta. Archiva la tarjeta y toca de nuevo: "Esto ya no está disponible".
-6. **App cerrada** (historia 6, escenario 5): cierra la app por completo, envía una prueba desde
-   el otro teléfono con la misma cuenta o espera un recordatorio. Al tocarlo, la app abre en el
-   destino.
+6. **App cerrada** (historia 6, escenario 5): con la misma cuenta en los dos teléfonos, cierra
+   la app por completo en el teléfono A. Desde el teléfono B registra una compra que cruce otro
+   umbral del tope (o espera un recordatorio de las 7:00). Al tocar el push en A, la app abre en
+   el destino. La notificación de prueba no sirve aquí: solo llega a la sesión que la envía y no
+   abre ninguna pantalla.
 7. **Varios dispositivos** (historia 9): con la misma cuenta en dos teléfonos, una alerta llega a
    los dos. Cierra sesión en uno: deja de recibir y el otro sigue.
 8. **Pagos recurrentes** (historia 4): crea un pago y comprueba "Recordar con anticipación" (2
