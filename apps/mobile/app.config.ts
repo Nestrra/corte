@@ -8,15 +8,18 @@ const EAS_PROJECT_ID = 'bdb6af21-da0d-4fae-ae2c-453cd9402ed9';
  * development and from each build profile's `env` in eas.json for EAS builds.
  *
  * EAS Update: each build listens to the channel of its eas.json profile (development, staging,
- * production) and only takes updates with its same runtime version. The `fingerprint` policy
- * derives that version from a hash of the native code and config, so an update can never reach a
- * build whose native side differs; any native change requires a new build.
+ * production) and only takes updates with its same runtime version. The `appVersion` policy makes
+ * the runtime version equal to `version` below. Bump `version` every time something native
+ * changes (plugins, packages with native code, permissions, native config) and make a new build;
+ * otherwise an update could reach a build whose native side differs (README → "Versión de
+ * runtime"). `fingerprint` is not used because the GOOGLE_SERVICES_JSON secret file only exists on
+ * EAS, so the local and EAS fingerprints never match.
  */
 const config: ExpoConfig = {
   name: 'Corte',
   slug: 'corte',
   version: '0.0.0',
-  runtimeVersion: { policy: 'fingerprint' },
+  runtimeVersion: { policy: 'appVersion' },
   updates: { url: `https://u.expo.dev/${EAS_PROJECT_ID}` },
   extra: { eas: { projectId: EAS_PROJECT_ID } },
   orientation: 'portrait',

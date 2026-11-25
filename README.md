@@ -429,11 +429,24 @@ las tiendas. Cada build escucha el **canal** de su perfil en `eas.json`:
 | `preview`     | `staging`     | `--channel staging`     |
 | `production`  | `production`  | `--channel production`  |
 
-La **runtime version** usa la política `fingerprint`: es un hash del código nativo y de la config
-nativa. Un build solo acepta updates con su misma runtime version, así que un update nunca llega a
-un build con un lado nativo distinto. Si cambias algo nativo (agregas o actualizas un paquete con
-código nativo, cambias un plugin, el bundle id, los íconos…), el fingerprint cambia y hace falta un
-**build nuevo**. `eas update` calcula el fingerprint del proyecto local y lo publica con él.
+#### Versión de runtime
+
+Un build solo acepta updates con su misma **runtime version**. La app usa la política
+`appVersion`: la runtime version es el campo `version` de `apps/mobile/app.config.ts`.
+
+> **Regla**: cada vez que cambie algo nativo hay que **subir `version`** y hacer un **build
+> nuevo**. Cuenta como nativo: agregar, quitar o actualizar un paquete con código nativo; agregar o
+> cambiar un plugin de `app.config.ts`; cambiar permisos; y cambiar la config nativa (bundle id,
+> package, íconos, splash, `infoPlist`, `googleServicesFile`…). Los cambios solo de JavaScript o
+> de assets no la suben y se publican con `eas update`.
+
+Si no se sube, el update se publica con la misma runtime version que los builds anteriores y puede
+llegar a un build sin ese código nativo, donde la app falla al abrir. No se usa la política
+`fingerprint` porque el archivo secreto de `GOOGLE_SERVICES_JSON` solo existe en EAS: el
+fingerprint local y el de EAS nunca coinciden y el build falla en "Configure expo-updates".
+
+`version` no es el número de compilación: el build number de iOS y el versionCode de Android los
+lleva EAS aparte (`appVersionSource: remote`).
 
 **Publicar en staging** (desde `apps/mobile`, con builds `preview`
 instalados):
@@ -458,7 +471,6 @@ Otros comandos útiles:
 npx eas-cli update:list --branch staging              # updates publicados en staging
 npx eas-cli update:republish --group <id>             # volver a publicar un update anterior (rollback)
 npx eas-cli channel:view staging                      # qué branch sirve el canal
-npx eas-cli fingerprint:compare                       # ver si un cambio necesita build nuevo
 ```
 
 `eas update --channel staging` publica en el branch de EAS con el mismo nombre (`staging`) y lo
