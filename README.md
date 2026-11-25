@@ -352,11 +352,19 @@ de iOS y package de Android `io.nrcintelligence.corte`) y los perfiles de build 
 `apps/mobile/eas.json`. La URL del API de cada build sale del `env` de su perfil, no del `.env`
 local (que está en `.gitignore` y no se sube a EAS):
 
-| Perfil        | Para qué                                     | Distribución | Canal         | `EXPO_PUBLIC_API_URL`                          |
-| ------------- | -------------------------------------------- | ------------ | ------------- | ---------------------------------------------- |
-| `development` | Development build (`expo-dev-client`)        | Interna      | `development` | `https://corte-api-staging.nrcintelligence.io` |
-| `preview`     | Probar una versión como la final, en staging | Interna      | `staging`     | `https://corte-api-staging.nrcintelligence.io` |
-| `production`  | Tiendas (App Store y Google Play)            | Tiendas      | `production`  | `https://corte-api.nrcintelligence.io`         |
+| Perfil        | Para qué                                     | Distribución                  | Canal         | `EXPO_PUBLIC_API_URL`                          |
+| ------------- | -------------------------------------------- | ----------------------------- | ------------- | ---------------------------------------------- |
+| `development` | Development build (`expo-dev-client`)        | Interna                       | `development` | `https://corte-api-staging.nrcintelligence.io` |
+| `preview`     | Probar una versión como la final, en staging | Interna                       | `staging`     | `https://corte-api-staging.nrcintelligence.io` |
+| `production`  | La app real, contra producción               | Interna (temporal; ver abajo) | `production`  | `https://corte-api.nrcintelligence.io`         |
+
+**Producción sin tiendas (temporal)**: mientras la app no se publica, el perfil `production` lleva
+`"distribution": "internal"` y `"android": { "buildType": "apk" }`. Así el build de producción se
+instala directo desde el enlace o QR de EAS (APK en Android, ad hoc en los iPhone registrados con
+`device:create`), con el canal `production` y el API de producción. **Para publicar en las
+tiendas, quita esas dos claves de `apps/mobile/eas.json`**: Android vuelve a generar AAB y la
+distribución vuelve a ser `store`, que es lo que piden Google Play y App Store Connect (`eas
+submit` no acepta un APK ni un build ad hoc).
 
 La versión de compilación (build number de iOS, versionCode de Android) la lleva EAS
 (`appVersionSource: remote`) y el perfil `production` la incrementa en cada build.
@@ -379,16 +387,16 @@ npx eas-cli device:create        # registra tus iPhone para la distribución int
 npx eas-cli build --profile development --platform ios       # development build para iPhone
 npx eas-cli build --profile development --platform android   # APK con el dev client
 npx eas-cli build --profile preview --platform all           # iOS ad hoc + APK de Android, contra staging
-npx eas-cli build --profile production --platform all        # binarios para las tiendas
+npx eas-cli build --profile production --platform all        # producción (por ahora APK y ad hoc, ver arriba)
 npx eas-cli build:list                                       # builds anteriores y sus enlaces
-npx eas-cli submit --profile production --platform ios       # subir el último build a App Store Connect
-npx eas-cli submit --profile production --platform android   # subir el último build a Google Play
+npx eas-cli submit --profile production --platform ios       # subir a App Store Connect (sin las claves temporales)
+npx eas-cli submit --profile production --platform android   # subir a Google Play (sin las claves temporales)
 ```
 
 Con un development build instalado en el teléfono, `pnpm --filter mobile start` y abre la app: se
 conecta a Metro como Expo Go, pero con el código nativo propio (por ejemplo,
-`expo-notifications`). Las builds de `development` y `preview` se instalan desde el enlace o QR
-que muestra EAS al terminar.
+`expo-notifications`). Las builds de `development`, `preview` y, por ahora, `production` se instalan desde el enlace o
+QR que muestra EAS al terminar.
 
 ### Credenciales de push
 
