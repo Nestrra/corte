@@ -42,5 +42,7 @@ Monorepo pnpm: `packages/domain` (TS puro, sin I/O, Vitest, cobertura ≥ 95 %),
 - Local: `pnpm db:up`, `pnpm --filter api dev`, `pnpm --filter mobile start --clear` (con dev client instalado; `--go` para Expo Go).
 - `apps/mobile/.env`: `http://localhost:3000` para iOS, `http://10.0.2.2:3000` para el emulador Android; reiniciar Metro con `--clear` al cambiarlo.
 - Restablecer contraseña: `pnpm --filter api admin:reset-password <email>` (local, con el API arrancado) o `docker exec <contenedor> node dist/cli/reset-password.js <email>`.
+- `packages/domain/dist` no está en git: en local lo compilan los `pre*` de la app y en EAS el hook `eas-build-post-install` de `apps/mobile/package.json`.
+- OTA: publicar solo con `pnpm --filter mobile update:staging` o `update:production` (con `--message "..."`): compilan el dominio y fijan `EXPO_PUBLIC_API_URL` del canal, porque `eas update` no usa el `env` de `eas.json` y tomaría el `.env` local.
 - Runtime version = `version` de `apps/mobile/app.config.ts` (política `appVersion`). Todo cambio nativo (plugins, paquetes con código nativo, permisos, config nativa) exige subir `version` y hacer un build nuevo de EAS; si no, un `eas update` puede llegar a builds sin ese código nativo. Detalle en el README, "Versión de runtime".
 - Intereses de cuotas: estimado simple con tasa EA de la tarjeta; el interés por días es v2.
