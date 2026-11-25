@@ -398,6 +398,11 @@ conecta a Metro como Expo Go, pero con el código nativo propio (por ejemplo,
 `expo-notifications`). Las builds de `development`, `preview` y, por ahora, `production` se instalan desde el enlace o
 QR que muestra EAS al terminar.
 
+`packages/domain/dist` no está en git, y los servidores de EAS no corren los `pre*` locales. Por
+eso `apps/mobile/package.json` tiene el hook `eas-build-post-install`, que compila
+`@corte/domain` después de instalar las dependencias en EAS; sin él, el build falla con "Unable to
+resolve @corte/domain".
+
 ### Credenciales de push
 
 Las notificaciones push (`expo-notifications`, Expo Push) necesitan tres credenciales. Ninguna se
@@ -470,6 +475,19 @@ las tiendas. Cada build escucha el **canal** de su perfil en `eas.json`:
 | `development` | `development` | `--channel development` |
 | `preview`     | `staging`     | `--channel staging`     |
 | `production`  | `production`  | `--channel production`  |
+
+`eas update` empaqueta en tu máquina, así que se publica con los scripts de la app, que compilan
+`@corte/domain` antes (su `dist/` no está en git) y fijan la URL del API de cada canal:
+
+```bash
+pnpm --filter mobile update:staging --message "Corrige el texto del extracto"
+pnpm --filter mobile update:production --message "Corrige el texto del extracto"
+```
+
+`eas update` no usa el `env` de los perfiles de `eas.json`; sin la URL que ponen los scripts
+tomaría la del `.env` local (`localhost`) y la app quedaría sin conexión. No corras `npx eas-cli
+update` a mano. Antes de publicar, revisa la "Versión de runtime": un update solo llega a builds
+con la misma `version`.
 
 #### Versión de runtime
 

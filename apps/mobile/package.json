@@ -12,7 +12,10 @@
     "preandroid": "pnpm --filter @corte/domain build",
     "android": "expo start --android",
     "pretypecheck": "pnpm --filter @corte/domain build",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "eas-build-post-install": "pnpm --filter @corte/domain build",
+    "update:staging": "pnpm --filter @corte/domain build && EXPO_PUBLIC_API_URL=https://corte-api-staging.nrcintelligence.io npx eas-cli update --channel staging",
+    "update:production": "pnpm --filter @corte/domain build && EXPO_PUBLIC_API_URL=https://corte-api.nrcintelligence.io npx eas-cli update --channel production"
   },
   "dependencies": {
     "@corte/domain": "workspace:*",
