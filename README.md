@@ -296,7 +296,11 @@ nunca pongas secretos ahí. Después de cambiar `.env`, reinicia Metro con `--cl
 pnpm --filter api dev            # en otra terminal: el API debe estar corriendo
 pnpm --filter mobile start       # Metro; luego "i" (iOS), "a" (Android) o escanea el QR con Expo Go
 pnpm --filter mobile start --clear   # si cambiaste .env o algo se ve desactualizado
+pnpm --filter mobile start --go      # forzar Expo Go (sin --go, Metro abre el development build)
 ```
+
+Con `expo-dev-client` instalado, `expo start` sirve por defecto al **development build** (ver
+"Builds con EAS"). Para seguir usando Expo Go, pasa `--go` o pulsa `s` en Metro para cambiar de modo.
 
 La app usa los tokens de `docs/design-system.md` (`apps/mobile/src/theme`) y los componentes de
 `apps/mobile/src/components`: los base `Text`, `Button`, `TextField` y `Screen`, y los de
@@ -306,6 +310,54 @@ tarjetas `TabBar` (barra inferior con íconos de `@expo/vector-icons`), `CreditC
 reglas de `@corte/domain`). Los montos se muestran con `formatCop` (`$5.000.000`,
 `src/features/money.ts`). No escribas colores, tamaños ni espaciados sueltos en los componentes
 (constitución, principio IX).
+
+### Builds con EAS
+
+La configuración de la app está en `apps/mobile/app.config.ts` (nombre "Corte", bundle identifier
+de iOS y package de Android `io.nrcintelligence.corte`) y los perfiles de build en
+`apps/mobile/eas.json`. La URL del API de cada build sale del `env` de su perfil, no del `.env`
+local (que está en `.gitignore` y no se sube a EAS):
+
+| Perfil        | Para qué                                     | Distribución | Canal         | `EXPO_PUBLIC_API_URL`                          |
+| ------------- | -------------------------------------------- | ------------ | ------------- | ---------------------------------------------- |
+| `development` | Development build (`expo-dev-client`)        | Interna      | `development` | `https://corte-api-staging.nrcintelligence.io` |
+| `preview`     | Probar una versión como la final, en staging | Interna      | `staging`     | `https://corte-api-staging.nrcintelligence.io` |
+| `production`  | Tiendas (App Store y Google Play)            | Tiendas      | `production`  | `https://corte-api.nrcintelligence.io`         |
+
+La versión de compilación (build number de iOS, versionCode de Android) la lleva EAS
+(`appVersionSource: remote`) y el perfil `production` la incrementa en cada build.
+
+**Primera vez** (una sola vez, desde `apps/mobile`):
+
+```bash
+cd apps/mobile
+npx eas-cli login                # cuenta de Expo
+npx eas-cli init                 # crea el proyecto en EAS y agrega su projectId a la config
+npx eas-cli device:create        # registra tus iPhone para la distribución interna (ad hoc)
+```
+
+`eas init` escribe el `projectId` en la config; como es `app.config.ts`, puede pedir que lo
+agregues a mano en `extra.eas.projectId`.
+
+**Builds** (desde `apps/mobile`; se compilan en los servidores de EAS):
+
+```bash
+npx eas-cli build --profile development --platform ios       # development build para iPhone
+npx eas-cli build --profile development --platform android   # APK con el dev client
+npx eas-cli build --profile preview --platform all           # iOS ad hoc + APK de Android, contra staging
+npx eas-cli build --profile production --platform all        # binarios para las tiendas
+npx eas-cli build:list                                       # builds anteriores y sus enlaces
+npx eas-cli submit --profile production --platform ios       # subir el último build a App Store Connect
+npx eas-cli submit --profile production --platform android   # subir el último build a Google Play
+```
+
+Con un development build instalado en el teléfono, `pnpm --filter mobile start` y abre la app: se
+conecta a Metro como Expo Go, pero con el código nativo propio (por ejemplo,
+`expo-notifications`). Las builds de `development` y `preview` se instalan desde el enlace o QR
+que muestra EAS al terminar.
+
+Los canales (`development`, `staging`, `production`) son para EAS Update. Todavía no se usan porque
+`expo-updates` no está instalado; quedan listos para cuando se agreguen actualizaciones OTA.
 
 ## Imagen Docker
 
