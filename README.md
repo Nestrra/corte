@@ -356,6 +356,68 @@ conecta a Metro como Expo Go, pero con el código nativo propio (por ejemplo,
 `expo-notifications`). Las builds de `development` y `preview` se instalan desde el enlace o QR
 que muestra EAS al terminar.
 
+### Credenciales de push
+
+Las notificaciones push (`expo-notifications`, Expo Push) necesitan tres credenciales. Ninguna se
+versiona: viven en EAS. Los comandos van desde `apps/mobile` y con sesión en `eas-cli`.
+
+**1. `google-services.json` (Android, configuración de Firebase)**
+
+`app.config.ts` toma `android.googleServicesFile` de la variable `GOOGLE_SERVICES_JSON` y, si no
+existe, de `./google-services.json`. Ese archivo está en `.gitignore`: nunca se sube al repo.
+
+1. En la consola de Firebase, crea (o abre) el proyecto y agrega una app Android con el package
+   `io.nrcintelligence.corte`. Descarga su `google-services.json`.
+2. Súbelo a EAS como variable de tipo archivo, en los tres entornos (los perfiles de `eas.json`
+   usan el entorno con su mismo nombre):
+
+   ```bash
+   npx eas-cli env:create --name GOOGLE_SERVICES_JSON --type file --value ./google-services.json \
+     --visibility secret --environment development --environment preview --environment production
+   ```
+
+   En el build, EAS escribe el archivo y deja su ruta en `GOOGLE_SERVICES_JSON`.
+
+3. Para un build local (`expo prebuild` / `expo run:android`) basta con dejar el archivo en
+   `apps/mobile/google-services.json`.
+
+Para reemplazarlo, `npx eas-cli env:update` con el mismo nombre; `npx eas-cli env:list` muestra las
+variables sin su contenido.
+
+**2. Clave de FCM V1 (Android, envío de push)**
+
+Expo Push envía a Android con la API HTTP v1 de FCM, que usa una clave de cuenta de servicio de
+Google:
+
+1. En Firebase → Configuración del proyecto → Cuentas de servicio, genera una clave privada nueva
+   (un JSON). Guárdala fuera del repo.
+2. Súbela a EAS:
+
+   ```bash
+   npx eas-cli credentials --platform android
+   ```
+
+   Elige el perfil, luego **Google Service Account** → **Manage your Google Service Account Key
+   for Push Notifications (FCM V1)** → sube el JSON.
+
+3. Borra la copia local cuando EAS la tenga.
+
+**3. Llave APNs (iOS)**
+
+La llave de Apple Push Notifications la administra EAS. Se crea la primera vez que haces un build
+de iOS con `expo-notifications` (EAS pregunta si configura las notificaciones push: responde que
+sí) o a mano:
+
+```bash
+npx eas-cli credentials --platform ios
+```
+
+Elige el perfil y **Push Notifications: Manage your Apple Push Notifications Key** → deja que EAS
+genere una llave nueva o reutilice una de la cuenta de Apple Developer. EAS la guarda y la usa
+Expo Push; no hace falta descargarla.
+
+`npx eas-cli credentials` muestra en cualquier momento qué credenciales tiene cada plataforma.
+
 ### Actualizaciones OTA con EAS Update
 
 `expo-updates` permite publicar cambios de JavaScript y assets sin pasar por un build nuevo ni por

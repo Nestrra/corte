@@ -29,7 +29,9 @@ Monorepo pnpm: `packages/domain` (TS puro, sin I/O, Vitest, cobertura ≥ 95 %),
 - CI publica `ghcr.io/nestrra/corte-api` y `corte-migrate` (públicas) en cada push a `main`.
 - Staging desplegado en el homelab: `https://corte-api-staging.nrcintelligence.io` (stack en el servidor `~/stacks/corte-staging`, se actualiza con `./deploy.sh`). Producción todavía no.
 - EAS configurado (proyecto `@nestrra/corte`, perfiles development/preview/production en `apps/mobile/eas.json`).
-- Siguiente: primer development build de Android, luego spec 006 (alertas y recordatorios push), luego producción.
+- iOS declara cifrado exento (`ITSAppUsesNonExemptEncryption: false`).
+- Credenciales de push preparadas en el código (`googleServicesFile` desde la variable de archivo `GOOGLE_SERVICES_JSON` de EAS; `google-services.json` en `.gitignore`). Pasos en el README, "Credenciales de push": la variable, la clave FCM V1 y la llave APNs se cargan en EAS a mano.
+- Siguiente: cargar las credenciales de push en EAS y hacer el primer development build de Android, luego spec 006 (alertas y recordatorios push), luego producción.
 
 ## Notas prácticas
 

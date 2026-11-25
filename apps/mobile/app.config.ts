@@ -32,6 +32,10 @@ const config: ExpoConfig = {
   },
   android: {
     package: 'io.nrcintelligence.corte',
+    // Firebase config for FCM push. EAS builds get it from the GOOGLE_SERVICES_JSON file
+    // variable; locally it is read from ./google-services.json, which is git-ignored (README →
+    // "Credenciales de push").
+    googleServicesFile: process.env.GOOGLE_SERVICES_JSON ?? './google-services.json',
     adaptiveIcon: {
       backgroundColor: '#E6F4FE',
       foregroundImage: './assets/android-icon-foreground.png',
