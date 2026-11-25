@@ -20,6 +20,9 @@ apps/api/src/generated/
 apps/mobile/ios/
 apps/mobile/android/
 
+# Firebase config for push (provided by EAS as a file variable)
+google-services.json
+
 # Logs and OS files
 *.log
 .DS_Store
