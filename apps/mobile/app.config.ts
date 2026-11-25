@@ -26,6 +26,9 @@ const config: ExpoConfig = {
   ios: {
     bundleIdentifier: 'io.nrcintelligence.corte',
     supportsTablet: true,
+    infoPlist: {
+      ITSAppUsesNonExemptEncryption: false,
+    },
   },
   android: {
     package: 'io.nrcintelligence.corte',
