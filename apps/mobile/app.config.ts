@@ -1,7 +1,25 @@
+// This file runs in Node (Expo CLI, EAS), not in the app: it needs Node's types, which TypeScript 6
+// no longer includes by default.
+/// <reference types="node" />
+import { existsSync } from 'node:fs';
+import { join } from 'node:path';
+
 import type { ExpoConfig } from 'expo/config';
 
 /** EAS project id (README → "Builds con EAS"); also the EAS Update URL's last segment. */
 const EAS_PROJECT_ID = 'bdb6af21-da0d-4fae-ae2c-453cd9402ed9';
+
+/**
+ * Firebase config for FCM push (README → "Credenciales de push"). EAS builds get its path from the
+ * GOOGLE_SERVICES_JSON file variable; locally it is ./google-services.json (git-ignored), used only
+ * if it exists. With neither, the property is left out: Expo rejects a path to a missing file.
+ */
+const LOCAL_GOOGLE_SERVICES_FILE = './google-services.json';
+const googleServicesFile =
+  process.env.GOOGLE_SERVICES_JSON ??
+  (existsSync(join(__dirname, LOCAL_GOOGLE_SERVICES_FILE))
+    ? LOCAL_GOOGLE_SERVICES_FILE
+    : undefined);
 
 /**
  * Expo app config. The API URL is not set here: it comes from EXPO_PUBLIC_API_URL, from `.env` in
@@ -35,10 +53,7 @@ const config: ExpoConfig = {
   },
   android: {
     package: 'io.nrcintelligence.corte',
-    // Firebase config for FCM push. EAS builds get it from the GOOGLE_SERVICES_JSON file
-    // variable; locally it is read from ./google-services.json, which is git-ignored (README →
-    // "Credenciales de push").
-    googleServicesFile: process.env.GOOGLE_SERVICES_JSON ?? './google-services.json',
+    ...(googleServicesFile ? { googleServicesFile } : {}),
     adaptiveIcon: {
       backgroundColor: '#E6F4FE',
       foregroundImage: './assets/android-icon-foreground.png',
