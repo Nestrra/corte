@@ -1,4 +1,4 @@
-import { todayInTimeZone } from './today';
+import { localDateTimeIn, todayInTimeZone } from './today';
 
 describe('todayInTimeZone (research.md R3)', () => {
   const instant = new Date('2026-11-22T02:30:00Z');
@@ -18,5 +18,28 @@ describe('todayInTimeZone (research.md R3)', () => {
 
   it('rejects an invalid time zone', () => {
     expect(() => todayInTimeZone('Marte/Base', instant)).toThrow(RangeError);
+  });
+});
+
+describe('localDateTimeIn (spec 006 research.md R7)', () => {
+  it('gives the local date and 24-hour time', () => {
+    expect(localDateTimeIn('America/Bogota', new Date('2026-12-06T12:00:00Z'))).toEqual({
+      date: '2026-12-06',
+      time: '07:00',
+    });
+    expect(localDateTimeIn('America/Bogota', new Date('2026-12-06T11:59:00Z')).time).toBe('06:59');
+    expect(localDateTimeIn('Europe/Madrid', new Date('2026-12-06T12:00:00Z')).time).toBe('13:00');
+    expect(localDateTimeIn('Asia/Kolkata', new Date('2026-12-06T12:00:00Z')).time).toBe('17:30');
+  });
+
+  it('uses 00 for midnight and crosses the date', () => {
+    expect(localDateTimeIn('America/Bogota', new Date('2026-12-07T05:00:00Z'))).toEqual({
+      date: '2026-12-07',
+      time: '00:00',
+    });
+  });
+
+  it('rejects an invalid time zone', () => {
+    expect(() => localDateTimeIn('Marte/Base', new Date())).toThrow(RangeError);
   });
 });

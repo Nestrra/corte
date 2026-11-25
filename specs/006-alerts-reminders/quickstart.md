@@ -53,7 +53,7 @@ curl -s -X POST $API/devices -H "$AUTH" -H "$JSON" -d '{"token":"abc","platform"
 curl -s -o /dev/null -w '%{http_code}\n' -X DELETE $API/devices/current -H "$AUTH"   # 204
 ```
 
-**Esperado**: 204; luego 400 `VALIDATION_ERROR` con `fields.token: INVALID_PUSH_TOKEN`; luego
+**Esperado**: 204; luego 400 `VALIDATION_ERROR` con `errors: [{ field: 'token', code: 'INVALID_PUSH_TOKEN' }]`; luego
 204.
 
 `devices.e2e-spec.ts` cubre además:
@@ -126,7 +126,7 @@ curl -s -X POST $API/recurring -H "$AUTH" -H "$JSON" \
   | node -pe 'JSON.parse(require("fs").readFileSync(0)).remindDays'
 ```
 
-**Esperado**: el primero responde 400 con `fields.remindDays: OUT_OF_RANGE`; el segundo da `2`.
+**Esperado**: el primero responde 400 con `errors: [{ field: 'remindDays', code: 'OUT_OF_RANGE' }]`; el segundo da `2`.
 `firstDueDate` debe estar entre el 1.º del mes actual y hoy + 12 meses (spec 005).
 
 `reminders.e2e-spec.ts` comprueba además:

@@ -1,12 +1,13 @@
 import { Module } from '@nestjs/common';
 import { CardsModule } from '../cards/cards.module';
 import { LedgerModule } from '../ledger/ledger.module';
+import { NotificationsModule } from '../notifications/notifications.module';
 import { PurchasesController } from './purchases.controller';
 import { PurchasesService } from './purchases.service';
 
 /** Spec 003: purchases and their installment plans. */
 @Module({
-  imports: [LedgerModule, CardsModule],
+  imports: [LedgerModule, CardsModule, NotificationsModule],
   controllers: [PurchasesController],
   providers: [PurchasesService],
 })

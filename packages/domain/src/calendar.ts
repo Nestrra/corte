@@ -101,3 +101,35 @@ function dayNumber({ year, month, day }: CalendarDate): number {
 export function daysBetween(from: IsoDate, to: IsoDate): number {
   return dayNumber(parseIsoDate(to)) - dayNumber(parseIsoDate(from));
 }
+
+/** Inverse of `dayNumber` ("civil from days"). */
+function fromDayNumber(days: number): CalendarDate {
+  const z = days + 719_468;
+  const era = Math.floor(z / 146_097);
+  const dayOfEra = z - era * 146_097;
+  const yearOfEra = Math.floor(
+    (dayOfEra -
+      Math.floor(dayOfEra / 1460) +
+      Math.floor(dayOfEra / 36_524) -
+      Math.floor(dayOfEra / 146_096)) /
+      365,
+  );
+  const dayOfYear =
+    dayOfEra - (365 * yearOfEra + Math.floor(yearOfEra / 4) - Math.floor(yearOfEra / 100));
+  const monthIndex = Math.floor((5 * dayOfYear + 2) / 153); // March = 0
+  const day = dayOfYear - Math.floor((153 * monthIndex + 2) / 5) + 1;
+  const month = monthIndex < 10 ? monthIndex + 3 : monthIndex - 9;
+  const year = yearOfEra + era * 400 + (month <= 2 ? 1 : 0);
+  return { year, month, day };
+}
+
+/** `date` plus `days` calendar days (negative to go back), across months and years. */
+export function addDays(date: IsoDate, days: number): IsoDate {
+  if (!Number.isInteger(days)) throw new RangeError(`Invalid number of days: ${days}`);
+  return toIsoDate(fromDayNumber(dayNumber(parseIsoDate(date)) + days));
+}
+
+/** The later of two dates. */
+export function maxIsoDate(a: IsoDate, b: IsoDate): IsoDate {
+  return compareIsoDates(a, b) >= 0 ? a : b;
+}

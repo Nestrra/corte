@@ -14,6 +14,9 @@ export type ApiErrorCode =
   | 'CARD_ARCHIVED'
   | 'STATEMENT_OPEN'
   | 'RECURRING_DELETED'
+  | 'DEVICE_NOT_REGISTERED'
+  | 'TEST_RATE_LIMITED'
+  | 'PUSH_FAILED'
   | 'UNKNOWN';
 
 export interface FieldError {
@@ -67,6 +70,10 @@ const codeTexts: Partial<Record<ApiErrorCode, string>> = {
   STATEMENT_OPEN: 'Este extracto aún no corta; podrás pagarlo después del corte',
   // specs/005-recurring-payments/contracts/recurring.openapi.yaml
   RECURRING_DELETED: 'Este pago fue eliminado; lo pagado no se puede deshacer',
+  // specs/006-alerts-reminders/contracts/screens.md → Prueba
+  DEVICE_NOT_REGISTERED: 'Activa las notificaciones para recibir la prueba',
+  TEST_RATE_LIMITED: 'Espera unos segundos antes de enviar otra prueba',
+  PUSH_FAILED: 'No pudimos enviar la notificación. Intenta de nuevo.',
 };
 
 // specs/003-purchases/contracts/errors.md: the same codes read differently on purchase and
@@ -203,6 +210,9 @@ const KNOWN_CODES = new Set<string>([
   'CARD_ARCHIVED',
   'STATEMENT_OPEN',
   'RECURRING_DELETED',
+  'DEVICE_NOT_REGISTERED',
+  'TEST_RATE_LIMITED',
+  'PUSH_FAILED',
 ]);
 
 /** Builds an ApiError from any response body, tolerating unexpected shapes. */

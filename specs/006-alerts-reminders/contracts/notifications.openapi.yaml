@@ -8,7 +8,7 @@ info:
     usuario ni de sesión (principio III). Con la contraseña temporal pendiente, todo responde 403
     PASSWORD_CHANGE_REQUIRED (spec 001). Errores: specs/003-purchases/contracts/errors.md más
     DEVICE_NOT_REGISTERED, TEST_RATE_LIMITED, PUSH_FAILED y los códigos de campo de este
-    archivo. Las alertas de tope y los recordatorios no tienen endpoint: los generan el registro
+    archivo, en `errors: [{ field, code }]`. Las alertas de tope y los recordatorios no tienen endpoint: los generan el registro
     y la edición de compras (después de responder) y el job cada 15 minutos (research.md R3 y
     R7).
 servers:
@@ -77,11 +77,19 @@ components:
       properties:
         code: { type: string }
         message: { type: string }
-        fields: { type: object, additionalProperties: { type: string } }
+        errors:
+          type: array
+          description: Errores por campo (specs/003-purchases/contracts/errors.md)
+          items:
+            type: object
+            required: [field, code]
+            properties:
+              field: { type: string }
+              code: { type: string }
         retryAfterSeconds: { type: integer, minimum: 1 }
   responses:
     Validation:
-      description: 400 VALIDATION_ERROR con `fields`
+      description: 400 VALIDATION_ERROR con `errors` por campo
       content:
         application/json:
           schema: { $ref: '#/components/schemas/Error' }
@@ -106,7 +114,7 @@ paths:
       responses:
         '204': { description: Registrado }
         '400':
-          description: 'VALIDATION_ERROR; fields.token: INVALID_PUSH_TOKEN, fields.platform: INVALID'
+          description: 'VALIDATION_ERROR; errors: token → INVALID_PUSH_TOKEN, platform → INVALID'
           content:
             application/json:
               schema: { $ref: '#/components/schemas/Error' }
@@ -163,7 +171,7 @@ paths:
       summary: '(spec 005) Crear pago recurrente — se agrega `remindDays`'
       description: >
         Igual que en specs/005-recurring-payments/contracts/recurring.openapi.yaml, más
-        `remindDays` (entero 0–15, opcional, por defecto 2; fields.remindDays: OUT_OF_RANGE).
+        `remindDays` (entero 0–15, opcional, por defecto 2; errors: remindDays → OUT_OF_RANGE).
         `RecurringPayment` incluye `remindDays` en todas las respuestas.
       responses:
         '201': { description: Creado (con remindDays) }

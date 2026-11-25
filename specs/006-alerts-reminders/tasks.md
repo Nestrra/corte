@@ -52,11 +52,11 @@ app.get(BackgroundTasks).drain()`.
 
 **Purpose**: dependencias, variables de entorno, códigos de error y ayudas de prueba.
 
-- [ ] T001 Add `expo-server-sdk@^8` and `@nestjs/schedule@^12` to `apps/api/package.json` with `pnpm --filter api add expo-server-sdk@^8 @nestjs/schedule@^12` (research.md R16); confirm `pnpm --filter api typecheck` and `pnpm --filter api test` still pass and that the lockfile only adds these two packages and their dependencies
-- [ ] T002 [P] Add `JOBS_ENABLED` (`"true"`/`"false"` → boolean, default `true`) and optional `EXPO_ACCESS_TOKEN` to `apps/api/src/config/env.schema.ts` with unit cases in `apps/api/src/config/env.schema.spec.ts` (invalid `JOBS_ENABLED` names the variable without its value); add both, commented, to `apps/api/.env.example` (research.md R17)
-- [ ] T003 [P] Add `DEVICE_NOT_REGISTERED` (409), `TEST_RATE_LIMITED` (429, with `retryAfterSeconds` in the body), `PUSH_FAILED` (502) and the field code `INVALID_PUSH_TOKEN` to `apps/api/src/common/errors.ts`, following the existing `AppErrors` pattern; add their Spanish texts to `apps/mobile/src/api/errors.ts` (contracts/screens.md → Prueba)
-- [ ] T004 [P] Create `apps/api/test/fake-push-client.ts`: `FakePushClient` implements `PushClient` (research.md R5) and records `sent: PushMessage[]`. It returns one `ok` ticket per message with a generated id, and lets a test program per-token ticket errors (`DeviceNotRegistered`, other), receipt errors and a thrown error for the whole call. Add `reset()`
-- [ ] T005 Extend `apps/api/test/helpers.ts` (depends on T004):
+- [x] T001 Add `expo-server-sdk@^8` and `@nestjs/schedule@^12` to `apps/api/package.json` with `pnpm --filter api add expo-server-sdk@^8 @nestjs/schedule@^12` (research.md R16); confirm `pnpm --filter api typecheck` and `pnpm --filter api test` still pass and that the lockfile only adds these two packages and their dependencies
+- [x] T002 [P] Add `JOBS_ENABLED` (`"true"`/`"false"` → boolean, default `true`) and optional `EXPO_ACCESS_TOKEN` to `apps/api/src/config/env.schema.ts` with unit cases in `apps/api/src/config/env.schema.spec.ts` (invalid `JOBS_ENABLED` names the variable without its value); add both, commented, to `apps/api/.env.example` (research.md R17)
+- [x] T003 [P] Add `DEVICE_NOT_REGISTERED` (409), `TEST_RATE_LIMITED` (429, with `retryAfterSeconds` in the body), `PUSH_FAILED` (502) and the field code `INVALID_PUSH_TOKEN` to `apps/api/src/common/errors.ts`, following the existing `AppErrors` pattern; add their Spanish texts to `apps/mobile/src/api/errors.ts` (contracts/screens.md → Prueba)
+- [x] T004 [P] Create `apps/api/test/fake-push-client.ts`: `FakePushClient` implements `PushClient` (research.md R5) and records `sent: PushMessage[]`. It returns one `ok` ticket per message with a generated id, and lets a test program per-token ticket errors (`DeviceNotRegistered`, other), receipt errors and a thrown error for the whole call. Add `reset()`
+- [x] T005 Extend `apps/api/test/helpers.ts` (depends on T004):
   - `createTestApp` options `clock` (a `MutableClock` with `set(date)` and `now()`) and `push` (a `FakePushClient`, overriding `PUSH_CLIENT`);
   - always `JOBS_ENABLED: 'false'` in the e2e env;
   - `ALERTS_NOW`;
@@ -74,8 +74,8 @@ la app.
 
 ### Tests (write first, must FAIL) ⚠️
 
-- [ ] T006 [P] Add `addDays` and `maxIsoDate` tests to `packages/domain/src/calendar.test.ts`: 2026-12-08 − 2 → 2026-12-06; 2027-01-01 − 2 → 2026-12-30; 2028-03-01 − 1 → 2028-02-29; + 0 is the same date; invalid date throws
-- [ ] T007 [P] Write `packages/domain/src/notifications.test.ts`, `describe('budgetAlert')` (research.md R1, R2):
+- [x] T006 [P] Add `addDays` and `maxIsoDate` tests to `packages/domain/src/calendar.test.ts`: 2026-12-08 − 2 → 2026-12-06; 2027-01-01 − 2 → 2026-12-30; 2028-03-01 − 1 → 2028-02-29; + 0 is the same date; invalid date throws
+- [x] T007 [P] Write `packages/domain/src/notifications.test.ts`, `describe('budgetAlert')` (research.md R1, R2):
   - 65 → 95 with none notified → `{ alert: 90, mark: [70, 90] }` (spec criterion);
   - 95 → 102 with [70, 90] → `{ alert: 100, mark: [100] }`;
   - 50 → 110 → `{ alert: 100, mark: [70, 90, 100] }`;
@@ -83,7 +83,7 @@ la app.
   - 72 with 70 already notified → none;
   - before ≥ threshold not notified (75 → 80) → none (not crossed);
   - after < before → none.
-- [ ] T008 [P] Add `describe('reminder dates')` to `packages/domain/src/notifications.test.ts`:
+- [x] T008 [P] Add `describe('reminder dates')` to `packages/domain/src/notifications.test.ts`:
   - `cutoffReminderDate('2026-12-08', 2)` → 2026-12-06, with N = 0 → the same day;
   - a card with cutoff day 31 in February 2027 → cutoff 2027-02-28, reminder 2027-02-26;
   - cutoff day 31 in a 30-day month (November 2026) → cutoff 2026-11-30, reminder with N 2 on 2026-11-28;
@@ -92,7 +92,7 @@ la app.
   - cutoff 2026-12-20, due 2026-12-22 and N = 3 → 2026-12-21 (day after the cutoff);
   - `recurringReminderDate('2027-03-10', 15)` → 2027-02-23;
   - 2027-01-01 − 2 → 2026-12-30.
-- [ ] T009 [P] Add `describe('remindersFor')` and `describe('texts')` to `packages/domain/src/notifications.test.ts`:
+- [x] T009 [P] Add `describe('remindersFor')` and `describe('texts')` to `packages/domain/src/notifications.test.ts`:
   - **`remindersFor`**:
     - on 2026-12-06 a card with cutoff 8, N 2 and `openAmount` 1.900.000 → one `cutoff_reminder` with `referenceDate` 2026-12-08, title "Visa principal" and body "El corte es en 2 días (8 dic). Llevas $1.900.000 en este ciclo."; on 2026-12-07 → none; `openAmount` 0 → none;
     - a statement with due 2026-12-25, N 3, total 1.950.000 on 2026-12-22 → "Paga $1.950.000 hasta el 25 dic (faltan 3 días)."; total 0 → none; today after `dueDate` → none;
@@ -105,12 +105,12 @@ la app.
   - **`isDailyDispatchDue`**: '06:59' → false, '07:00' → true, '23:59' → true.
 
   All texts are exactly those of contracts/push-messages.md.
-- [ ] T010 [P] Add unit tests for `localDateTimeIn(timezone, now)` to `apps/api/src/common/today.spec.ts`: `2026-12-06T12:00:00Z` in America/Bogota → `{ date: '2026-12-06', time: '07:00' }`; 11:59Z → '06:59'; Europe/Madrid → '13:00'; a time zone with a half hour (Asia/Kolkata) → '17:30'
+- [x] T010 [P] Add unit tests for `localDateTimeIn(timezone, now)` to `apps/api/src/common/today.spec.ts`: `2026-12-06T12:00:00Z` in America/Bogota → `{ date: '2026-12-06', time: '07:00' }`; 11:59Z → '06:59'; Europe/Madrid → '13:00'; a time zone with a half hour (Asia/Kolkata) → '17:30'
 
 ### Implementation
 
-- [ ] T011 Add `addDays` and `maxIsoDate` to `packages/domain/src/calendar.ts` (reusing `parseIsoDate`, `daysInMonth` and `toIsoDate`) and make T006 pass
-- [ ] T012 Implement `packages/domain/src/notifications.ts` per research.md R1, R2 and contracts/push-messages.md:
+- [x] T011 Add `addDays` and `maxIsoDate` to `packages/domain/src/calendar.ts` (reusing `parseIsoDate`, `daysInMonth` and `toIsoDate`) and make T006 pass
+- [x] T012 Implement `packages/domain/src/notifications.ts` per research.md R1, R2 and contracts/push-messages.md:
   - `BUDGET_THRESHOLDS`, `budgetAlert`;
   - `cutoffReminderDate`, `paymentReminderDate`, `recurringReminderDate`;
   - `remindersFor` (types `Reminder` and `PushContent` of data-model.md → Estructuras del dominio), `dailyDigest`, `budgetAlertContent`, `TEST_PUSH_CONTENT`;
@@ -119,8 +119,8 @@ la app.
   - texts no longer than data-model.md → `Notification.title` and `Notification.body`.
 
   Export from `packages/domain/src/index.ts`; make T007–T009 pass; run `pnpm --filter @corte/domain test:cov` (≥ 95%) and `pnpm --filter @corte/domain build`.
-- [ ] T013 Add `localDateTimeIn(timezone, now)` next to `todayInTimeZone` in `apps/api/src/common/today.ts` (Intl `hourCycle: 'h23'`); make T010 pass
-- [ ] T014 Extend `apps/api/prisma/schema.prisma` and generate the migration:
+- [x] T013 Add `localDateTimeIn(timezone, now)` next to `todayInTimeZone` in `apps/api/src/common/today.ts` (Intl `hourCycle: 'h23'`); make T010 pass
+- [x] T014 Extend `apps/api/prisma/schema.prisma` and generate the migration:
   - enums `DevicePlatform` (`ios`, `android` → `device_platform`) and `NotificationKind` (`budget_alert`, `cutoff_reminder`, `payment_reminder`, `recurring_reminder`, `daily_digest` → `notification_kind`);
   - models with the columns, types, cascades, unique keys and indexes of data-model.md:
     - `Device`: data-model.md → `Device.userId`, `Device.sessionId`, `Device.token`, `Device.platform`, `Device.lastSeenAt`, `Device.lastTestAt`;
@@ -138,25 +138,25 @@ la app.
   - CHECK `remind_days BETWEEN 0 AND 15` with default 2.
 
   Run `pnpm --filter api prisma:generate`.
-- [ ] T015 [P] Create `apps/api/src/common/background-tasks.ts`:
+- [x] T015 [P] Create `apps/api/src/common/background-tasks.ts`:
   - `BackgroundTasks` (global provider) with `track(promise, label)`, which catches and logs the error with `Logger.error`, never with tokens or amounts, and `drain()`;
   - register it in `ClockModule` or a new global `CommonModule`;
   - call `app.enableShutdownHooks()` in `apps/api/src/main.ts` and drain on `onApplicationShutdown` (research.md R3).
-- [ ] T016 Create the push layer in `apps/api/src/notifications/` (research.md R5, R8; depends on T014):
+- [x] T016 Create the push layer in `apps/api/src/notifications/` (research.md R5, R8; depends on T014):
   - **`push-client.ts`**: interface `PushClient` with `send` and `receipts`, types `PushMessage`, `PushTicket` and `PushReceipt`, token `PUSH_CLIENT`.
   - **`expo-push-client.ts`**: built with `new Expo({ accessToken: EXPO_ACCESS_TOKEN })`; uses `chunkPushNotifications` / `sendPushNotificationsAsync` and `chunkPushNotificationReceiptIds` / `getPushNotificationReceiptsAsync`; maps errors to `DeviceNotRegistered` or `other`.
   - **`push-sender.ts`**:
     - `activeTokens(userId)` and `sessionTokens(sessionId)`: devices whose session is active, with the condition of data-model.md → Device (`Device.sessionId` joined to `refresh_tokens.family_id`);
     - `sendToUser(userId, content)` and `sendToTokens(tokens, content)`: build the message with `channelId 'default'`, `sound 'default'` and `data { notificationId?, target }`, never the `userId`; save the `ok` tickets in `push_tickets` (data-model.md → `PushTicket.id`, `PushTicket.token`); delete the device on a `DeviceNotRegistered` ticket.
   - **`notifications.module.ts`**: provides `PUSH_CLIENT` → `ExpoPushClient` and exports `PushSender`; register it in `apps/api/src/app.module.ts`.
-- [ ] T017 Write `apps/api/test/devices.e2e-spec.ts` (register part) with `ALERTS_NOW` (test first, must FAIL):
+- [x] T017 Write `apps/api/test/devices.e2e-spec.ts` (register part) with `ALERTS_NOW` (test first, must FAIL):
   - POST `/devices` with a valid token → 204 and one row with `user_id` and `session_id` of the token;
   - the same token again → still one row with `last_seen_at` updated;
-  - `{ token: 'abc' }` → 400 `fields.token: INVALID_PUSH_TOKEN`; `platform: 'web'` → 400; unknown field → 400;
+  - `{ token: 'abc' }` → 400 with error `token: INVALID_PUSH_TOKEN`; `platform: 'web'` → 400; unknown field → 400;
   - without auth → 401;
   - the same token posted by user B → the row now belongs to B and B's session (data-model.md → `Device.token` unique, research.md R4);
   - DELETE `/devices/current` → 204 and the session's devices gone, a second call → 204.
-- [ ] T018 Implement `apps/api/src/notifications/devices.service.ts`, `devices.controller.ts` (POST `/devices` with `@HttpCode(204)` and upsert by token; DELETE `/devices/current`) and `notifications.schemas.ts` (zod: `token` with `Expo.isExpoPushToken` → `INVALID_PUSH_TOKEN`, max 255 per data-model.md → `Device.token`; `platform` per data-model.md → `Device.platform`); make T017 pass
+- [x] T018 Implement `apps/api/src/notifications/devices.service.ts`, `devices.controller.ts` (POST `/devices` with `@HttpCode(204)` and upsert by token; DELETE `/devices/current`) and `notifications.schemas.ts` (zod: `token` with `Expo.isExpoPushToken` → `INVALID_PUSH_TOKEN`, max 255 per data-model.md → `Device.token`; `platform` per data-model.md → `Device.platform`); make T017 pass
 - [ ] T019 [P] Add `apps/mobile/src/api/notifications.ts`:
   - the types of contracts/notifications.openapi.yaml (`Notification`, `NotificationKind`, `NotificationTarget`);
   - `registerDevice`, `unregisterCurrentDevice`, `getNotifications`, `sendTestNotification`;
@@ -210,7 +210,7 @@ ciclo.
 
 ### Tests for User Story 2 (write first, must FAIL) ⚠️
 
-- [ ] T026 [P] [US2] Write `apps/api/test/budget-alerts.e2e-spec.ts` with `ALERTS_NOW`, a `FakePushClient`, "Visa principal" (cutoff 8, due 25, budget 2.000.000) and a registered device:
+- [x] T026 [P] [US2] Write `apps/api/test/budget-alerts.e2e-spec.ts` with `ALERTS_NOW`, a `FakePushClient`, "Visa principal" (cutoff 8, due 25, budget 2.000.000) and a registered device:
   - **criterion**: purchases reaching 1.300.000 in the open statement (cutoff 2026-12-08), then 600.000 at 1 installment → after `drainBackground`, exactly one message "Visa principal" / "Llevas el 95% del tope de este ciclo." with `data.target` `{ type: 'card', id }` and no `userId`; dispatches for thresholds 70 and 90 with `reference_date` 2026-12-08 (data-model.md → `NotificationDispatch.threshold`, `NotificationDispatch.referenceDate`); one `notifications` row;
   - **more purchases**: another one to 102% → "Superaste el tope de este ciclo (102%)."; more purchases → nothing;
   - **once per cycle**: delete purchases to 60% and add back to 72% → nothing;
@@ -226,7 +226,7 @@ ciclo.
 
 ### Implementation for User Story 2
 
-- [ ] T027 [US2] Create `apps/api/src/notifications/budget-alerts.service.ts` with `onBudgetChange(change)` (research.md R3):
+- [x] T027 [US2] Create `apps/api/src/notifications/budget-alerts.service.ts` with `onBudgetChange(change)` (research.md R3):
   1. compute the percents with `budgetUsagePercent`;
   2. read the notified thresholds of `(card, cutoff)`;
   3. call `budgetAlert`;
@@ -234,7 +234,7 @@ ciclo.
   5. after the commit, `PushSender.sendToUser`.
 
   Export it from `notifications.module.ts`.
-- [ ] T028 [US2] In `apps/api/src/purchases/purchases.service.ts` `create` and `update`:
+- [x] T028 [US2] In `apps/api/src/purchases/purchases.service.ts` `create` and `update`:
   - inside the existing transaction, after `lockOwnedCard`, read `before = totalForCutoff(card.id, nextCutoff(today, card).cutoffDate, tx)`, and after the plan writes, `after`;
   - return `{ userId, cardId, cardName, cutoffDate, cycleBudget, before, after }` with the result;
   - after the transaction resolves, call `backgroundTasks.track(budgetAlerts.onBudgetChange(change), 'budget-alert')` without awaiting it; `remove` does nothing;
@@ -255,7 +255,7 @@ activas.
 
 ### Tests for User Story 3 (write first, must FAIL) ⚠️
 
-- [ ] T029 [P] [US3] Write `apps/api/test/reminders.e2e-spec.ts` (cards part) with a mutable clock and `FakePushClient`. Setup: an America/Bogota user with a device and "Visa principal" (cutoff 8, due 25, reminders 2 and 3) with 1.900.000 in the cycle that cuts on 2026-12-08. Cases, each run with `app.get(NotificationsJobs).runOnce()` at the given instant:
+- [x] T029 [P] [US3] Write `apps/api/test/reminders.e2e-spec.ts` (cards part) with a mutable clock and `FakePushClient`. Setup: an America/Bogota user with a device and "Visa principal" (cutoff 8, due 25, reminders 2 and 3) with 1.900.000 in the cycle that cuts on 2026-12-08. Cases, each run with `app.get(NotificationsJobs).runOnce()` at the given instant:
   - `2026-12-06T11:59Z` → nothing; `12:00Z` → "El corte es en 2 días (8 dic). Llevas $1.900.000 en este ciclo." with target `card`;
   - `2026-12-07T12:00Z` → nothing;
   - N 0 on 2026-12-08 → "El corte es hoy (8 dic)…";
@@ -268,14 +268,14 @@ activas.
 
 ### Implementation for User Story 3
 
-- [ ] T030 [US3] Create `apps/api/src/notifications/reminders.service.ts` with `runForUser(user, now)` (research.md R7):
+- [x] T030 [US3] Create `apps/api/src/notifications/reminders.service.ts` with `runForUser(user, now)` (research.md R7):
   1. compute `localDateTimeIn`; return if `!isDailyDispatchDue`;
   2. in a transaction, insert the `daily_digest` dispatch (data-model.md → `NotificationDispatch.kind`, `NotificationDispatch.referenceId` = user id, `NotificationDispatch.referenceDate` = local date) and return if it already existed;
   3. gather the active (non-archived) cards with `nextCutoff` and `openAmount` (`LedgerService.totalsForCutoffs`), and the unpaid statements with cutoff < today **of those same active cards**, with their totals (`totalsByStatement`) and the card's `remindDueDays` (FR-020);
   4. call `remindersFor` (cards only until US4);
   5. insert the dispatches with `skipDuplicates` and the notifications for the ones actually inserted;
   6. after the commit, `PushSender.sendToUser(dailyDigest(inserted))` when it is not null.
-- [ ] T031 [US3] Create `apps/api/src/notifications/notifications.jobs.ts`:
+- [x] T031 [US3] Create `apps/api/src/notifications/notifications.jobs.ts`:
   - `NotificationsJobs.runOnce()` with an in-memory `running` guard: lists the users with their time zone and calls `runForUser` for each, catching and logging per user;
   - `@Cron('0 */15 * * * *') handle()` calls `runOnce()`;
   - always provide `NotificationsJobs` in `notifications.module.ts`, so `app.get(NotificationsJobs).runOnce()` works in the e2e;
@@ -295,7 +295,7 @@ activas.
 
 ### Tests for User Story 5 (write first, must FAIL) ⚠️
 
-- [ ] T032 [P] [US5] Add to `apps/api/test/reminders.e2e-spec.ts`:
+- [x] T032 [P] [US5] Add to `apps/api/test/reminders.e2e-spec.ts`:
   - two reminders on the same day (two cards with the cutoff two days later) → one message "Tienes 2 recordatorios hoy" with target `history` and two `notifications` rows;
   - `runOnce()` twice at 7:00 and again at 9:30 → still one message and one `daily_digest` dispatch (SC-004);
   - the server "down" at 7:00: first run at 11:00 the same day → sends; a first run the next day at 7:00 → only that day's reminders, nothing from the day before;
@@ -305,7 +305,7 @@ activas.
 
 ### Implementation for User Story 5
 
-- [ ] T033 [US5] Adjust `reminders.service.ts` and `notifications.jobs.ts` until T032 passes, without moving rules out of the domain: the `daily_digest` dispatch is inserted before gathering, the reminder dispatches are keyed by the event date, and the `running` guard covers the concurrent runs
+- [x] T033 [US5] Adjust `reminders.service.ts` and `notifications.jobs.ts` until T032 passes, without moving rules out of the domain: the `daily_digest` dispatch is inserted before gathering, the reminder dispatches are keyed by the event date, and the `running` guard covers the concurrent runs
 
 **Checkpoint**: US5 complete: one push a day, no repeats.
 
@@ -319,7 +319,7 @@ activas.
 
 ### Tests for User Story 9 (write first, must FAIL) ⚠️
 
-- [ ] T034 [P] [US9] Add to `apps/api/test/devices.e2e-spec.ts`:
+- [x] T034 [P] [US9] Add to `apps/api/test/devices.e2e-spec.ts`:
   - two sessions of the same user with one device each → a budget alert reaches both tokens;
   - POST `/auth/logout` in one → its device row is gone and the next alert reaches only the other;
   - change password → the other sessions' devices are gone and the current one stays;
@@ -327,7 +327,7 @@ activas.
   - DELETE `/me` → rows gone by cascade;
   - refresh-token reuse that revokes the family → device gone;
   - an expired session (move `expires_at` back with Prisma) → not in `activeTokens` (data-model.md → Device, active device).
-- [ ] T035 [P] [US9] Write `apps/api/test/push-receipts.e2e-spec.ts` with the mutable clock:
+- [x] T035 [P] [US9] Write `apps/api/test/push-receipts.e2e-spec.ts` with the mutable clock:
   - a ticket error `DeviceNotRegistered` → the device is deleted immediately;
   - an `ok` ticket whose receipt is `DeviceNotRegistered`: at +10 min `runOnce()` does not check it; at +16 min it deletes the device and the ticket (data-model.md → `PushTicket.createdAt`);
   - a ticket older than 24 h without a receipt → deleted;
@@ -335,8 +335,8 @@ activas.
 
 ### Implementation for User Story 9
 
-- [ ] T036 [US9] In `apps/api/src/auth/tokens.service.ts`, make `revokeFamily(sessionId)` and `revokeAllForUser(userId, except?)` also `prisma.device.deleteMany` for the revoked sessions, in the same transaction as the token update (research.md R4); no import of `NotificationsModule`. Make T034 pass and keep `logout.e2e-spec.ts`, `change-password.e2e-spec.ts` and `admin-reset.e2e-spec.ts` green
-- [ ] T037 [US9] Add to `notifications.jobs.ts` the receipts step (tickets older than 15 min → `PushClient.receipts`, delete devices with `DeviceNotRegistered`, delete checked tickets and tickets older than 24 h) and the devices cleanup (sessions no longer active); make T035 pass
+- [x] T036 [US9] In `apps/api/src/auth/tokens.service.ts`, make `revokeFamily(sessionId)` and `revokeAllForUser(userId, except?)` also `prisma.device.deleteMany` for the revoked sessions, in the same transaction as the token update (research.md R4); no import of `NotificationsModule`. Make T034 pass and keep `logout.e2e-spec.ts`, `change-password.e2e-spec.ts` and `admin-reset.e2e-spec.ts` green
+- [x] T037 [US9] Add to `notifications.jobs.ts` the receipts step (tickets older than 15 min → `PushClient.receipts`, delete devices with `DeviceNotRegistered`, delete checked tickets and tickets older than 24 h) and the devices cleanup (sessions no longer active); make T035 pass
 
 **Checkpoint**: US9 complete.
 
@@ -350,11 +350,11 @@ activas.
 
 ### Tests for User Story 4 (write first, must FAIL) ⚠️
 
-- [ ] T038 [P] [US4] Add `remindDays` cases to `apps/api/test/recurring.e2e-spec.ts`:
-  - POST without it → `remindDays` 2; with 0 and 15 → stored; 16, −1 and 1.5 → 400 `fields.remindDays: OUT_OF_RANGE` (data-model.md → `RecurringPayment.remindDays`);
+- [x] T038 [P] [US4] Add `remindDays` cases to `apps/api/test/recurring.e2e-spec.ts`:
+  - POST without it → `remindDays` 2; with 0 and 15 → stored; 16, −1 and 1.5 → 400 with error `remindDays: OUT_OF_RANGE` (data-model.md → `RecurringPayment.remindDays`);
   - PATCH `{ remindDays: 5 }` → 200 with 5, occurrences unchanged;
   - GET list and detail include it.
-- [ ] T039 [P] [US4] Add the recurring part to `apps/api/test/reminders.e2e-spec.ts`:
+- [x] T039 [P] [US4] Add the recurring part to `apps/api/test/reminders.e2e-spec.ts`:
   - "Celular" 65.000 due 2026-12-28 with N 2, December never read → at `2026-12-26T12:00Z` "$65.000 vence el 28 dic (en 2 días)." with target `occurrence`; paid on 2026-12-24 → nothing;
   - paused in December with the December occurrence kept → reminder; January → nothing;
   - deleted → nothing;
@@ -363,8 +363,8 @@ activas.
 
 ### Implementation for User Story 4
 
-- [ ] T040 [US4] Add `remindDays` to `apps/api/src/recurring/recurring.schemas.ts` (optional, `validateReminderDays`), `recurring.service.ts` (create and update) and `recurring.mapper.ts` (`RecurringPayment.remindDays`, data-model.md → `RecurringPayment.remindDays`); make T038 pass
-- [ ] T041 [US4] Expose `materializeThrough` for the job, or add `RecurringService.materializeForReminders(tx, userId, until)` that locks the user's payments and inserts the occurrences up to `until` with `duePeriods`. In `reminders.service.ts`, materialize up to today + `REMINDER_DAYS_MAX`, read the unpaid occurrences of non-deleted payments with their payment's `remind_days`, and pass them to `remindersFor`. Import `RecurringModule` in `notifications.module.ts`; make T039 pass
+- [x] T040 [US4] Add `remindDays` to `apps/api/src/recurring/recurring.schemas.ts` (optional, `validateReminderDays`), `recurring.service.ts` (create and update) and `recurring.mapper.ts` (`RecurringPayment.remindDays`, data-model.md → `RecurringPayment.remindDays`); make T038 pass
+- [x] T041 [US4] Expose `materializeThrough` for the job, or add `RecurringService.materializeForReminders(tx, userId, until)` that locks the user's payments and inserts the occurrences up to `until` with `duePeriods`. In `reminders.service.ts`, materialize up to today + `REMINDER_DAYS_MAX`, read the unpaid occurrences of non-deleted payments with their payment's `remind_days`, and pass them to `remindersFor`. Import `RecurringModule` in `notifications.module.ts`; make T039 pass
 - [ ] T042 [P] [US4] Add `remindDays` to `apps/mobile/src/api/recurring.ts` and `apps/mobile/src/features/recurring-schema.ts` (`validateReminderDays`, default 2), the field "Recordar con anticipación" in `apps/mobile/src/components/RecurringForm.tsx` (as "Recordar corte" in `CardForm.tsx`, help "0 = el mismo día"), and "Recordatorio: N días antes" / "el mismo día" in `apps/mobile/src/app/(app)/recurring/[id]/index.tsx`; edit sends it only when changed
 
 **Checkpoint**: US4 complete.
@@ -379,7 +379,7 @@ activas.
 
 ### Tests for User Story 7 (write first, must FAIL) ⚠️
 
-- [ ] T043 [P] [US7] Write `apps/api/test/notifications.e2e-spec.ts` (history part):
+- [x] T043 [P] [US7] Write `apps/api/test/notifications.e2e-spec.ts` (history part):
   - GET `/notifications` with notifications created on several days (Prisma `createdAt`) → only the last 30 days, newest first, fields of contracts/notifications.openapi.yaml `Notification`;
   - 205 rows → 200 returned;
   - a user without any → `items: []`;
@@ -387,7 +387,7 @@ activas.
 
 ### Implementation for User Story 7
 
-- [ ] T044 [US7] Create `apps/api/src/notifications/notifications.service.ts` (`history(userId)`) and `notifications.controller.ts` (GET `/notifications`); add the cleanup step to `notifications.jobs.ts`; make T043 pass
+- [x] T044 [US7] Create `apps/api/src/notifications/notifications.service.ts` (`history(userId)`) and `notifications.controller.ts` (GET `/notifications`); add the cleanup step to `notifications.jobs.ts`; make T043 pass
 - [ ] T045 [P] [US7] Implement `apps/mobile/src/components/NotificationRow.tsx` per contracts/screens.md (icon by kind, title, text up to 3 lines, date "Hoy, 7:00" / "Ayer, 15:42" / "23 nov, 7:00" with a new helper in `apps/mobile/src/features/dates.ts`, ≥ 44, accessible label as one sentence) and `apps/mobile/src/components/BellButton.tsx` (44 × 44, `notifications-outline` in `primaryStrong`, label "Notificaciones")
 - [ ] T046 [US7] Create `apps/mobile/src/app/(app)/notifications.tsx`:
   - list of NotificationRow with pull to refresh and the empty text "Sin notificaciones en los últimos 30 días";
@@ -429,7 +429,7 @@ activas.
 
 ### Tests for User Story 8 (write first, must FAIL) ⚠️
 
-- [ ] T049 [P] [US8] Add to `apps/api/test/notifications.e2e-spec.ts`:
+- [x] T049 [P] [US8] Add to `apps/api/test/notifications.e2e-spec.ts`:
   - POST `/notifications/test` without a device in the session → 409 `DEVICE_NOT_REGISTERED`;
   - with one → 202 `{ sent: 1 }` and one message "Corte" / "Las notificaciones funcionan." only to this session's token (another session of the same user with its own device gets nothing);
   - again at +10 s → 429 `TEST_RATE_LIMITED` with `retryAfterSeconds` 20; at +31 s → 202 (data-model.md → `Device.lastTestAt`);
@@ -438,7 +438,7 @@ activas.
 
 ### Implementation for User Story 8
 
-- [ ] T050 [US8] Implement `test(user)` in `notifications.service.ts` and POST `/notifications/test` (`@HttpCode(202)`) in `notifications.controller.ts` (research.md R11: session tokens, `last_test_at` with the `Clock`, `TEST_PUSH_CONTENT`, no history); make T049 pass
+- [x] T050 [US8] Implement `test(user)` in `notifications.service.ts` and POST `/notifications/test` (`@HttpCode(202)`) in `notifications.controller.ts` (research.md R11: session tokens, `last_test_at` with the `Clock`, `TEST_PUSH_CONTENT`, no history); make T049 pass
 - [ ] T051 [US8] Add the button "Enviar notificación de prueba" to `apps/mobile/src/app/(app)/(tabs)/profile.tsx`:
   - only with status "Activadas";
   - messages for 202, 409, 429 (disabled with "Espera <s> s" counting down) and 502 or network errors, per contracts/screens.md → Prueba.
@@ -453,7 +453,7 @@ activas.
 
 **Independent Test**: `pnpm --filter api test:e2e -- notifications-isolation`.
 
-- [ ] T052 [US10] Write `apps/api/test/notifications-isolation.e2e-spec.ts` with users A and B, each with cards, a recurring payment and a device:
+- [x] T052 [US10] Write `apps/api/test/notifications-isolation.e2e-spec.ts` with users A and B, each with cards, a recurring payment and a device:
   - A's budget alert and reminders reach only A's token and A's history, and B's only B's;
   - B's GET `/notifications` has nothing of A;
   - B's DELETE `/devices/current` and POST `/notifications/test` leave A's device untouched and do not send to it;
