@@ -296,7 +296,11 @@ nunca pongas secretos ahí. Después de cambiar `.env`, reinicia Metro con `--cl
 pnpm --filter api dev            # en otra terminal: el API debe estar corriendo
 pnpm --filter mobile start       # Metro; luego "i" (iOS), "a" (Android) o escanea el QR con Expo Go
 pnpm --filter mobile start --clear   # si cambiaste .env o algo se ve desactualizado
+pnpm --filter mobile start --go      # forzar Expo Go (sin --go, Metro abre el development build)
 ```
+
+Con `expo-dev-client` instalado, `expo start` sirve por defecto al **development build** (ver
+"Builds con EAS"). Para seguir usando Expo Go, pasa `--go` o pulsa `s` en Metro para cambiar de modo.
 
 La app usa los tokens de `docs/design-system.md` (`apps/mobile/src/theme`) y los componentes de
 `apps/mobile/src/components`: los base `Text`, `Button`, `TextField` y `Screen`, y los de
@@ -306,6 +310,97 @@ tarjetas `TabBar` (barra inferior con íconos de `@expo/vector-icons`), `CreditC
 reglas de `@corte/domain`). Los montos se muestran con `formatCop` (`$5.000.000`,
 `src/features/money.ts`). No escribas colores, tamaños ni espaciados sueltos en los componentes
 (constitución, principio IX).
+
+### Builds con EAS
+
+La configuración de la app está en `apps/mobile/app.config.ts` (nombre "Corte", bundle identifier
+de iOS y package de Android `io.nrcintelligence.corte`) y los perfiles de build en
+`apps/mobile/eas.json`. La URL del API de cada build sale del `env` de su perfil, no del `.env`
+local (que está en `.gitignore` y no se sube a EAS):
+
+| Perfil        | Para qué                                     | Distribución | Canal         | `EXPO_PUBLIC_API_URL`                          |
+| ------------- | -------------------------------------------- | ------------ | ------------- | ---------------------------------------------- |
+| `development` | Development build (`expo-dev-client`)        | Interna      | `development` | `https://corte-api-staging.nrcintelligence.io` |
+| `preview`     | Probar una versión como la final, en staging | Interna      | `staging`     | `https://corte-api-staging.nrcintelligence.io` |
+| `production`  | Tiendas (App Store y Google Play)            | Tiendas      | `production`  | `https://corte-api.nrcintelligence.io`         |
+
+La versión de compilación (build number de iOS, versionCode de Android) la lleva EAS
+(`appVersionSource: remote`) y el perfil `production` la incrementa en cada build.
+
+El proyecto ya está vinculado a EAS: su id está en la constante `EAS_PROJECT_ID` de
+`apps/mobile/app.config.ts`, de donde salen `extra.eas.projectId` y la URL de EAS Update
+(`https://u.expo.dev/<projectId>`).
+
+**Primera vez en tu máquina** (desde `apps/mobile`):
+
+```bash
+cd apps/mobile
+npx eas-cli login                # cuenta de Expo con acceso al proyecto
+npx eas-cli device:create        # registra tus iPhone para la distribución interna (ad hoc)
+```
+
+**Builds** (desde `apps/mobile`; se compilan en los servidores de EAS):
+
+```bash
+npx eas-cli build --profile development --platform ios       # development build para iPhone
+npx eas-cli build --profile development --platform android   # APK con el dev client
+npx eas-cli build --profile preview --platform all           # iOS ad hoc + APK de Android, contra staging
+npx eas-cli build --profile production --platform all        # binarios para las tiendas
+npx eas-cli build:list                                       # builds anteriores y sus enlaces
+npx eas-cli submit --profile production --platform ios       # subir el último build a App Store Connect
+npx eas-cli submit --profile production --platform android   # subir el último build a Google Play
+```
+
+Con un development build instalado en el teléfono, `pnpm --filter mobile start` y abre la app: se
+conecta a Metro como Expo Go, pero con el código nativo propio (por ejemplo,
+`expo-notifications`). Las builds de `development` y `preview` se instalan desde el enlace o QR
+que muestra EAS al terminar.
+
+### Actualizaciones OTA con EAS Update
+
+`expo-updates` permite publicar cambios de JavaScript y assets sin pasar por un build nuevo ni por
+las tiendas. Cada build escucha el **canal** de su perfil en `eas.json`:
+
+| Perfil        | Canal         | Recibe lo publicado con |
+| ------------- | ------------- | ----------------------- |
+| `development` | `development` | `--channel development` |
+| `preview`     | `staging`     | `--channel staging`     |
+| `production`  | `production`  | `--channel production`  |
+
+La **runtime version** usa la política `fingerprint`: es un hash del código nativo y de la config
+nativa. Un build solo acepta updates con su misma runtime version, así que un update nunca llega a
+un build con un lado nativo distinto. Si cambias algo nativo (agregas o actualizas un paquete con
+código nativo, cambias un plugin, el bundle id, los íconos…), el fingerprint cambia y hace falta un
+**build nuevo**. `eas update` calcula el fingerprint del proyecto local y lo publica con él.
+
+**Publicar en staging** (desde `apps/mobile`, con builds `preview`
+instalados):
+
+```bash
+cd apps/mobile
+EXPO_PUBLIC_API_URL=https://corte-api-staging.nrcintelligence.io \
+  npx eas-cli update --channel staging --message "fix: alinear chips de estado"
+```
+
+La app descarga el update al abrirse y lo aplica en el siguiente arranque (ciérrala del todo y
+ábrela de nuevo).
+
+`EXPO_PUBLIC_API_URL` se embebe en el bundle **al publicar el update**, no al hacer el build: el
+`env` de `eas.json` solo aplica a `eas build`. Por eso hay que pasarla en el comando. Si no se
+pasa, se usa la de tu `.env` local (`localhost`) y la app queda apuntando a tu Mac. Usa la URL de
+producción con `--channel production`.
+
+Otros comandos útiles:
+
+```bash
+npx eas-cli update:list --branch staging              # updates publicados en staging
+npx eas-cli update:republish --group <id>             # volver a publicar un update anterior (rollback)
+npx eas-cli channel:view staging                      # qué branch sirve el canal
+npx eas-cli fingerprint:compare                       # ver si un cambio necesita build nuevo
+```
+
+`eas update --channel staging` publica en el branch de EAS con el mismo nombre (`staging`) y lo
+conecta al canal si todavía no lo está.
 
 ## Imagen Docker
 
