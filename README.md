@@ -332,12 +332,14 @@ La versión de compilación (build number de iOS, versionCode de Android) la lle
 ```bash
 cd apps/mobile
 npx eas-cli login                # cuenta de Expo
-npx eas-cli init                 # crea el proyecto en EAS y agrega su projectId a la config
+npx eas-cli init                 # crea el proyecto en EAS e imprime su projectId
 npx eas-cli device:create        # registra tus iPhone para la distribución interna (ad hoc)
 ```
 
-`eas init` escribe el `projectId` en la config; como es `app.config.ts`, puede pedir que lo
-agregues a mano en `extra.eas.projectId`.
+Como la config es `app.config.ts`, `eas init` no puede escribir el `projectId`: cópialo en la
+constante `EAS_PROJECT_ID` al inicio de `apps/mobile/app.config.ts` y haz commit. De ella salen
+`extra.eas.projectId` y la URL de EAS Update (`https://u.expo.dev/<projectId>`). Mientras esté
+vacía, los builds funcionan pero no reciben actualizaciones OTA.
 
 **Builds** (desde `apps/mobile`; se compilan en los servidores de EAS):
 
@@ -356,8 +358,51 @@ conecta a Metro como Expo Go, pero con el código nativo propio (por ejemplo,
 `expo-notifications`). Las builds de `development` y `preview` se instalan desde el enlace o QR
 que muestra EAS al terminar.
 
-Los canales (`development`, `staging`, `production`) son para EAS Update. Todavía no se usan porque
-`expo-updates` no está instalado; quedan listos para cuando se agreguen actualizaciones OTA.
+### Actualizaciones OTA con EAS Update
+
+`expo-updates` permite publicar cambios de JavaScript y assets sin pasar por un build nuevo ni por
+las tiendas. Cada build escucha el **canal** de su perfil en `eas.json`:
+
+| Perfil        | Canal         | Recibe lo publicado con |
+| ------------- | ------------- | ----------------------- |
+| `development` | `development` | `--channel development` |
+| `preview`     | `staging`     | `--channel staging`     |
+| `production`  | `production`  | `--channel production`  |
+
+La **runtime version** usa la política `fingerprint`: es un hash del código nativo y de la config
+nativa. Un build solo acepta updates con su misma runtime version, así que un update nunca llega a
+un build con un lado nativo distinto. Si cambias algo nativo (agregas o actualizas un paquete con
+código nativo, cambias un plugin, el bundle id, los íconos…), el fingerprint cambia y hace falta un
+**build nuevo**. `eas update` calcula el fingerprint del proyecto local y lo publica con él.
+
+**Publicar en staging** (desde `apps/mobile`, con `EAS_PROJECT_ID` configurado y builds `preview`
+instalados):
+
+```bash
+cd apps/mobile
+EXPO_PUBLIC_API_URL=https://corte-api-staging.nrcintelligence.io \
+  npx eas-cli update --channel staging --message "fix: alinear chips de estado"
+```
+
+La app descarga el update al abrirse y lo aplica en el siguiente arranque (ciérrala del todo y
+ábrela de nuevo).
+
+`EXPO_PUBLIC_API_URL` se embebe en el bundle **al publicar el update**, no al hacer el build: el
+`env` de `eas.json` solo aplica a `eas build`. Por eso hay que pasarla en el comando. Si no se
+pasa, se usa la de tu `.env` local (`localhost`) y la app queda apuntando a tu Mac. Usa la URL de
+producción con `--channel production`.
+
+Otros comandos útiles:
+
+```bash
+npx eas-cli update:list --branch staging              # updates publicados en staging
+npx eas-cli update:republish --group <id>             # volver a publicar un update anterior (rollback)
+npx eas-cli channel:view staging                      # qué branch sirve el canal
+npx eas-cli fingerprint:compare                       # ver si un cambio necesita build nuevo
+```
+
+`eas update --channel staging` publica en el branch de EAS con el mismo nombre (`staging`) y lo
+conecta al canal si todavía no lo está.
 
 ## Imagen Docker
 
